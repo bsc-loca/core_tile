@@ -72,6 +72,7 @@ rr_exe_mem_instr_t   mem_instr;
 rr_exe_simd_instr_t  simd_instr;
 
 exe_wb_scalar_instr_t alu_to_scalar_wb;
+exe_wb_scalar_instr_t bisonn_to_scalar_wb;
 exe_wb_scalar_instr_t mul_to_scalar_wb;
 exe_wb_scalar_instr_t div_to_scalar_wb;
 exe_wb_scalar_instr_t branch_to_scalar_wb;
@@ -118,6 +119,20 @@ logic ready_div_unit;
 
 exception_t mem_ex_int;
 gl_index_t mem_ex_index_int;
+
+/* qnn_bseg start */
+
+  bus64_t bs_rs1_mul_i  ;
+  bus64_t bs_rs2_mul_i  ;
+  logic   bs_mul_valid_i;
+  bus64_t bs_rd_mul_o   ;
+  logic   bs_mul_valid_o;
+
+  logic bisonn_full          ;
+  logic bisonn_is_computing  ;
+  logic stall_bisonn_for_bsip;
+
+/* qnn_bseg end */
 
 // Bypasses
 `ifdef ASSERTIONS
@@ -239,23 +254,54 @@ always_comb begin
     end
 end
 
+/* qnn_bseg start */
+  wire is_mult;
+  assign is_mult = from_rr_i.instr.instr_type == MUL || from_rr_i.instr.instr_type == MULH ||from_rr_i.instr.instr_type == MULHU ||
+  from_rr_i.instr.instr_type == MULHSU || from_rr_i.instr.instr_type == MULW;
+
+  assign stall_bisonn_for_bsip  = (bisonn_full && from_rr_i.instr.instr_type == BS_IP) ? 1'b1 : 1'b0;
+  assign stall_bisonn_for_bsget = (bisonn_is_computing && from_rr_i.instr.instr_type == BS_GET) ? 1'b1 : 1'b0;
+
+  bisonn_top bisonn_top_inst (
+    .clk_i             (clk_i              ),
+    .rstn_i            (rstn_i             ),
+    .instruction_i     (arith_instr        ),
+    .instruction_o     (bisonn_to_scalar_wb),
+    .bisonn_full_o     (bisonn_full        ),
+    .is_computing_o    (bisonn_is_computing),
+    .mul_rs1_o         (bs_rs1_mul_i       ),
+    .mul_rs2_o         (bs_rs2_mul_i       ),
+    .mul_valid_o       (bs_mul_valid_i     ),
+    .mul_result_data_i (bs_rd_mul_o        ),
+    .mul_result_valid_i(bs_mul_valid_o     ),
+    // gp logic
+    .stall_bisonn_for_bsip(stall_bisonn_for_bsip),
+    .stall_bisonn_for_bsget(stall_bisonn_for_bsget)
+  );
+/* qnn_bseg end */
+
 alu alu_inst (
     .instruction_i  (arith_instr),
     .instruction_o  (alu_to_scalar_wb)
 );
 
-mul_unit mul_unit_inst (
-    .clk_i          (clk_i),
-    .rstn_i         (rstn_i),
-    .flush_mul_i    (flush_i),
-    .instruction_i  (arith_instr),
-    .instruction_o  (mul_to_scalar_wb)
-);
+  mul_unit mul_unit_inst (
+    .clk_i         (clk_i           ),
+    .rstn_i        (rstn_i          ),
+    .flush_mul_i   (flush_i         ),
+    .instruction_i (arith_instr     ),
+    .instruction_o (mul_to_scalar_wb),
+    .bisonn_rs1_i  (bs_rs1_mul_i    ),
+    .bisonn_rs2_i  (bs_rs2_mul_i    ),
+    .bisonn_valid_i(bs_mul_valid_i  ),
+    .bisonn_rd_o   (bs_rd_mul_o     ),
+    .bisonn_valid_o(bs_mul_valid_o  )
+  );
 
 div_unit div_unit_inst (
     .clk_i          (clk_i),
     .rstn_i         (rstn_i),
-    .flush_div_i     (flush_i),
+    .flush_div_i    (flush_i),
     .div_unit_sel_i (div_unit_sel),
     .instruction_i  (arith_instr),
     .instruction_o  (div_to_scalar_wb)
@@ -328,6 +374,8 @@ always_comb begin
     
     if (alu_to_scalar_wb.valid) begin
         arith_to_scalar_wb_o = alu_to_scalar_wb;
+    end else if (bisonn_to_scalar_wb.valid) begin
+        arith_to_scalar_wb_o = bisonn_to_scalar_wb;
     end else if (branch_to_scalar_wb.valid) begin
         arith_to_scalar_wb_o = branch_to_scalar_wb;
     end else begin
@@ -361,7 +409,13 @@ always_comb begin
     pmu_stall_mem_o = 1'b0; 
     stall_fpu_int   = 1'b0;
     if (from_rr_i.instr.valid && !kill_i) begin
-        if (from_rr_i.instr.unit == UNIT_DIV & from_rr_i.instr.op_32) begin
+	if (from_rr_i.instr.unit == UNIT_BS & (stall_bisonn_for_bsip || stall_bisonn_for_bsget)) begin
+	    stall_int = 1'b1;
+	end
+	else if(is_mult && bisonn_is_computing) begin
+            stall_int = 1'b1;
+	end
+	else if (from_rr_i.instr.unit == UNIT_DIV & from_rr_i.instr.op_32) begin
             stall_int = ~ready | ~ready_div_32_inst | ~ready_div_unit;
             set_div_32_inst = ready & ready_div_32_inst & ready_div_unit;
         end
@@ -377,7 +431,7 @@ always_comb begin
             stall_int = ~ready | ~ready_mul_64_inst;
             set_mul_64_inst = ready & ready_mul_64_inst;
         end
-        else if ((from_rr_i.instr.unit == UNIT_ALU | from_rr_i.instr.unit == UNIT_BRANCH | from_rr_i.instr.unit == UNIT_SYSTEM | from_rr_i.instr.unit == UNIT_SIMD))
+        else if ((from_rr_i.instr.unit == UNIT_ALU | from_rr_i.instr.unit == UNIT_BRANCH | from_rr_i.instr.unit == UNIT_SYSTEM | from_rr_i.instr.unit == UNIT_SIMD | from_rr_i.instr.unit == UNIT_BS))
             stall_int = ~ready;
         else if (from_rr_i.instr.unit == UNIT_MEM) begin
             stall_int = stall_mem | (~ready);

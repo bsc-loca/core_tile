@@ -130,6 +130,43 @@ module decoder(
 
         if (!decode_i.ex.valid && decode_i.valid ) begin
             case (decode_i.inst.common.opcode)
+                /* qnn_bseg start */
+                OP_BS: begin
+                    decode_instr_int.regfile_we = 1'b1;
+                    decode_instr_int.use_rs1    = 1'b1;
+                    decode_instr_int.use_rs2    = 1'b1;
+                    decode_instr_int.unit = UNIT_BS;
+                    unique case (decode_i.inst.rtype.func3)
+                        F3_BS_SET: begin
+                            decode_instr_int.instr_type = BS_SET;
+                        end
+                        F3_BS_GET: begin
+                            decode_instr_int.instr_type = BS_GET;
+                        end
+                        F3_BS_IP: begin
+                            decode_instr_int.instr_type = BS_IP;
+                        end
+                        F3_BS_GP0: begin
+                            decode_instr_int.instr_type = BS_GP0;
+                        end
+                        F3_BS_GP1: begin
+                          decode_instr_int.instr_type = BS_GP1;
+                        end
+                        F3_BS_GP2: begin
+                          decode_instr_int.instr_type = BS_GP2;
+                        end
+                        F3_BS_GP3: begin
+                          decode_instr_int.instr_type = BS_GP3;
+                        end
+                        F3_BS_GP4: begin
+                          decode_instr_int.instr_type = BS_GP4;
+                        end   
+                        default: begin
+                            decode_instr_int.instr_type = BS_IP;
+                        end
+                    endcase
+                end
+                /* qnn_bseg end */
                 // Load Upper immediate
                 OP_LUI: begin
                     decode_instr_int.regfile_we  = 1'b1;

@@ -19,7 +19,12 @@ module mul_unit (
     input  logic                   rstn_i,         // Negative reset signal
     input  logic                   flush_mul_i,     // Kill on fly instructions signal
     input  rr_exe_arith_instr_t    instruction_i,  // New instruction
-    output exe_wb_scalar_instr_t   instruction_o   // Output instruction
+    output exe_wb_scalar_instr_t   instruction_o,   // Output instruction
+    input bus64_t                  bisonn_rs1_i,
+    input bus64_t                  bisonn_rs2_i,
+    input                          bisonn_valid_i,
+    output bus64_t                 bisonn_rd_o,
+    output                         bisonn_valid_o
 );
 
 // Declarations
@@ -46,15 +51,17 @@ exe_wb_scalar_instr_t instruction_0_q;
 exe_wb_scalar_instr_t instruction_1_q;
 exe_wb_scalar_instr_t instruction_s1;
 exe_wb_scalar_instr_t instruction_s2;
+
+logic bisonn_valid_0_q, bisonn_valid_1_q;
  
 assign data_src1 = instruction_i.data_rs1;
 assign data_src2 = instruction_i.data_rs2;
 
 assign same_sign = instruction_i.instr.op_32 ? ~(data_src2[31] ^ data_src1[31]) : ~(data_src2[63] ^ data_src1[63]);
 
-assign type_0_d = instruction_i.instr.mem_size;
+assign type_0_d = bisonn_valid_i ? 3'b100 : instruction_i.instr.mem_size;
 
-assign int_32_0_d = instruction_i.instr.op_32;
+assign int_32_0_d = instruction_i.instr.op_32 & instruction_0_d.valid;
 
 // Source Operands, convert if source is negative and operation is signed
 always_comb begin
@@ -79,6 +86,11 @@ always_comb begin
         3'b011: begin  //  Multiply word, High part, Unsigned Unsigned MULHU
             src1_def_d   = data_src1;
             src2_def_d   = data_src2;
+            neg_def_0_d  = 1'b0;
+        end
+        3'b100: begin  // Bisonn
+            src1_def_d   = bisonn_rs1_i;
+            src2_def_d   = bisonn_rs2_i;
             neg_def_0_d  = 1'b0;
         end
         default: begin
@@ -132,7 +144,7 @@ always_ff@(posedge clk_i, negedge rstn_i) begin
         int_32_0_q               <= 1'b0;
         src1_def_q               <= 'h0;
         src2_def_q               <= 'h0;
-    end else if (flush_mul_i | (~instruction_0_d.valid)) begin
+    end else if (flush_mul_i | (~instruction_0_d.valid && ~bisonn_valid_i)) begin
         instruction_0_q          <= 'h0;
         type_0_q                 <= 3'b111;
         neg_def_0_q              <= 1'b0;
@@ -185,7 +197,7 @@ always_ff@(posedge clk_i, negedge rstn_i) begin
         neg_def_1_q              <= 1'b0;
         result_low_q             <= 'h0;
         result_high_q            <= 'h0;
-    end else if (flush_mul_i | (~instruction_0_q.valid) | int_32_0_q) begin
+    end else if (flush_mul_i | (~instruction_0_q.valid && ~bisonn_valid_0_q) | int_32_0_q) begin
         instruction_1_q          <= 'h0;
         type_1_q                 <= 3'b111;
         int_32_1_q               <= 1'b0;
@@ -222,10 +234,27 @@ always_comb begin
         3'b011: begin  //  Multiply word, High part, Unsigned Unsigned MULHU
             result_64 = result_128_def[127:64];
         end
+        3'b100: begin // Bisonn
+            result_64 = result_128[63:0];
+        end
         default: begin
             result_64 = 64'b0;
         end
     endcase
+end
+
+assign bisonn_rd_o = bisonn_valid_1_q ? result_64 : '0;
+assign bisonn_valid_o = bisonn_valid_1_q;
+
+always_ff@(posedge clk_i, negedge rstn_i) begin
+    if(~rstn_i) begin
+        bisonn_valid_0_q <= 1'b0;
+        bisonn_valid_1_q <= 1'b0;
+    end
+    else begin
+        bisonn_valid_0_q <= bisonn_valid_i;
+        bisonn_valid_1_q <= bisonn_valid_0_q;
+    end
 end
 
 assign instruction_s2.valid         = instruction_1_q.valid & ~(int_32_1_q);

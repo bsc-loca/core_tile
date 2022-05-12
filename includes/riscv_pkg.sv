@@ -160,6 +160,9 @@ typedef union packed {
 
 // Inside the system includes ecall and ebreak
 typedef enum logic [6:0] {
+    /* qnn_bseg start */
+    OP_BS        = 7'b0101011,
+    /* qnn_bseg end */
     OP_LUI       = 7'b0110111,
     OP_AUIPC     = 7'b0010111,
     OP_JAL       = 7'b1101111,
@@ -183,6 +186,19 @@ typedef enum logic [6:0] {
     OP_FNMSUB    = 7'b1001011,
     OP_FNMADD    = 7'b1001111
 } op_inst_t;
+
+/* qnn_bseg start */
+typedef enum logic [2:0] {
+    F3_BS_SET     = 3'b000,
+    F3_BS_GET     = 3'b001,
+    F3_BS_IP      = 3'b010,
+    F3_BS_GP0     = 3'b011,
+    F3_BS_GP1     = 3'b100,
+    F3_BS_GP2     = 3'b101,
+    F3_BS_GP3     = 3'b110,
+    F3_BS_GP4     = 3'b111
+} op_funct3_bs_t;
+/* qnn_bseg end */
 
 typedef enum logic [2:0] {
     F3_BEQ  = 3'b000,
