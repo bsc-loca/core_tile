@@ -4,7 +4,7 @@
 ./includes/drac_pkg.sv
 ./rtl/datapath/rtl/exe_stage/rtl/mixgemm_uengine/src/pkg/bisonn_pkg.sv
 
-./includes/drac_icache_pkg.sv
+./includes/sargantana_icache_pkg.sv
 ./rtl/interface_icache/rtl/icache_interface.sv 
 ./rtl/control_unit/rtl/control_unit.sv 
 ./rtl/register.sv 
