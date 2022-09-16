@@ -887,6 +887,7 @@ module decoder
                         end
                         F3_OPMVV: begin
                             case (decode_i.inst.vtype.func6)
+                                `ifdef MULTICYCLE_SIMD
                                 F6_VREDSUM: begin
                                     decode_instr_int.vregfile_we = 1'b1;
                                     decode_instr_int.regfile_we = 1'b0;
@@ -915,6 +916,7 @@ module decoder
                                     decode_instr_int.use_vs2 = 1'b1;
                                     decode_instr_int.instr_type = VREDXOR;
                                 end
+                                `endif
                                 F6_VEXT: begin
                                     decode_instr_int.vregfile_we = 1'b0;
                                     decode_instr_int.regfile_we = 1'b1;
@@ -946,6 +948,7 @@ module decoder
                                         xcpt_illegal_instruction_int = 1'b1;
                                     end
                                 end
+                                `ifdef MULTICYCLE_SIMD
                                 F6_VMULHU: begin
                                     decode_instr_int.vregfile_we = 1'b1;
                                     decode_instr_int.regfile_we = 1'b0;
@@ -974,6 +977,7 @@ module decoder
                                     decode_instr_int.use_vs2 = 1'b1;
                                     decode_instr_int.instr_type = VMULH;
                                 end
+                                `endif
                                 default: begin
                                     xcpt_illegal_instruction_int = 1'b1;
                                 end
