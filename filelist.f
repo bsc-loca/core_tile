@@ -101,4 +101,5 @@
 ./rtl/mmu/src/rtl/ptw.sv
 ./rtl/mmu/src/rtl/tlb.sv
 ./rtl/dmem_arbiter.sv
+./rtl/hpm/rtl/hpm_counters.sv
 ./rtl/top_drac.sv
