@@ -293,6 +293,21 @@ assign tag_way_o[3] = q_sram[79:60];
       .Q(q_sram)
       );
     `endif
+  `elsif SYNTHESIS_7NM
+    RF_SP_64x80 MDArray_tag_il1 (
+        .A(address),
+        .D(write_data),
+        .CLK(clk_i),
+        .CEN(1'b0), // chip-enable active-low
+        .GWEN(write_enable), // write-enable active-low
+        .WEN(write_mask), // write-enable active-low (WEN[0]=LSB)
+        .EMA(3'b000),
+        .EMAW(2'b00),
+        .EMAS(1'b0),
+        .Q(q_sram),
+        .STOV(1'b0),
+        .RET(1'b0)
+    );
   `else
   // [47:0]
     TS1N65LPHSA128X48M4F MDArray_tag_A_l1 (
