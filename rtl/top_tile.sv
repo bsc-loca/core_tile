@@ -15,7 +15,9 @@
 
 module top_tile
     import drac_pkg::*, sargantana_icache_pkg::*, mmu_pkg::*, hpdcache_pkg::*, sargantana_hpdc_pkg::*;
-(
+#(
+    parameter drac_pkg::drac_cfg_t DracCfg     = drac_pkg::DracDefaultConfig
+)(
 //------------------------------------------------------------------------------------
 // ORIGINAL INPUTS OF LAGARTO 
 //------------------------------------------------------------------------------------
@@ -38,8 +40,8 @@ module top_tile
     input  [4:0]                IO_REG_ADDR,
     input                       IO_REG_WRITE,
     input bus64_t               IO_REG_WRITE_DATA,
-    input  [5:0]		IO_REG_PADDR,
-    input			IO_REG_PREAD,
+    input  [5:0]	            IO_REG_PADDR,
+    input                       IO_REG_PREAD,
 
 //------------------------------------------------------------------------------------
 // I-CANCHE INPUT INTERFACE
@@ -280,7 +282,9 @@ assign sew = sew_t'(vpu_csr[37:36]);
 
 // *** Core Instance ***
 
-top_drac sargantana_inst (
+top_drac #(
+    .DracCfg(DracCfg)
+) sargantana_inst (
     .clk_i(clk_i),
     .rstn_i(rstn_i),
     .soft_rstn_i(soft_rstn_i),
@@ -458,8 +462,6 @@ logic wbuf_empty;
 dcache_interface dcache_interface_inst(
     .clk_i(clk_i),
     .rstn_i(rstn_i),
-
-    .en_ld_st_translation_i(en_ld_st_translation),
 
     // CPU Interface
     .req_cpu_dcache_i(req_datapath_dcache_interface),

@@ -20,11 +20,11 @@
 
 module dcache_interface 
     import drac_pkg::*, hpdcache_pkg::*;
-(
+#(
+    parameter drac_pkg::drac_cfg_t DracCfg     = drac_pkg::DracDefaultConfig
+)(
     input  wire         clk_i,               // Clock
     input  wire         rstn_i,              // Negative Reset Signal
-
-    input logic         en_ld_st_translation_i, // Virtualization enable
 
     // CPU Interface
     input req_cpu_dcache_t req_cpu_dcache_i,
@@ -45,7 +45,8 @@ module dcache_interface
 
 logic io_address_space;
 
-assign io_address_space = (req_dcache_o.addr[PHY_VIRT_MAX_ADDR_SIZE-1:0] >= req_cpu_dcache_i.io_base_addr) && (req_dcache_o.addr[PHY_VIRT_MAX_ADDR_SIZE-1:0] < 40'h80000000);
+// The address is in the INPUT/OUTPUT space
+assign io_address_space = (is_inside_IO_sections(DracCfg, req_dcache_o.addr[PHY_VIRT_MAX_ADDR_SIZE-1:0]));
 
 //-------------------------------------------------------------
 // dCache Interface
