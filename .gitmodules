@@ -17,8 +17,8 @@
 [submodule "fpga/common/rtl/axi_riscv_atomics"]
 	path = fpga/common/rtl/axi_riscv_atomics
 	url = https://github.com/pulp-platform/axi_riscv_atomics.git
-[submodule "fpga/common/rtl/common_cells"]
-	path = fpga/common/rtl/common_cells
+[submodule "rtl/common_cells"]
+	path = rtl/common_cells
 	url = https://github.com/pulp-platform/common_cells.git
 [submodule "rtl/icache"]
 	path = rtl/icache
