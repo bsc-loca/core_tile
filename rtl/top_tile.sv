@@ -23,6 +23,7 @@ module top_tile
     input logic                 rstn_i,
     input logic                 soft_rstn_i,
     input addr_t                reset_addr_i,
+    input logic [63:0]          core_id_i,
 
 //------------------------------------------------------------------------------------
 // DEBUG RING SIGNALS INPUT
@@ -296,6 +297,7 @@ top_drac sargantana_inst (
     .rstn_i(rstn_i),
     .soft_rstn_i(soft_rstn_i),
     .reset_addr_i(reset_addr_i),
+    .core_id_i(core_id_i),
 
     // Debug ring
     .debug_halt_i(debug_halt_i),
