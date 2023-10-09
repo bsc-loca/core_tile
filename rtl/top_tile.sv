@@ -47,8 +47,10 @@ module top_tile
     
     //- From L2
     input  logic         io_mem_grant_valid                 ,
-    input  logic [511:0] io_mem_grant_bits_data             ,
+    input  logic [255:0] io_mem_grant_bits_data             ,
     input  logic   [1:0] io_mem_grant_bits_addr_beat        ,
+    input  logic         io_mem_grant_inval                 ,
+    input  logic [11:0]  io_mem_grant_inval_addr            ,
     
 
 //----------------------------------------------------------------------------------
@@ -103,6 +105,10 @@ module top_tile
     input  logic                          mem_resp_uc_write_valid_i,
     input  hpdcache_mem_resp_w_t          mem_resp_uc_write_i,
 
+    //      Invalidation interface
+    output logic                          mem_inval_ready_o,
+    input  logic                          mem_inval_valid_i,
+    input  hpdcache_pkg::hpdcache_req_t   mem_inval_i,
 
 //-----------------------------------------------------------------------------------
 // I-CACHE OUTPUT INTERFACE
@@ -110,10 +116,10 @@ module top_tile
 
     //- To L2
     output logic         io_mem_acquire_valid               ,
-    output logic [BLOCK_ADDR_SIZE-1:0] io_mem_acquire_bits_addr_block,
+    output logic [ADDR_SIZE-1:0] io_mem_acquire_bits_addr_block,
     output logic         io_mem_acquire_bits_client_xact_id ,
     output logic   [1:0] io_mem_acquire_bits_addr_beat      ,
-    output logic [127:0] io_mem_acquire_bits_data           ,
+    output logic [255:0] io_mem_acquire_bits_data           ,
     output logic         io_mem_acquire_bits_is_builtin_type,
     output logic   [2:0] io_mem_acquire_bits_a_type         ,
     output logic  [16:0] io_mem_acquire_bits_union          ,
@@ -238,24 +244,6 @@ assign pmu_interface.ptw_buffer_miss = pmu_ptw_miss;
 assign pmu_interface.itlb_stall = pmu_itlb_miss_cycle;
 
 
-//L2 Network conection - response
-assign ifill_resp.data  = io_mem_grant_bits_data             ;  
-assign ifill_resp.beat  = io_mem_grant_bits_addr_beat        ;
-assign ifill_resp.valid = io_mem_grant_valid                 ;
-assign ifill_resp.ack   = io_mem_grant_bits_addr_beat[0] &
-                          io_mem_grant_bits_addr_beat[1] ;
-
-//L2 Network conection - request
-assign io_mem_acquire_valid                = ifill_req.valid        ;
-assign io_mem_acquire_bits_addr_block      = ifill_req.paddr        ;
-assign io_mem_acquire_bits_client_xact_id  =   1'b0                 ;
-assign io_mem_acquire_bits_addr_beat       =   2'b0                 ;
-assign io_mem_acquire_bits_data            = 127'b0                 ;
-assign io_mem_acquire_bits_is_builtin_type =   1'b1                 ;
-assign io_mem_acquire_bits_a_type          =   3'b001               ;
-assign io_mem_acquire_bits_union           =  17'b00000000111000001 ;
-assign io_mem_grant_ready                  =   1'b1                 ;
-
 // *** Memory Management Unit ***
 
 // Page Table Walker - iTLB/dTLB - dCache Connections
@@ -362,6 +350,27 @@ top_drac sargantana_inst (
 );
 
 // *** iCache ***
+
+//L2 Network conection - response
+assign ifill_resp.data  = io_mem_grant_bits_data             ;
+assign ifill_resp.beat  = io_mem_grant_bits_addr_beat        ;
+assign ifill_resp.valid = io_mem_grant_valid                 ;
+assign ifill_resp.ack   = io_mem_grant_bits_addr_beat[0] &
+                          io_mem_grant_bits_addr_beat[1] ;
+
+assign ifill_resp.inv.valid = io_mem_grant_inval;
+assign ifill_resp.inv.paddr = io_mem_grant_inval_addr;
+
+//L2 Network conection - request
+assign io_mem_acquire_valid                = ifill_req.valid        ;
+assign io_mem_acquire_bits_addr_block      = ifill_req.paddr        ;
+assign io_mem_acquire_bits_client_xact_id  =   1'b0                 ;
+assign io_mem_acquire_bits_addr_beat       =   2'b0                 ;
+assign io_mem_acquire_bits_data            = 127'b0                 ;
+assign io_mem_acquire_bits_is_builtin_type =   1'b1                 ;
+assign io_mem_acquire_bits_a_type          =   3'b001               ;
+assign io_mem_acquire_bits_union           =  17'b00000000111000001 ;
+assign io_mem_grant_ready                  =   1'b1                 ;
 
 icache_interface icache_interface_inst(
     .clk_i(clk_i),
@@ -473,7 +482,6 @@ hpdcache #(
     .mem_req_miss_read_ready_i(mem_req_miss_read_ready_i),
     .mem_req_miss_read_valid_o(mem_req_miss_read_valid_o),
     .mem_req_miss_read_o(mem_req_miss_read_o),
-    //.mem_req_miss_read_base_id_i(mem_req_miss_read_base_id_i),
 
     .mem_resp_miss_read_ready_o(mem_resp_miss_read_ready_o),
     .mem_resp_miss_read_valid_i(mem_resp_miss_read_valid_i),
@@ -483,7 +491,6 @@ hpdcache #(
     .mem_req_wbuf_write_ready_i(mem_req_wbuf_write_ready_i),
     .mem_req_wbuf_write_valid_o(mem_req_wbuf_write_valid_o),
     .mem_req_wbuf_write_o(mem_req_wbuf_write_o),
-    //.mem_req_wbuf_write_base_id_i(mem_req_wbuf_write_base_id_i),
 
     .mem_req_wbuf_write_data_ready_i(mem_req_wbuf_write_data_ready_i),
     .mem_req_wbuf_write_data_valid_o(mem_req_wbuf_write_data_valid_o),
@@ -497,7 +504,6 @@ hpdcache #(
     .mem_req_uc_write_ready_i(mem_req_uc_write_ready_i),
     .mem_req_uc_write_valid_o(mem_req_uc_write_valid_o),
     .mem_req_uc_write_o(mem_req_uc_write_o),
-    //.mem_req_uc_write_base_id_i(mem_req_uc_write_base_id_i),
 
     .mem_req_uc_write_data_ready_i(mem_req_uc_write_data_ready_i),
     .mem_req_uc_write_data_valid_o(mem_req_uc_write_data_valid_o),
@@ -511,14 +517,15 @@ hpdcache #(
     .mem_req_uc_read_ready_i(mem_req_uc_read_ready_i),
     .mem_req_uc_read_valid_o(mem_req_uc_read_valid_o),
     .mem_req_uc_read_o(mem_req_uc_read_o),
-    //.mem_req_uc_read_base_id_i(mem_req_uc_read_base_id_i),
 
     .mem_resp_uc_read_ready_o(mem_resp_uc_read_ready_o),
     .mem_resp_uc_read_valid_i(mem_resp_uc_read_valid_i),
     .mem_resp_uc_read_i(mem_resp_uc_read_i),
 
-    // misc
-    .wbuf_empty_o(wbuf_empty),
+    // Invalidation interface
+    .mem_inval_ready_o(mem_inval_ready_o),
+    .mem_inval_valid_i(mem_inval_valid_i),
+    .mem_inval_i(mem_inval_i),
 
     // PMU events
     .evt_stall_o(),
@@ -533,17 +540,25 @@ hpdcache #(
     .evt_cache_read_miss_o(),
     .evt_cache_write_miss_o(),
 
-    // Unused
-    .wbuf_flush_i(1'b0),
+    // Write buffer
+    .wbuf_empty_o(wbuf_empty),
+    .wbuf_flush_i(1'b0), // Unused
 
     // Config
-    .cfg_enable_i(1'b1),
-    .cfg_wbuf_threshold_i(4'd2),
-    .cfg_wbuf_reset_timecnt_on_write_i(1'b1),
-    .cfg_wbuf_sequential_waw_i(1'b0),
-    .cfg_prefetch_updt_plru_i(1'b1),
-    .cfg_error_on_cacheable_amo_i(1'b0),
-    .cfg_rtab_single_entry_i(1'b0)
+    .cfg_enable_i                        (1'b1),
+  `ifdef WRITE_BYTE_MASK
+    .cfg_wbuf_inhibit_write_coalescing_i (1'b0),
+    .cfg_wbuf_threshold_i                (4'd5),
+  `else
+    .cfg_wbuf_inhibit_write_coalescing_i (1'b1),
+    .cfg_wbuf_threshold_i                (4'd0),
+  `endif
+    .cfg_wbuf_reset_timecnt_on_write_i   (1'b1),
+    .cfg_wbuf_sequential_waw_i           (1'b0),
+    .cfg_prefetch_updt_plru_i            (1'b1),
+    .cfg_error_on_cacheable_amo_i        (1'b0), //Replicated amo mode
+    .cfg_rtab_single_entry_i             (1'b0)
+
 );
 
 tlb itlb (

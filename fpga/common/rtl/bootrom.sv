@@ -14,7 +14,7 @@ module bootrom
     localparam BRAM_LINE_OFFSET = $clog2(MEM_DATA_WIDTH/8);
 
     (* ram_style = "block" *) reg [MEM_DATA_WIDTH-1:0] boot_ram [0 : BRAM_LINE-1];
-    initial $readmemh("bootrom.hex", boot_ram);
+    initial $readmemh("bootrom.hex", boot_ram); // TODO: Copy the bootrom.hex file to the directory where the simulation is executed
 
     logic [MEM_DATA_WIDTH-1:0] brom_resp_data_block;
     logic [23:0] brom_req_address_d;
