@@ -157,7 +157,7 @@ module top_tile
     input  logic                brom_ready_i        ,
     input  logic [31:0]         brom_resp_data_i    ,
     input  logic                brom_resp_valid_i   ,
-    output logic [23:0]         brom_req_address_o  ,
+    output logic [39:0]         brom_req_address_o  ,
     output logic                brom_req_valid_o    ,
    
     input logic                 csr_spi_config_i,
@@ -225,6 +225,7 @@ treq_o_t       itlb_treq    ;
 ifill_resp_i_t ifill_resp   ;
 ifill_req_o_t  ifill_req    ;
 logic          iflush       ;
+logic          req_icache_ready_cached;
 logic          req_icache_ready;
 
 //--PMU
@@ -372,6 +373,25 @@ assign io_mem_acquire_bits_a_type          =   3'b001               ;
 assign io_mem_acquire_bits_union           =  17'b00000000111000001 ;
 assign io_mem_grant_ready                  =   1'b1                 ;
 
+resp_icache_cpu_t resp_icache_interface_datapath_cached ;
+req_cpu_icache_t  req_datapath_icache_interface_cached  ;
+
+nc_icache_buffer _nc_icache_bf_ (    
+    .clk_i              ( clk_i                                   ) , 
+    .rstn_i             ( rstn_i                                  ) ,
+    .en_translation_i   ( en_translation                          ) ,
+    .l2_grant_valid_i   ( io_mem_grant_valid                      ) ,
+    .datapath_req_i     ( req_datapath_icache_interface           ) ,
+    .icache_resp_i      ( resp_icache_interface_datapath_cached   ) ,        
+    .l2_resp_data_i     ( io_mem_grant_bits_data                  ) ,
+    .req_icache_ready_i ( req_icache_ready_cached                 ) ,
+    .req_icache_ready_o ( req_icache_ready                        ) ,
+    .req_nc_valid_o     ( brom_req_valid_o                        ) ,
+    .req_nc_vaddr_o     ( brom_req_address_o                      ) ,
+    .req_icache_o       ( req_datapath_icache_interface_cached    ) ,
+    .resp_datapath_o    ( resp_icache_interface_datapath          )     
+);
+
 icache_interface icache_interface_inst(
     .clk_i(clk_i),
     .rstn_i(rstn_i),
@@ -393,20 +413,20 @@ icache_interface icache_interface_inst(
     .icache_req_bits_vpn_o  ( lagarto_ireq.vpn   ), 
 
     // Inputs Bootrom
-    .brom_ready_i           ( brom_ready_i      ),
-    .brom_resp_data_i       ( brom_resp_data_i  ), 
-    .brom_resp_valid_i      ( brom_resp_valid_i ),
+    .brom_ready_i           ( '0      ),
+    .brom_resp_data_i       ( '0      ), 
+    .brom_resp_valid_i      ( '0      ),
 
     // Outputs Bootrom
-    .brom_req_address_o     ( brom_req_address_o ),
-    .brom_req_valid_o       ( brom_req_valid_o   ),
+    .brom_req_address_o     (  ),
+    .brom_req_valid_o       (    ),
 
     // Fetch stage interface - Request packet from fetch_stage
-    .req_fetch_icache_i(req_datapath_icache_interface),
+    .req_fetch_icache_i   (req_datapath_icache_interface_cached  ),
     
     // Fetch stage interface - Response packet icache to fetch
-    .resp_icache_fetch_o(resp_icache_interface_datapath),
-    .req_fetch_ready_o(req_icache_ready),
+    .resp_icache_fetch_o  (resp_icache_interface_datapath_cached ),
+    .req_fetch_ready_o(req_icache_ready_cached),
     //PMU
     .buffer_miss_o (buffer_miss )
 );

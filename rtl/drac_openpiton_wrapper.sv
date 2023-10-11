@@ -21,7 +21,7 @@
 );
 
 // Bootrom wires
-logic   [23:0]  brom_req_address;
+logic   [39:0]  brom_req_address;
 logic           brom_req_valid;
 logic           brom_ready;
 logic   [31:0]  brom_resp_data;
@@ -34,7 +34,7 @@ logic   [ADDR_SIZE-1:0] l1_request_paddr;
 logic   [255:0]         l2_response_data; // TODO: LOCALPARAMETERS or PKG definition
 logic   [1:0]           l2_response_seqnum = '0;
 logic                   l2_inval_request;
-logic   [26:0]          l2_inval_addr;
+logic   [11:0]          l2_inval_addr;
 
 //      Miss read interface
 logic                           mem_req_miss_read_ready;
@@ -190,7 +190,7 @@ top_drac core_inst(
  .time_i(time_i)
 );
 
-
+`ifdef ENABLE_LOCAL_BOOTROM
 bootrom brom(
  .clk(clk_i),
  .rstn(reset_l),
@@ -200,6 +200,7 @@ bootrom brom(
  .brom_resp_data_o(brom_resp_data),
  .brom_resp_valid_o(brom_resp_valid)
 );
+`endif // ENABLE_LOCAL_BOOTROM
 
 //Adapter HPDC-L1.5 Request Ports type
 typedef logic [$clog2(5)-1:0] req_portid_t;  //NTODO: Optimize for more threads
@@ -230,6 +231,9 @@ hpdcache_subsystem_l15_adapter #(
  .icache_miss_resp_data_o(l2_response_data),
  .icache_inval_valid_o(l2_inval_request),
  .icache_inval_addr_o(l2_inval_addr),
+ 
+ .brom_req_valid_i(brom_req_valid),
+ .brom_req_address_i(brom_req_address),
  // }}}
 
  //  Interfaces from/to D$
