@@ -23,7 +23,6 @@
 // Bootrom wires
 logic   [39:0]  brom_req_address;
 logic           brom_req_valid;
-logic           brom_ready;
 logic   [31:0]  brom_resp_data;
 logic           brom_resp_valid;
 
@@ -117,7 +116,6 @@ top_drac core_inst(
  .RESET_ADDRESS(boot_addr_i), //'h00000100
 
  // Bootrom ports
- .brom_ready_i(brom_ready),
  .brom_resp_data_i(brom_resp_data),
  .brom_resp_valid_i(brom_resp_valid),
  .brom_req_address_o(brom_req_address),
@@ -190,17 +188,6 @@ top_drac core_inst(
  .time_i(time_i)
 );
 
-`ifdef ENABLE_LOCAL_BOOTROM
-bootrom brom(
- .clk(clk_i),
- .rstn(reset_l),
- .brom_req_address_i(brom_req_address),
- .brom_req_valid_i(brom_req_valid),
- .brom_ready_o(brom_ready),
- .brom_resp_data_o(brom_resp_data),
- .brom_resp_valid_o(brom_resp_valid)
-);
-`endif // ENABLE_LOCAL_BOOTROM
 
 //Adapter HPDC-L1.5 Request Ports type
 typedef logic [$clog2(5)-1:0] req_portid_t;  //NTODO: Optimize for more threads

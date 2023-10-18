@@ -154,7 +154,6 @@ module top_tile
 //-----------------------------------------------------------------------------
 // BOOTROM CONTROLER INTERFACE
 //-----------------------------------------------------------------------------
-    input  logic                brom_ready_i        ,
     input  logic [31:0]         brom_resp_data_i    ,
     input  logic                brom_resp_valid_i   ,
     output logic [39:0]         brom_req_address_o  ,
