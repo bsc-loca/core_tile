@@ -67,11 +67,11 @@ nc_state_t state_nc, next_state_nc;
 //------------------------------------------
 // Stage 1 
 //------------------------------------------
-assign is_in_dram = (datapath_req_i.vaddr >= _DRAM_BASE_) & (datapath_req_i.vaddr < _DRAM_LEN_);
-assign is_in_rom  = (datapath_req_i.vaddr >= _ROM_BASE_)  & (datapath_req_i.vaddr < _ROM_LEN_);
-assign is_in_deb  = (datapath_req_i.vaddr >= _DEB_BASE_)  & (datapath_req_i.vaddr < _DEB_LEN_); 
+assign is_in_dram = (datapath_req_i.vaddr >= _DRAM_BASE_) & (datapath_req_i.vaddr < _DRAM_END_);
+assign is_in_rom  = (datapath_req_i.vaddr >= _ROM_BASE_)  & (datapath_req_i.vaddr < _ROM_END_);
+assign is_in_deb  = (datapath_req_i.vaddr >= _DEB_BASE_)  & (datapath_req_i.vaddr < _DEB_END_); 
 assign is_inside_exeregion = is_in_dram | is_in_rom | is_in_deb ; 
-assign addr_is_nc = ~((datapath_req_i.vaddr >= _DRAM_BASE_) & (datapath_req_i.vaddr < _DRAM_LEN_));
+assign addr_is_nc = ~((datapath_req_i.vaddr >= _DRAM_BASE_) & (datapath_req_i.vaddr < _DRAM_END_));
 
 // request to the instruccion cache with a cachable address.
 assign req_icache_valid = addr_is_nc &~ en_translation_i ? 1'b0 : datapath_req_i.valid ;
