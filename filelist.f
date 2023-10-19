@@ -1,3 +1,7 @@
+../ariane/corev_apu/riscv-dbg/src/dm_pkg.sv
+../ariane/corev_apu/axi/src/axi_pkg.sv
+./includes/ariane_axi_pkg.sv
+
 -F ./rtl/core/sargantana/filelist.f
 ./rtl/dcache/rtl/src/target/generic/hpdcache_params_pkg.sv
 -f ./rtl/dcache/rtl/hpdcache.Flist
@@ -13,9 +17,6 @@
 ./rtl/dcache/rtl/src/utils/hpdcache_l15_req_arbiter.sv
 ./rtl/dcache/rtl/src/utils/hpdcache_l15_resp_demux.sv
 
-../ariane/corev_apu/riscv-dbg/src/dm_pkg.sv
-../ariane/corev_apu/axi/src/axi_pkg.sv
-./includes/ariane_axi_pkg.sv
 
 ./rtl/interface_dcache/rtl/dcache_interface.sv
 ./rtl/interface_icache/rtl/icache_interface.sv
@@ -33,7 +34,7 @@
 ./rtl/rv_plic/rtl/plic_regmap.sv
 ./rtl/rv_plic/rtl/plic_top.sv
 
-../ariane/corev_apu/clint/clint.sv
+./rtl/clint.sv
 ../ariane/corev_apu/clint/axi_lite_interface.sv
 ../ariane/core/include/axi_intf.sv
 ../ariane/corev_apu/axi_mem_if/src/axi2mem.sv
