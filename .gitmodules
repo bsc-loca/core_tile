@@ -30,6 +30,3 @@
 [submodule "rtl/core/sargantana"]
 	path = rtl/core/sargantana
 	url = ../../cores/sargantana.git
-[submodule "rtl/rv_plic"]
-	path = rtl/rv_plic
-	url = https://github.com/pulp-platform/rv_plic.git
