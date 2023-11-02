@@ -41,10 +41,12 @@ stages:
   - simulation
   - fpga
 
+default:
+  tags:
+    - dv
+
 verilator:verilog:
   stage: linting
-  tags:
-    - verilator
   script:
     - verilator --version
     - make lint
@@ -53,8 +55,6 @@ verilator:verilog:
 spyglass:verilog:
   image: registry.gitlab.bsc.es/hwdesign/containerhub/spyglass:latest
   stage: linting
-  tags:
-    - spyglass
   script:
     - make local_spyglass
   allow_failure: true
