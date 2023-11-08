@@ -1,14 +1,10 @@
-# Sargantana
+# Core Tile
 
-<p align="center">
-  <img src="doc/sargantana_logo.svg" />
-</p>
-
-Sargantana is a 64-bit processor based on RISC-V that implements the RV64G ISA. Sargantana features a highly optimized 7-stage pipeline implementing out-of-order write-back, register renaming, and a non-blocking memory pipeline. Sargantana achieves a 1.26 GHz frequency in the typical corner, and up to 1.69 GHz in the fast corner using 22nm FD-SOI commercial technology.
+This module includes the [Sargantana](https://github.com/bsc-loca/sargantana) core, as well as the iCache, dCache (HPDCache from OpenHardware), and MMU to make it all work.
 
 ## Table of Contents
 
-- [Sargantana](#sargantana)
+- [Core Tile](#core-tile)
   - [Table of Contents](#table-of-contents)
   - [1. Installing the dependencies](#1-installing-the-dependencies)
   - [2. Building the simulator](#2-building-the-simulator)
@@ -85,7 +81,7 @@ Coming soon.
 
 ## 5. Design
 
-![Sargantana Pipeline](doc/sargantana_pipeline.svg)
+Coming soon.
 
 ## 6. License
 
@@ -100,4 +96,5 @@ The list of authors can be found in the [CONTRIBUTORS.md](CONTRIBUTORS.md) file.
 
 ## 8. Citation
 
+This work is derived and based upon Sargantana:
 Víctor Soria-Pardos, Max Doblas, Guillem López-Paradís, Gerard Candón, Narcís Rodas, Xavier Carril, Pau Fontova-Musté, Neiel Leyva, Santiago Marco-Sola, and Miquel Moretó. ["Sargantana: A 1 GHz+ in-order RISC-V processor with SIMD vector extensions in 22nm FD-SOI"](https://upcommons.upc.edu/bitstream/handle/2117/384912/sargantana_preprint.pdf?sequence=1). 25th Euromicro, 2022.
