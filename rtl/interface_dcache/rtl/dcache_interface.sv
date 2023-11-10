@@ -107,7 +107,9 @@ always_comb begin
 end 
 
 assign req_dcache_o.addr = req_cpu_dcache_i.data_rs1[48:0];
-assign req_dcache_o.size = req_cpu_dcache_i.mem_size[2:0]; // TODO: Core supports bigger memory sizes than HPDC!
+// Request to HPDC. Pass only 2 bits as the sign extension process (see specs for LBU, LHU, LWU) is done in the mem_unit 
+// HPDC does NOT extend the sign.
+assign req_dcache_o.size = req_cpu_dcache_i.mem_size[1:0]; // TODO: Core supports bigger memory sizes than HPDC!
 assign req_dcache_o.sid = 3'b001;
 assign req_dcache_o.tid = req_cpu_dcache_i.rd;
 assign req_dcache_o.need_rsp = 1'b1;
