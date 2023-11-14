@@ -17,7 +17,8 @@
  input   [$size(l15_rtrn_t)-1:0] l15_rtrn_i,
 
  input logic time_irq_i,
- input logic [63:0] time_i
+ input logic [63:0] time_i,
+ input logic irq_i
 );
 
 // Bootrom wires
@@ -184,7 +185,7 @@ top_drac core_inst(
  .mem_inval_i(mem_inval),
 
  .time_irq_i(time_irq_i),
- .irq_i(1'b0),
+ .irq_i(irq_i),
  .time_i(time_i)
 );
 
