@@ -10,15 +10,24 @@ module veri_top
     logic [23:0] brom_req_address;
     logic brom_req_valid;
     logic brom_ready;
-    logic [31:0] brom_resp_data;
+    logic [127:0] brom_resp_data;
     logic brom_resp_valid;
 
     // icache wires
-    logic l1_request_valid;
-    logic l2_response_valid;
-    logic [25:0] l1_request_paddr;
-    logic [511:0] l2_response_data;
-    logic [1:0] l2_response_seqnum;
+    logic icache_l1_request_valid;
+    logic icache_l2_response_valid;
+    logic [25:0] icache_l1_request_paddr;
+    logic [255:0] icache_l2_response_data;
+
+    logic dut_icache_req_valid;
+    logic dut_icache_resp_valid;
+    logic [25:0] dut_icache_request_paddr;
+    logic [255:0] dut_icache_response_data;
+
+    assign dut_icache_response_data = brom_resp_valid ? brom_resp_data : icache_l2_response_data;
+    assign dut_icache_response_valid = brom_resp_valid | icache_l2_response_valid;
+    assign icache_l1_request_paddr = dut_icache_request_paddr[31:6];
+    assign icache_l1_request_valid = dut_icache_request_valid;
 
     //      Miss read interface
     logic                          mem_req_miss_read_ready;
@@ -76,18 +85,17 @@ module veri_top
         .reset_addr_i('h00000100),
 
         // Bootrom ports
-        .brom_ready_i(brom_ready),
+        //.brom_ready_i(brom_ready),
         .brom_resp_data_i(brom_resp_data),
         .brom_resp_valid_i(brom_resp_valid),
         .brom_req_address_o(brom_req_address),
         .brom_req_valid_o(brom_req_valid),
 
         // icache ports
-        .io_mem_acquire_valid(l1_request_valid),               
-        .io_mem_acquire_bits_addr_block(l1_request_paddr),   
-        .io_mem_grant_valid(l2_response_valid),         
-        .io_mem_grant_bits_data(l2_response_data),     
-        .io_mem_grant_bits_addr_beat(l2_response_seqnum),
+        .io_mem_acquire_valid(dut_icache_request_valid),               
+        .io_mem_acquire_bits_addr_block(dut_icache_request_paddr),   
+        .io_mem_grant_valid(dut_icache_response_valid),         
+        .io_mem_grant_bits_data(dut_icache_response_data),
 
         // dmem ports
 
@@ -150,17 +158,19 @@ module veri_top
         .brom_resp_valid_o(brom_resp_valid)
     );
 
-    l2_behav l2_inst (
+    l2_behav #(
+        .LINE_SIZE(256)    
+    ) l2_inst (
         .clk_i(clk_i),
         .rstn_i(rstn_i),
 
         // *** Instruction Cache Interface ***
 
-        .ic_addr_i(l1_request_paddr),
-        .ic_valid_i(l1_request_valid),
-        .ic_valid_o(l2_response_valid),
-        .ic_line_o(l2_response_data),
-	    .ic_seq_num_o(l2_response_seqnum),
+        .ic_addr_i(icache_l1_request_paddr),
+        .ic_valid_i(icache_l1_request_valid),
+        .ic_valid_o(icache_l2_response_valid),
+        .ic_line_o(icache_l2_response_data),
+	    .ic_seq_num_o(),
 
         // *** dCache Miss Read Interface ***
 

@@ -309,7 +309,7 @@ module l2_behav #(
     assign ic_seq_num_o = 2'b11 - ic_counter[1:0];
 
     // Register holding the full 512 bits of the line
-    logic [LINE_SIZE-1:0] ic_line;
+    logic [511:0] ic_line;
 
     // ic_counter procedure
     always_ff @(posedge clk_i, negedge rstn_i) begin : proc_ic_counter
@@ -339,7 +339,7 @@ module l2_behav #(
     end 
 
     always_comb begin
-        if (ic_valid_o) ic_line_o = ic_line;
+        if (ic_valid_o) ic_line_o = ic_line[{ic_addr_int[2:0], 6'b0} +: 256];
         else            ic_line_o = 0      ;
     end
 

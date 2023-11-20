@@ -6,7 +6,7 @@ module bootrom_behav
     input  logic [23:0] brom_req_address_i,
     input  logic brom_req_valid_i,
     output logic brom_ready_o,
-    output logic [31:0] brom_resp_data_o,
+    output logic [127:0] brom_resp_data_o,
     output logic brom_resp_valid_o
     );
 
@@ -64,7 +64,7 @@ module bootrom_behav
                 boot_ram[brom_req_address_d[BRAM_ADDR_WIDTH-1:BRAM_LINE_OFFSET]][i*8 +:8] <= ram_wrdata[i*8 +: 8];
     end
 
-    always_comb begin
+    /*always_comb begin
         case(brom_req_address_d[3:2])
             2'b00: brom_resp_data_o = brom_resp_data_block[31:0];
             2'b01: brom_resp_data_o = brom_resp_data_block[63:32];
@@ -72,7 +72,9 @@ module bootrom_behav
             2'b11: brom_resp_data_o = brom_resp_data_block[127:96];
             default: brom_resp_data_o = 32'h0;
         endcase
-    end
+    end*/
+
+    assign brom_resp_data_o = brom_resp_data_block;
 
     assign brom_ready_o = ~req_active & rstn;
 
