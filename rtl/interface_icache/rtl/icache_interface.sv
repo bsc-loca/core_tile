@@ -153,9 +153,9 @@ always_comb begin
 end
 
 assign resp_icache_fetch_valid = (tlb_resp_xcp_if_i) | icache_resp_valid_i;
-assign resp_icache_fetch_o.valid =  (is_brom_old_access)? brom_resp_valid_i : resp_icache_fetch_valid;
-assign resp_icache_fetch_o.instr_page_fault = (is_brom_access)? '0 : tlb_resp_xcp_if_i; 
-assign req_fetch_ready_o = (is_brom_access)? brom_ready_i : icache_req_ready_i; 
+assign resp_icache_fetch_o.valid =  resp_icache_fetch_valid;
+assign resp_icache_fetch_o.instr_page_fault = tlb_resp_xcp_if_i; 
+assign req_fetch_ready_o = icache_req_ready_i; 
 
 //PMU
 assign buffer_miss_o = '0; // TODO
