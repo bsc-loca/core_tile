@@ -21,7 +21,7 @@ module veri_top
 
     logic dut_icache_req_valid;
     logic dut_icache_resp_valid;
-    logic [25:0] dut_icache_request_paddr;
+    logic [ADDR_SIZE-1:0] dut_icache_request_paddr;
     logic [255:0] dut_icache_response_data;
 
     assign dut_icache_response_data = brom_resp_valid ? brom_resp_data : icache_l2_response_data;
