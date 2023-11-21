@@ -16,7 +16,7 @@ module veri_top
     // icache wires
     logic icache_l1_request_valid;
     logic icache_l2_response_valid;
-    logic [25:0] icache_l1_request_paddr;
+    logic [ADDR_SIZE-1:0] icache_l1_request_paddr;
     logic [255:0] icache_l2_response_data;
 
     logic dut_icache_req_valid;
@@ -26,7 +26,7 @@ module veri_top
 
     assign dut_icache_response_data = brom_resp_valid ? brom_resp_data : icache_l2_response_data;
     assign dut_icache_response_valid = brom_resp_valid | icache_l2_response_valid;
-    assign icache_l1_request_paddr = dut_icache_request_paddr[31:6];
+    assign icache_l1_request_paddr = dut_icache_request_paddr;
     assign icache_l1_request_valid = dut_icache_request_valid;
 
     //      Miss read interface
@@ -159,7 +159,8 @@ module veri_top
     );
 
     l2_behav #(
-        .LINE_SIZE(256)    
+        .DATA_CACHE_LINE_SIZE(512),
+        .INST_CACHE_LINE_SIZE(256)
     ) l2_inst (
         .clk_i(clk_i),
         .rstn_i(rstn_i),

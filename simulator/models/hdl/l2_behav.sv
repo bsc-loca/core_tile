@@ -138,7 +138,7 @@ module mem_channel #(
     logic [DATA_WIDTH-1:0] next_data;
     logic next_atomic;
     always_ff @(posedge clk_i) begin
-        logic [DATA_WIDTH-1:0] readed_data;
+        logic [511:0] readed_data; // From DPI
         if(~rstn_i) begin
             next_tag <= 0;
             next_data <= 0;
@@ -150,7 +150,7 @@ module mem_channel #(
                     2'b00: begin // Read
                         memory_read(head.addr, readed_data);
                         next_atomic <= 1'b0;
-                        next_data <= readed_data;
+                        next_data <= readed_data[head.addr[5:0]*8 +: DATA_WIDTH];
                     end
                     2'b01: begin // Write
                         memory_write(head.addr, head.be, head.data);
@@ -185,7 +185,8 @@ module mem_channel #(
 endmodule
 
 module l2_behav #(
-    parameter LINE_SIZE = 512,
+    parameter DATA_CACHE_LINE_SIZE = 512,
+    parameter INST_CACHE_LINE_SIZE = DATA_CACHE_LINE_SIZE,
     parameter ADDR_SIZE = 32,
     parameter INST_DELAY = 20,
     parameter DATA_DELAY = 20
@@ -196,9 +197,9 @@ module l2_behav #(
 
     // *** iCache Interface ***
 
-    input logic  [25:0]             ic_addr_i,
+    input logic  [ADDR_SIZE-1:0]    ic_addr_i,
     input logic                     ic_valid_i,
-    output logic [LINE_SIZE-1:0]    ic_line_o, // TODO: Change it to 512 bits, modifying iCache FSM
+    output logic [INST_CACHE_LINE_SIZE-1:0]    ic_line_o, // TODO: Change it to 512 bits, modifying iCache FSM
     output logic                    ic_ready_o,
     output logic                    ic_valid_o,
     output logic [1:0]              ic_seq_num_o,
@@ -212,7 +213,7 @@ module l2_behav #(
     input logic                     dc_mr_ready_i,
     input logic [7:0]               dc_mr_tag_i,
     input logic [3:0]               dc_mr_word_size_i,
-    output logic [LINE_SIZE-1:0]    dc_mr_data_o,
+    output logic [DATA_CACHE_LINE_SIZE-1:0]    dc_mr_data_o,
     output logic                    dc_mr_ready_o,
     output logic                    dc_mr_valid_o,
     output logic [7:0]              dc_mr_tag_o,
@@ -301,14 +302,14 @@ module l2_behav #(
     logic [$clog2(INST_DELAY)+1:0] ic_counter;
     logic [$clog2(INST_DELAY)+1:0] ic_next_counter;
 
-    logic  [25:0] ic_addr_int;
+    logic  [ADDR_SIZE-1:0] ic_addr_int;
     logic request_q;
 
     // ic_counter stuff
     assign ic_next_counter = (ic_counter > 0) ? ic_counter-1 : 0;
     assign ic_seq_num_o = 2'b11 - ic_counter[1:0];
 
-    // Register holding the full 512 bits of the line
+    // Register holding the full 512 bits from the DPI
     logic [511:0] ic_line;
 
     // ic_counter procedure
@@ -327,7 +328,7 @@ module l2_behav #(
 	        ic_addr_int <= ic_addr_i;
    	        request_q <= 1'b1;
 	        if (~|ic_next_counter && ~ic_valid_i) begin
-                memory_read({ic_addr_int[25:0], 6'b0}, ic_line);
+                memory_read(ic_addr_int, ic_line);
 	            ic_valid_o <= 1'b1;
 	        end else begin
 	            ic_valid_o <= 1'b0;
@@ -339,13 +340,13 @@ module l2_behav #(
     end 
 
     always_comb begin
-        if (ic_valid_o) ic_line_o = ic_line[{ic_addr_int[2:0], 6'b0} +: 256];
+        if (ic_valid_o) ic_line_o = ic_line[ic_addr_int[5:0]*8 +: INST_CACHE_LINE_SIZE];
         else            ic_line_o = 0      ;
     end
 
     // *** dCache miss-read channel ***
 
-    mem_channel mr_channel (
+    mem_channel #(.DATA_WIDTH(DATA_CACHE_LINE_SIZE)) mr_channel (
         .clk_i,
         .rstn_i,
 
@@ -370,7 +371,7 @@ module l2_behav #(
 
     // *** dCache writeback channel ***
 
-    mem_channel wb_channel (
+    mem_channel #(.DATA_WIDTH(DATA_CACHE_LINE_SIZE)) wb_channel (
         .clk_i,
         .rstn_i,
 
@@ -400,9 +401,9 @@ module l2_behav #(
     logic is_tohost;
 
     logic uncached_write_valid, atomic_response, uncached_write_ready;
-    logic [LINE_SIZE-1:0] atomic_data;
+    logic [DATA_CACHE_LINE_SIZE-1:0] atomic_data;
 
-    mem_channel uc_write_channel (
+    mem_channel #(.DATA_WIDTH(DATA_CACHE_LINE_SIZE)) uc_write_channel (
         .clk_i,
         .rstn_i,
 
@@ -458,10 +459,10 @@ module l2_behav #(
     // *** dCache uncacheable read channel ***
 
     logic uncached_read_valid, uncached_read_ready;
-    logic [LINE_SIZE-1:0] uncached_read_data;
+    logic [DATA_CACHE_LINE_SIZE-1:0] uncached_read_data;
     logic [7:0] uncached_read_tag;
 
-    mem_channel uc_read_channel (
+    mem_channel #(.DATA_WIDTH(DATA_CACHE_LINE_SIZE)) uc_read_channel (
         .clk_i,
         .rstn_i,
 

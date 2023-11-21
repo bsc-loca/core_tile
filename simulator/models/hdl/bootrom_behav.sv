@@ -74,7 +74,15 @@ module bootrom_behav
         endcase
     end*/
 
-    assign brom_resp_data_o = brom_resp_data_block;
+    always_comb begin
+        case(brom_req_address_d[3])
+            1'b0: brom_resp_data_o = {64'h0, brom_resp_data_block[63:0]};
+            1'b1: brom_resp_data_o = {64'h0, brom_resp_data_block[127:64]};
+            default: brom_resp_data_o = 32'h0;
+        endcase
+    end
+
+    //assign brom_resp_data_o = brom_resp_data_block;
 
     assign brom_ready_o = ~req_active & rstn;
 
