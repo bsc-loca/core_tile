@@ -28,13 +28,13 @@ logic   [31:0]  brom_resp_data;
 logic           brom_resp_valid;
 
 // icache wires
-logic                   l1_request_valid;
-logic                   l2_response_valid;
-logic   [ADDR_SIZE-1:0] l1_request_paddr;
-logic   [255:0]         l2_response_data; // TODO: LOCALPARAMETERS or PKG definition
-logic   [1:0]           l2_response_seqnum = '0;
-logic                   l2_inval_request;
-logic   [11:0]          l2_inval_addr;
+logic                     l1_request_valid;
+logic                     l2_response_valid;
+logic [PHY_ADDR_SIZE-1:0] l1_request_paddr;
+logic [255:0]             l2_response_data; // TODO: LOCALPARAMETERS or PKG definition
+logic [1:0]               l2_response_seqnum = '0;
+logic                     l2_inval_request;
+logic [11:0]              l2_inval_addr;
 
 //      Miss read interface
 logic                           mem_req_miss_read_ready;
