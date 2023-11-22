@@ -45,7 +45,7 @@ module dcache_interface
 
 logic io_address_space;
 
-assign io_address_space = (req_dcache_o.addr[ADDR_SIZE-1:0] >= req_cpu_dcache_i.io_base_addr) && (req_dcache_o.addr[ADDR_SIZE-1:0] < 40'h80000000);
+assign io_address_space = (req_dcache_o.addr[PHY_VIRT_MAX_ADDR_SIZE-1:0] >= req_cpu_dcache_i.io_base_addr) && (req_dcache_o.addr[PHY_VIRT_MAX_ADDR_SIZE-1:0] < 40'h80000000);
 
 //-------------------------------------------------------------
 // dCache Interface

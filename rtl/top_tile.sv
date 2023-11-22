@@ -116,7 +116,7 @@ module top_tile
 
     //- To L2
     output logic         io_mem_acquire_valid               ,
-    output logic [ADDR_SIZE-1:0] io_mem_acquire_bits_addr_block,
+    output logic [PHY_ADDR_SIZE-1:0] io_mem_acquire_bits_addr_block,
     output logic         io_mem_acquire_bits_client_xact_id ,
     output logic   [1:0] io_mem_acquire_bits_addr_beat      ,
     output logic [255:0] io_mem_acquire_bits_data           ,

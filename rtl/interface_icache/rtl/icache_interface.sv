@@ -95,7 +95,7 @@ assign brom_req_valid_o = do_brom_request_int;
 assign brom_req_address_o = {5'b0, req_fetch_icache_i.vaddr[18:0]};
 
 
-assign icache_req_bits_vpn_o = req_fetch_icache_i.vaddr[39:12];
+assign icache_req_bits_vpn_o = req_fetch_icache_i.vaddr[PHY_VIRT_MAX_ADDR_SIZE-1:12];
 assign icache_req_bits_idx_o = req_fetch_icache_i.vaddr[11:0];
 
 
@@ -113,7 +113,7 @@ assign icache_invalidate_o = req_fetch_icache_i.invalidate_icache;
 // Manage the pc_int_register
 always_ff @(posedge clk_i, negedge rstn_i) begin
     if (!rstn_i) begin
-        old_pc_req_q <= {ADDR_SIZE{1'b0}};
+        old_pc_req_q <= {PHY_VIRT_MAX_ADDR_SIZE{1'b0}};
     end else begin
         old_pc_req_q <= old_pc_req_d;
     end
