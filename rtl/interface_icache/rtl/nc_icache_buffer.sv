@@ -16,7 +16,10 @@ import drac_pkg::*;
 import sargantana_icache_pkg::*;
 //import lite_tile_pkg::*;
 
-module nc_icache_buffer( 
+module nc_icache_buffer 
+#(
+    parameter drac_pkg::drac_cfg_t DracCfg     = drac_pkg::DracDefaultConfig
+) ( 
     input  logic             clk_i, rstn_i,
     input  logic             en_translation_i   ,
     input  logic             req_icache_ready_i ,
@@ -30,12 +33,10 @@ module nc_icache_buffer(
     output req_cpu_icache_t  req_icache_o       ,
     output resp_icache_cpu_t resp_datapath_o        
 );
-logic is_in_dram, is_in_rom, is_in_deb  ;
 
 logic addr_is_nc            ;
 logic req_icache_valid      ;
 logic same_addr_req         ;
-logic is_inside_exeregion   ;
 logic waiting               ;
 logic is_in_buffer          ;
 
@@ -67,17 +68,13 @@ nc_state_t state_nc, next_state_nc;
 //------------------------------------------
 // Stage 1 
 //------------------------------------------
-assign is_in_dram = (datapath_req_i.vaddr >= _DRAM_BASE_) & (datapath_req_i.vaddr < _DRAM_END_);
-assign is_in_rom  = (datapath_req_i.vaddr >= _ROM_BASE_)  & (datapath_req_i.vaddr < _ROM_END_);
-assign is_in_deb  = (datapath_req_i.vaddr >= _DEB_BASE_)  & (datapath_req_i.vaddr < _DEB_END_); 
-assign is_inside_exeregion = is_in_dram | is_in_rom | is_in_deb ; 
-assign addr_is_nc = ~((datapath_req_i.vaddr >= _DRAM_BASE_) & (datapath_req_i.vaddr < _DRAM_END_));
+assign addr_is_nc = is_inside_IO_sections(DracCfg, datapath_req_i.vaddr) | range_check(DracCfg.InitBROMBase, DracCfg.InitBROMEnd, datapath_req_i.vaddr);
 
 // request to the instruccion cache with a cachable address.
 assign req_icache_valid = addr_is_nc &~ en_translation_i ? 1'b0 : datapath_req_i.valid ;
 
 // request of a non-cachable address.
-assign req_nc_valid_d = addr_is_nc &~ en_translation_i & is_inside_exeregion &~ nc_kill_d ? datapath_req_i.valid : 1'b0 ;
+assign req_nc_valid_d = addr_is_nc &~ en_translation_i & is_inside_mem_sections(DracCfg, datapath_req_i.vaddr) &~ nc_kill_d ? datapath_req_i.valid : 1'b0 ;
 
 // nc addr in-fly register buffer
 assign paddr_infly_d = req_nc_valid_d ? datapath_req_i.vaddr : paddr_infly_q ;

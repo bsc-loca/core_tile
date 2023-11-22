@@ -36,15 +36,6 @@ module icache_interface
     output logic             icache_req_kill_o       , // ICACHE_REQ_BITS_KILL,
     output reg               icache_req_valid_o      , // ICACHE_REQ_VALID,
     output icache_vpn_t      icache_req_bits_vpn_o   , // ICACHE_REQ_BITS_VPN,
-
-    // Request input signals from bootrom
-    input logic              brom_ready_i,
-    input logic [31:0]       brom_resp_data_i,
-    input logic              brom_resp_valid_i,
-    
-    // Request output signals to bootrom
-    output logic [23:0]      brom_req_address_o, // TODO: in fact only 19 bits needed
-    output logic             brom_req_valid_o,
     
     // Fetch stage interface - Request packet icache to fetch
     output resp_icache_cpu_t  resp_icache_fetch_o,
@@ -65,34 +56,14 @@ icache_state_t state_int, next_state_int;
 // to the icache
 logic do_icache_request_int;
 
-logic do_brom_request_int;
-logic is_brom_access;
-logic is_brom_old_access;
-
 reg_addr_t old_pc_req_d, old_pc_req_q;
 
 logic resp_icache_fetch_valid;
 
-  
-
-assign is_brom_access = ~en_translation_i & 
-                        req_fetch_icache_i.vaddr < BROM_SIZE &
-                        ~csr_spi_config_i;
-always @(posedge clk_i) is_brom_old_access <= is_brom_access;
-
 // Icache_interface can do request to icache
 assign do_icache_request_int = req_fetch_icache_i.valid                &
                                ~req_fetch_icache_i.invalidate_buffer   &
-                               ~is_brom_access                         & 
                                icache_req_ready_i                      ;
-
-// Icache_interface can do request to bootrom
-assign do_brom_request_int = req_fetch_icache_i.valid  &
-                             is_brom_access            & 
-                             brom_ready_i              ;
-
-assign brom_req_valid_o = do_brom_request_int;
-assign brom_req_address_o = {5'b0, req_fetch_icache_i.vaddr[18:0]};
 
 
 assign icache_req_bits_vpn_o = req_fetch_icache_i.vaddr[PHY_VIRT_MAX_ADDR_SIZE-1:12];
@@ -119,7 +90,7 @@ always_ff @(posedge clk_i, negedge rstn_i) begin
     end
 end
 // old pc is the pc of the last cycle
-assign old_pc_req_d = (do_icache_request_int | do_brom_request_int) ? req_fetch_icache_i.vaddr : old_pc_req_q;   
+assign old_pc_req_d = (do_icache_request_int) ? req_fetch_icache_i.vaddr : old_pc_req_q;   
 
 
 
@@ -128,9 +99,6 @@ always_comb begin
     if(tlb_resp_xcp_if_i) begin
         resp_icache_fetch_o.data = 32'h0;
     end else begin
-      if (is_brom_old_access) begin
-        resp_icache_fetch_o.data = brom_resp_data_i;
-      end else begin
         case(old_pc_req_q[3:2])
             2'b00: begin
                 resp_icache_fetch_o.data = icache_resp_datablock_i[31:0];
@@ -148,7 +116,6 @@ always_comb begin
                 resp_icache_fetch_o.data = 32'h0;
             end
         endcase
-      end
     end
 end
 

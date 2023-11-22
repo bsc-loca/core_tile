@@ -415,15 +415,6 @@ icache_interface icache_interface_inst(
     .icache_req_valid_o     ( lagarto_ireq.valid ),
     .icache_req_bits_vpn_o  ( lagarto_ireq.vpn   ), 
 
-    // Inputs Bootrom
-    .brom_ready_i           ( '0      ),
-    .brom_resp_data_i       ( '0      ), 
-    .brom_resp_valid_i      ( '0      ),
-
-    // Outputs Bootrom
-    .brom_req_address_o     (  ),
-    .brom_req_valid_o       (    ),
-
     // Fetch stage interface - Request packet from fetch_stage
     .req_fetch_icache_i   (req_datapath_icache_interface_cached  ),
     
