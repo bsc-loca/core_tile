@@ -459,7 +459,9 @@ logic          dcache_rsp_valid [HPDCACHE_NREQUESTERS-1:0];
 hpdcache_rsp_t dcache_rsp       [HPDCACHE_NREQUESTERS-1:0];
 logic wbuf_empty;
 
-dcache_interface dcache_interface_inst(
+dcache_interface #(
+    .DracCfg(DracCfg)
+) dcache_interface_inst(
     .clk_i(clk_i),
     .rstn_i(rstn_i),
 
