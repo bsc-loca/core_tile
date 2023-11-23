@@ -74,7 +74,7 @@ assign addr_is_nc = is_inside_IO_sections(DracCfg, datapath_req_i.vaddr) | range
 assign req_icache_valid = addr_is_nc &~ en_translation_i ? 1'b0 : datapath_req_i.valid ;
 
 // request of a non-cachable address.
-assign req_nc_valid_d = addr_is_nc &~ en_translation_i & is_inside_mem_sections(DracCfg, datapath_req_i.vaddr) &~ nc_kill_d ? datapath_req_i.valid : 1'b0 ;
+assign req_nc_valid_d = addr_is_nc &~ en_translation_i & is_inside_mapped_sections(DracCfg, datapath_req_i.vaddr) &~ nc_kill_d ? datapath_req_i.valid : 1'b0 ;
 
 // nc addr in-fly register buffer
 assign paddr_infly_d = req_nc_valid_d ? datapath_req_i.vaddr : paddr_infly_q ;
