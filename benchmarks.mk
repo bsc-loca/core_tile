@@ -1,6 +1,10 @@
 RISCV_TESTS_DIR = $(PROJECT_DIR)/riscv-tests
 
-RISCV_GCC_OPTS = -march=rv64g -DPREALLOCATE=1 -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf -fno-tree-loop-distribute-patterns
+BENCHMARK_GCC_OPTS = -march=rv64g -DPREALLOCATE=1 -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf -fno-tree-loop-distribute-patterns
+
+ifdef SARGANTANA_TEST_FPGA
+BENCHMARK_GCC_OPTS += -DFPGA
+endif
 
 # *** riscv-tests benchmark compilation ***
 
@@ -10,7 +14,7 @@ $(PROJECT_DIR)/benchmarks/Makefile:
 
 .PHONY: build-benchmarks
 build-benchmarks: $(PROJECT_DIR)/benchmarks/Makefile
-		$(MAKE) -C $(PROJECT_DIR)/benchmarks RISCV_GCC_OPTS="$(RISCV_GCC_OPTS)" benchmarks
+		$(MAKE) -C $(PROJECT_DIR)/benchmarks RISCV_GCC_OPTS="$(BENCHMARK_GCC_OPTS)" benchmarks
 
 # *** riscv-tests benchmark simulation ***
 
