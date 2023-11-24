@@ -284,4 +284,49 @@ module axi_wrapper (
         .slv(axi_core_to_atomic)
     );
 
+    `ifdef VERILATOR
+
+    import "DPI-C" function void memory_symbol_addr(input string symbol, output bit [63:0] addr);
+    import "DPI-C" function int  tohost(input bit [63:0] data);
+
+    logic [63:0] tohost_addr;
+
+    // Memory DPI
+    always_ff @(negedge rstn_i) begin
+        memory_symbol_addr("tohost", tohost_addr);
+    end
+
+    logic [63:0] last_write_addr;
+
+    always_ff @(posedge clk_i) begin
+        if (axi_o.aw_valid && axi_o.aw_ready) last_write_addr <= axi_o.aw_addr;
+    end
+
+    always_ff @(posedge clk_i) begin
+        logic [14:0] exit_code;
+        if (axi_o.w_valid && last_write_addr == tohost_addr) begin
+            if (tohost(axi_o.w_data[63:0])) begin
+                exit_code = axi_o.w_data[15:1];
+
+                if (exit_code == 0) begin
+                    $write("%c[1;32m", 27);
+                    $write("Run finished correctly");
+                    $write("%c[0m\n", 27);
+                    $finish;
+                end else begin
+                    $write("%c[1;31m", 27);
+                    $write("Simulation ended with error code %d", exit_code);
+                    $write("%c[0m\n", 27);
+                    `ifdef VERILATOR // Use $error because Verilator doesn't support exit codes in $finish
+                        $error;
+                    `else
+                        $finish(exit_code);
+                    `endif
+                end
+            end
+        end
+    end
+    
+    `endif
+
 endmodule
