@@ -236,19 +236,33 @@ module veri_top
         else cycles <= cycles + 1;
     end
 
-    initial begin
-        string dumpfile;
-        if ($test$plusargs("vcd")) begin
-            $dumpfile("dump_file.vcd");
-            $dumpvars();
-        end
-        if (!$value$plusargs("max-cycles=%d", max_cycles)) max_cycles = 0;
-    end
+    initial if (!$value$plusargs("max-cycles=%d", max_cycles)) max_cycles = 0;
 
     always @(posedge clk_i) begin
         if (max_cycles > 0 && cycles == max_cycles) begin
             $error("Test timeout");
         end
     end
+
+    logic vcd_enable, vcd_started;
+    integer vcd_start_time;
+
+    initial begin
+        vcd_started = 0;
+        
+        if ($test$plusargs("vcd")) vcd_enable = 1'b1;
+        else vcd_enable = 1'b0;
+
+        if (!$value$plusargs("vcd_start_time=%d", vcd_start_time)) vcd_start_time = 0;
+    end
+
+    always @(posedge clk_i) begin
+        if (!vcd_started && vcd_enable && $time > vcd_start_time) begin
+            $dumpfile("dump_file.vcd");
+            $dumpvars();
+            vcd_started <= 1'b1;
+        end
+    end
+
 
 endmodule // veri_top
