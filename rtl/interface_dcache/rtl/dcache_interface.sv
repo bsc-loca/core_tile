@@ -51,7 +51,11 @@ assign io_address_space = (req_dcache_o.addr[ADDR_SIZE-1:0] >= req_cpu_dcache_i.
 // dCache Interface
 //-------------------------------------------------------------
 
-assign core_req_valid_o = req_cpu_dcache_i.valid; 
+logic wait_resp_same_tag; // This signal identifies when the core must wait for
+                          // the cache to process an old request with the same
+                          // tag that's about to be used for the next request.
+
+assign core_req_valid_o = req_cpu_dcache_i.valid & ~wait_resp_same_tag; 
 
 // Memory Operation
 always_comb begin
@@ -115,7 +119,7 @@ assign req_dcache_o.uncacheable = io_address_space;
 
 // Dcache interface to CPU 
 assign resp_dcache_cpu_o.valid = dcache_valid_i;
-assign resp_dcache_cpu_o.ready = dcache_ready_i;
+assign resp_dcache_cpu_o.ready = dcache_ready_i & ~wait_resp_same_tag;
 assign resp_dcache_cpu_o.io_address_space = io_address_space; // This should be done somewhere else...
 assign resp_dcache_cpu_o.rd = rsp_dcache_i.tid;
 assign resp_dcache_cpu_o.data = rsp_dcache_i.rdata;
@@ -125,6 +129,51 @@ assign resp_dcache_cpu_o.ordered = wbuf_empty_i;
 //-PMU
 assign dmem_is_store_o = (req_dcache_o.op == HPDCACHE_REQ_LOAD) && req_cpu_dcache_i.valid;
 assign dmem_is_load_o  = (req_dcache_o.op == HPDCACHE_REQ_STORE) && req_cpu_dcache_i.valid;
+
+// Table holding the status of all the tags.
+// This is a workaround to the HPDC not being able to process all the store
+// requests the core is able to generate in time.
+
+typedef enum logic {IDLE, PENDING} checker_state_t;
+
+checker_state_t [127:0] transaction_table;
+logic [7:0] transactions_in_flight;
+
+assign wait_resp_same_tag = transaction_table[req_dcache_o.tid] == PENDING;
+
+always_ff @(posedge clk_i, negedge rstn_i) begin
+    logic send, recieve;
+    send = core_req_valid_o && dcache_ready_i;
+    recieve = dcache_valid_i;
+    if (!rstn_i) begin
+        transaction_table <= 0;
+        transactions_in_flight <= 0;
+    end else begin
+        if (send) begin
+            `ifdef VERILATOR
+            if (transaction_table[req_dcache_o.tid] == PENDING) begin
+                $display("Transaction 0x%0h requested twice (time=%0t)", req_dcache_o.tid, $time);
+                $fatal;
+            end
+            `endif
+
+            transaction_table[req_dcache_o.tid] <= PENDING;
+        end
+
+        if (recieve) begin
+            `ifdef VERILATOR
+            if (transaction_table[rsp_dcache_i.tid] == IDLE) begin
+                $display("Transaction 0x%0h responded twice (time=%0t)", rsp_dcache_i.tid, $time);
+                $fatal;
+            end
+            `endif
+
+            transaction_table[rsp_dcache_i.tid] <= IDLE;
+        end
+
+        transactions_in_flight <= transactions_in_flight + send - recieve;
+    end
+end
 
 endmodule
 //`default_nettype wire
