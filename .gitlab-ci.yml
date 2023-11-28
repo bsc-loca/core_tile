@@ -167,9 +167,11 @@ fpga:
   stage: fpga
   variables:
     COMMIT_SHA: $CI_COMMIT_SHA
+    COMMIT_REF: $CI_COMMIT_REF_NAME
   trigger:
     project: hwdesign/fpga/integration-lab/fpga-shell
     branch: ft/ci_for_sargantana
+    strategy: depend
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
