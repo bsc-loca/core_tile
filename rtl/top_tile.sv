@@ -379,7 +379,9 @@ assign io_mem_grant_ready                  =   1'b1                 ;
 resp_icache_cpu_t resp_icache_interface_datapath_cached ;
 req_cpu_icache_t  req_datapath_icache_interface_cached  ;
 
-nc_icache_buffer _nc_icache_bf_ (    
+nc_icache_buffer #(
+    .DracCfg(DracCfg)
+)  _nc_icache_bf_ (    
     .clk_i              ( clk_i                                   ) , 
     .rstn_i             ( rstn_i                                  ) ,
     .en_translation_i   ( en_translation                          ) ,

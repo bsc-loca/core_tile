@@ -7,7 +7,9 @@
 
  module drac_openpiton_wrapper
  import drac_pkg::*; import hpdcache_pkg::*; import wt_cache_pkg::*;
-(
+ #(
+     parameter drac_pkg::drac_cfg_t DracCfg     = drac_pkg::DracDefaultConfig
+ )(
  input   logic                   clk_i,
  input   logic                   reset_l,     // This is an openpiton-specific name, do not change (hier. paths in TB use this)
  output  logic                   spc_grst_l,  // This is an openpiton-specific name, do not change (hier. paths in TB use this)
@@ -106,9 +108,9 @@ end
 // reset gate this
 assign rst_n = wake_up_cnt_q[$high(wake_up_cnt_q)] & reset_l;
 
-
-
-top_drac core_inst(
+top_drac #(
+  .DracCfg(DracCfg)
+) core_inst (
  .CLK(clk_i),
  .RST(rst_n),
  .SOFT_RST(rst_n),
