@@ -8,8 +8,18 @@
  module drac_openpiton_wrapper
  import drac_pkg::*; import hpdcache_pkg::*; import wt_cache_pkg::*;
  #(
-     parameter drac_pkg::drac_cfg_t DracCfg     = drac_pkg::DracDefaultConfig
- )(
+    // IO addresses
+    parameter int unsigned               NIOSections           =  1,
+    parameter logic [NrMaxRules*64-1:0]  InitIOBase            = 64'h00C0000000,
+    parameter logic [NrMaxRules*64-1:0]  InitIOEnd             = 64'hFFFFFFFFFF,
+    // Mapped addresses (IO and cached)
+    parameter int unsigned               NMappedSections       =  1,
+    parameter logic [NrMaxRules*64-1:0]  InitMappedBase        = 64'h00C0000000,
+    parameter logic [NrMaxRules*64-1:0]  InitMappedEnd         = 64'hFFFFFFFFFF,
+    // BROM address
+    parameter logic [64-1:0]             InitBROMBase          = 64'h00C0000000,
+    parameter logic [64-1:0]             InitBROMEnd           = 64'hFFFFFFFFFF
+) (
  input   logic                   clk_i,
  input   logic                   reset_l,     // This is an openpiton-specific name, do not change (hier. paths in TB use this)
  output  logic                   spc_grst_l,  // This is an openpiton-specific name, do not change (hier. paths in TB use this)
@@ -108,8 +118,21 @@ end
 // reset gate this
 assign rst_n = wake_up_cnt_q[$high(wake_up_cnt_q)] & reset_l;
 
+localparam drac_cfg_t DracOpenPitonCfg = '{
+    NIOSections: NIOSections, // number of IO space sections
+    InitIOBase:  InitIOBase, // IO base 0 address after reset
+    InitIOEnd:   InitIOEnd, // IO end 0 address after reset
+
+    NMappedSections: NMappedSections, // number of Memory space sections
+    InitMappedBase:  InitMappedBase, // Memory base address after reset
+    InitMappedEnd:   InitMappedEnd, // Memory end 0 address after reset
+
+    InitBROMBase: InitBROMBase,
+    InitBROMEnd: InitBROMEnd
+};
+
 top_drac #(
-  .DracCfg(DracCfg)
+  .DracCfg(DracOpenPitonCfg)
 ) core_inst (
  .CLK(clk_i),
  .RST(rst_n),
