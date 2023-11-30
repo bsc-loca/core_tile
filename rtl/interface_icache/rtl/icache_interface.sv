@@ -24,7 +24,7 @@ module icache_interface
 
     // Request input signals from ICache
     input icache_line_t      icache_resp_datablock_i , // ICACHE_RESP_BITS_DATABLOCK
-    input addr_t             icache_resp_vaddr_i     , // ICACHE_RESP_BITS_VADDR
+    input [VIRT_ADDR_SIZE-1:0] icache_resp_vaddr_i     , // ICACHE_RESP_BITS_VADDR
     input logic              icache_resp_valid_i     , // ICACHE_RESP_VALID,
     input logic              icache_req_ready_i      , // ICACHE_REQ_READY,
     input logic              tlb_resp_xcp_if_i       , // TLB_RESP_XCPT_IF,
