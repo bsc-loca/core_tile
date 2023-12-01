@@ -222,6 +222,20 @@ logic          req_icache_ready;
 
 //--PMU
 pmu_interface_t pmu_interface;
+assign pmu_interface.icache_req = lagarto_ireq.valid;
+assign pmu_interface.icache_kill = lagarto_ireq.kill;
+assign pmu_interface.icache_miss_l2_hit = imiss_l2_hit;
+assign pmu_interface.icache_miss_kill = imiss_kill_pmu;
+assign pmu_interface.icache_busy = !icache_resp.ready;
+assign pmu_interface.icache_miss_time = imiss_time_pmu;
+assign pmu_interface.itlb_access = pmu_itlb_access;
+assign pmu_interface.itlb_miss = pmu_itlb_miss;
+assign pmu_interface.dtlb_access = pmu_dtlb_access;
+assign pmu_interface.dtlb_miss = pmu_dtlb_miss;
+assign pmu_interface.ptw_buffer_hit = pmu_ptw_hit;
+assign pmu_interface.ptw_buffer_miss = pmu_ptw_miss;
+assign pmu_interface.itlb_stall = pmu_itlb_miss_cycle;
+
 
 //L2 Network conection - response
 assign ifill_resp.data  = io_mem_grant_bits_data             ;  
@@ -430,8 +444,8 @@ dcache_interface dcache_interface_inst(
     .wbuf_empty_i(wbuf_empty),
 
     // PMU
-    .dmem_is_store_o ( exe_store_pmu ),
-    .dmem_is_load_o  ( exe_load_pmu  )
+    .dmem_is_store_o ( pmu_interface.exe_store ),
+    .dmem_is_load_o  ( pmu_interface.exe_load  )
 );
 
 hpdcache #(
