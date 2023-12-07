@@ -106,18 +106,23 @@ module sargantana_wrapper(
 
     localparam axi_pkg::xbar_cfg_t xbar_cfg = '{
         NoSlvPorts:         1,
-        NoMstPorts:         3,
         MaxMstTrans:        10,
         MaxSlvTrans:        6,
         FallThrough:        1'b0,
         LatencyMode:        axi_pkg::CUT_ALL_AX,
         PipelineStages:     1,
-        AxiIdWidthSlvPorts: 32'(drac_pkg::HPDCACHE_MEM_TID_WIDTH),
-        AxiIdUsedSlvPorts:  32'(drac_pkg::HPDCACHE_MEM_TID_WIDTH),
+        AxiIdWidthSlvPorts: 32'(sargantana_hpdc_pkg::HPDCACHE_MEM_TID_WIDTH),
+        AxiIdUsedSlvPorts:  32'(sargantana_hpdc_pkg::HPDCACHE_MEM_TID_WIDTH),
         UniqueIds:          1,
         AxiAddrWidth:       `AXI_XBAR_ADDR_WIDTH,
         AxiDataWidth:       `AXI_XBAR_DATA_WIDTH,
-        NoAddrRules:        3
+        `ifdef VERILATOR
+        NoAddrRules:        4, // +1 for tohost support
+        NoMstPorts:         4
+        `else
+        NoAddrRules:        3,
+        NoMstPorts:         3
+        `endif
     };
 
     // Address Map
@@ -141,13 +146,21 @@ module sargantana_wrapper(
             end_addr: `MEM_END_ADDR,
             default: '0
         }
+        `ifdef VERILATOR
+        , rule_t'{
+            idx: `MEM_XBAR_ID + 1,
+            start_addr: 32'h4000_0000,
+            end_addr: 32'h4000_0100,
+            default: '0
+        }
+        `endif
     };
     
     // Bus connecting the core to the xbar
     AXI_BUS #(
         .AXI_ADDR_WIDTH ( `AXI_XBAR_ADDR_WIDTH     ),
         .AXI_DATA_WIDTH ( `AXI_XBAR_DATA_WIDTH     ),
-        .AXI_ID_WIDTH   ( 32'(drac_pkg::HPDCACHE_MEM_TID_WIDTH) ),
+        .AXI_ID_WIDTH   ( 32'(sargantana_hpdc_pkg::HPDCACHE_MEM_TID_WIDTH) ),
         .AXI_USER_WIDTH ( `AXI_XBAR_USER_WIDTH )
     ) core2xbar_bus [xbar_cfg.NoSlvPorts-1:0] ();
 
@@ -464,5 +477,14 @@ module sargantana_wrapper(
       .irq_o          (time_irq                         )
     );
 
+    `ifdef VERILATOR
+
+    axi_tohost_behav axi_tohost_inst (
+        .clk_i,
+        .rstn_i,
+        .axi(xbar2tran_bus[xbar_cfg.NoMstPorts-1])
+    );
+
+    `endif
 
 endmodule

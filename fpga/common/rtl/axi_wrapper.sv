@@ -47,57 +47,57 @@ module axi_wrapper (
     //      Miss read interface
     logic                           mem_req_miss_read_ready;
     logic                           mem_req_miss_read_valid;
-    drac_pkg::hpdcache_mem_req_t    mem_req_miss_read;
-    drac_pkg::hpdcache_mem_id_t     mem_req_miss_read_base_id;
+    sargantana_hpdc_pkg::hpdcache_mem_req_t    mem_req_miss_read;
+    sargantana_hpdc_pkg::hpdcache_mem_id_t     mem_req_miss_read_base_id;
 
     logic                           mem_resp_miss_read_ready;
     logic                           mem_resp_miss_read_valid;
-    drac_pkg::hpdcache_mem_resp_r_t mem_resp_miss_read;
+    sargantana_hpdc_pkg::hpdcache_mem_resp_r_t mem_resp_miss_read;
 
     //      Write-buffer write interface
     logic                           mem_req_wbuf_write_ready;
     logic                           mem_req_wbuf_write_valid;
-    drac_pkg::hpdcache_mem_req_t    mem_req_wbuf_write;
-    drac_pkg::hpdcache_mem_id_t     mem_req_wbuf_write_base_id;
+    sargantana_hpdc_pkg::hpdcache_mem_req_t    mem_req_wbuf_write;
+    sargantana_hpdc_pkg::hpdcache_mem_id_t     mem_req_wbuf_write_base_id;
 
     logic                           mem_req_wbuf_write_data_ready;
     logic                           mem_req_wbuf_write_data_valid;
-    drac_pkg::hpdcache_mem_req_w_t  mem_req_wbuf_write_data;
+    sargantana_hpdc_pkg::hpdcache_mem_req_w_t  mem_req_wbuf_write_data;
 
     logic                           mem_resp_wbuf_write_ready;
     logic                           mem_resp_wbuf_write_valid;
-    drac_pkg::hpdcache_mem_resp_w_t mem_resp_wbuf_write;
+    sargantana_hpdc_pkg::hpdcache_mem_resp_w_t mem_resp_wbuf_write;
 
     //      Uncached read interface
     logic                           mem_req_uc_read_ready;
     logic                           mem_req_uc_read_valid;
-    drac_pkg::hpdcache_mem_req_t    mem_req_uc_read;
-    drac_pkg::hpdcache_mem_id_t     mem_req_uc_read_base_id;
+    sargantana_hpdc_pkg::hpdcache_mem_req_t    mem_req_uc_read;
+    sargantana_hpdc_pkg::hpdcache_mem_id_t     mem_req_uc_read_base_id;
 
     logic                           mem_resp_uc_read_ready;
     logic                           mem_resp_uc_read_valid;
-    drac_pkg::hpdcache_mem_resp_r_t mem_resp_uc_read;
+    sargantana_hpdc_pkg::hpdcache_mem_resp_r_t mem_resp_uc_read;
 
     //      Uncached write interface
     logic                           mem_req_uc_write_ready;
     logic                           mem_req_uc_write_valid;
-    drac_pkg::hpdcache_mem_req_t    mem_req_uc_write;
-    drac_pkg::hpdcache_mem_id_t     mem_req_uc_write_base_id;
+    sargantana_hpdc_pkg::hpdcache_mem_req_t    mem_req_uc_write;
+    sargantana_hpdc_pkg::hpdcache_mem_id_t     mem_req_uc_write_base_id;
 
     logic                           mem_req_uc_write_data_ready;
     logic                           mem_req_uc_write_data_valid;
-    drac_pkg::hpdcache_mem_req_w_t  mem_req_uc_write_data;
+    sargantana_hpdc_pkg::hpdcache_mem_req_w_t  mem_req_uc_write_data;
 
     logic                           mem_resp_uc_write_ready;
     logic                           mem_resp_uc_write_valid;
-    drac_pkg::hpdcache_mem_resp_w_t mem_resp_uc_write;
+    sargantana_hpdc_pkg::hpdcache_mem_resp_w_t mem_resp_uc_write;
 
-    top_drac core_inst(
-        .CLK(clk_i),
-        .RST(rstn_i),
-        .SOFT_RST(rstn_i),
+    top_tile core_inst (
+        .clk_i(clk_i),
+        .rstn_i(rstn_i),
+        .soft_rstn_i(rstn_i),
         .debug_halt_i(0),
-        .RESET_ADDRESS('h00000100),
+        .reset_addr_i('h00000100),
 
         // Bootrom ports
         .brom_ready_i(brom_ready),
@@ -193,7 +193,7 @@ module axi_wrapper (
 
         .icache_miss_valid_i(l1_request_valid),
         .icache_miss_paddr_i(l1_request_paddr),
-        .icache_miss_id_i(1 << (drac_pkg::HPDCACHE_MEM_TID_WIDTH - 1)),
+        .icache_miss_id_i(1 << (sargantana_hpdc_pkg::HPDCACHE_MEM_TID_WIDTH - 1)),
 
         .icache_miss_resp_valid_o(l2_response_valid),
         .icache_miss_resp_data_o(l2_response_data),
@@ -254,8 +254,8 @@ module axi_wrapper (
 
     AXI_BUS #(
         .AXI_ADDR_WIDTH (64),
-        .AXI_DATA_WIDTH (drac_pkg::HPDCACHE_MEM_DATA_WIDTH),
-        .AXI_ID_WIDTH   (drac_pkg::HPDCACHE_MEM_TID_WIDTH),
+        .AXI_DATA_WIDTH (sargantana_hpdc_pkg::HPDCACHE_MEM_DATA_WIDTH),
+        .AXI_ID_WIDTH   (sargantana_hpdc_pkg::HPDCACHE_MEM_TID_WIDTH),
         .AXI_USER_WIDTH (11)
     ) axi_core_to_atomic();
 
@@ -264,15 +264,15 @@ module axi_wrapper (
 
     AXI_BUS #(
         .AXI_ADDR_WIDTH (64),
-        .AXI_DATA_WIDTH (drac_pkg::HPDCACHE_MEM_DATA_WIDTH),
-        .AXI_ID_WIDTH   (drac_pkg::HPDCACHE_MEM_TID_WIDTH),
+        .AXI_DATA_WIDTH (sargantana_hpdc_pkg::HPDCACHE_MEM_DATA_WIDTH),
+        .AXI_ID_WIDTH   (sargantana_hpdc_pkg::HPDCACHE_MEM_TID_WIDTH),
         .AXI_USER_WIDTH (11)
     ) axi_atomic_to_fpga();
 
     axi_riscv_atomics_wrap #(
         .AXI_ADDR_WIDTH(64),
-        .AXI_DATA_WIDTH(drac_pkg::HPDCACHE_MEM_DATA_WIDTH),
-        .AXI_ID_WIDTH(drac_pkg::HPDCACHE_MEM_TID_WIDTH),
+        .AXI_DATA_WIDTH(sargantana_hpdc_pkg::HPDCACHE_MEM_DATA_WIDTH),
+        .AXI_ID_WIDTH(sargantana_hpdc_pkg::HPDCACHE_MEM_TID_WIDTH),
         .AXI_USER_WIDTH(11),
         .AXI_MAX_READ_TXNS(1),
         .AXI_MAX_WRITE_TXNS(1),
@@ -283,50 +283,5 @@ module axi_wrapper (
         .mst(axi_o),
         .slv(axi_core_to_atomic)
     );
-
-    `ifdef VERILATOR
-
-    import "DPI-C" function void memory_symbol_addr(input string symbol, output bit [63:0] addr);
-    import "DPI-C" function int  tohost(input bit [63:0] data);
-
-    logic [63:0] tohost_addr;
-
-    // Memory DPI
-    always_ff @(negedge rstn_i) begin
-        memory_symbol_addr("tohost", tohost_addr);
-    end
-
-    logic [63:0] last_write_addr;
-
-    always_ff @(posedge clk_i) begin
-        if (axi_o.aw_valid && axi_o.aw_ready) last_write_addr <= axi_o.aw_addr;
-    end
-
-    always_ff @(posedge clk_i) begin
-        logic [14:0] exit_code;
-        if (axi_o.w_valid && last_write_addr == tohost_addr) begin
-            if (tohost(axi_o.w_data[63:0])) begin
-                exit_code = axi_o.w_data[15:1];
-
-                if (exit_code == 0) begin
-                    $write("%c[1;32m", 27);
-                    $write("Run finished correctly");
-                    $write("%c[0m\n", 27);
-                    $finish;
-                end else begin
-                    $write("%c[1;31m", 27);
-                    $write("Simulation ended with error code %d", exit_code);
-                    $write("%c[0m\n", 27);
-                    `ifdef VERILATOR // Use $error because Verilator doesn't support exit codes in $finish
-                        $error;
-                    `else
-                        $finish(exit_code);
-                    `endif
-                end
-            end
-        end
-    end
-    
-    `endif
 
 endmodule
