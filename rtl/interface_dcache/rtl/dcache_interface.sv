@@ -144,14 +144,15 @@ logic [7:0] transactions_in_flight;
 
 assign wait_resp_same_tag = transaction_table[req_dcache_o.tid] == PENDING;
 
+logic send, receive;
+
 always_ff @(posedge clk_i, negedge rstn_i) begin
-    logic send, recieve;
-    send = core_req_valid_o && dcache_ready_i;
-    recieve = dcache_valid_i;
     if (!rstn_i) begin
         transaction_table <= 0;
         transactions_in_flight <= 0;
     end else begin
+        send    = core_req_valid_o && dcache_ready_i;
+        receive = dcache_valid_i;
         if (send) begin
             `ifdef VERILATOR
             if (transaction_table[req_dcache_o.tid] == PENDING) begin
@@ -163,7 +164,7 @@ always_ff @(posedge clk_i, negedge rstn_i) begin
             transaction_table[req_dcache_o.tid] <= PENDING;
         end
 
-        if (recieve) begin
+        if (receive) begin
             `ifdef VERILATOR
             if (transaction_table[rsp_dcache_i.tid] == IDLE) begin
                 $display("Transaction 0x%0h responded twice (time=%0t)", rsp_dcache_i.tid, $time);
@@ -174,7 +175,7 @@ always_ff @(posedge clk_i, negedge rstn_i) begin
             transaction_table[rsp_dcache_i.tid] <= IDLE;
         end
 
-        transactions_in_flight <= transactions_in_flight + send - recieve;
+        transactions_in_flight <= transactions_in_flight + send - receive;
     end
 end
 
