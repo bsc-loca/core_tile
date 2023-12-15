@@ -128,8 +128,8 @@ assign resp_dcache_cpu_o.data = rsp_dcache_i.rdata;
 assign resp_dcache_cpu_o.ordered = wbuf_empty_i;
 
 //-PMU
-assign dmem_is_store_o = (req_dcache_o.op == HPDCACHE_REQ_LOAD) && req_cpu_dcache_i.valid;
-assign dmem_is_load_o  = (req_dcache_o.op == HPDCACHE_REQ_STORE) && req_cpu_dcache_i.valid;
+assign dmem_is_store_o = (req_dcache_o.op == HPDCACHE_REQ_STORE) && req_cpu_dcache_i.valid;
+assign dmem_is_load_o  = (req_dcache_o.op == HPDCACHE_REQ_LOAD) && req_cpu_dcache_i.valid;
 
 // Table holding the status of all the tags.
 // This is a workaround to the HPDC not being able to process all the store
