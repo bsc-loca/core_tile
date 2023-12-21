@@ -29,6 +29,7 @@ module dcache_interface
     // CPU Interface
     input req_cpu_dcache_t req_cpu_dcache_i,
     output resp_dcache_cpu_t resp_dcache_cpu_o, // Dcache to CPU
+    input logic killed_dcache_req_i,
 
     // dCache Interface
     input  logic dcache_ready_i,
@@ -121,7 +122,7 @@ assign req_dcache_o.uncacheable = io_address_space;
 //-------------------------------------------------------------
 
 // Dcache interface to CPU 
-assign resp_dcache_cpu_o.valid = dcache_valid_i;
+assign resp_dcache_cpu_o.valid = dcache_valid_i & (transaction_table[rsp_dcache_i.tid] != KILLED);
 assign resp_dcache_cpu_o.ready = dcache_ready_i & ~wait_resp_same_tag;
 assign resp_dcache_cpu_o.io_address_space = io_address_space; // This should be done somewhere else...
 assign resp_dcache_cpu_o.rd = rsp_dcache_i.tid;
@@ -137,7 +138,7 @@ assign dmem_is_load_o  = (req_dcache_o.op == HPDCACHE_REQ_LOAD) && req_cpu_dcach
 // This is a workaround to the HPDC not being able to process all the store
 // requests the core is able to generate in time.
 
-typedef enum logic {IDLE, PENDING} checker_state_t;
+typedef enum logic [1:0] {IDLE, PENDING, KILLED} checker_state_t;
 
 checker_state_t [127:0] transaction_table;
 logic [7:0] transactions_in_flight;
@@ -174,8 +175,14 @@ always_ff @(posedge clk_i, negedge rstn_i) begin
 
             transaction_table[rsp_dcache_i.tid] <= IDLE;
         end
+        
+        if (killed_dcache_req_i) begin
+            if (transaction_table[req_dcache_o.tid] == IDLE) begin
+                transaction_table[req_dcache_o.tid] <= KILLED;
+            end
+        end
 
-        transactions_in_flight <= transactions_in_flight + send - receive;
+        transactions_in_flight <= transactions_in_flight + send - receive + (killed_dcache_req_i & (transaction_table[req_dcache_o.tid] == IDLE));
     end
 end
 

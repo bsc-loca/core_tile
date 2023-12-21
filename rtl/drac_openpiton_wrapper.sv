@@ -222,7 +222,7 @@ hpdcache_subsystem_l15_adapter #(
  .SwapEndianess          (1),
  .IcacheMemDataWidth     (256), //L1I cacheline
  .IcacheAddrWidth        (40),
- .HPDcacheMemDataWidth   (128), //L1D cacheline
+ .HPDcacheMemDataWidth   (hpdcache_pkg::HPDCACHE_CL_WIDTH), //L1D cacheline
  .IcacheNoCachableSize   (3'b011),
  .hpdcache_mem_req_t     (hpdcache_mem_req_t),
  .hpdcache_mem_req_w_t   (hpdcache_mem_req_w_t),
