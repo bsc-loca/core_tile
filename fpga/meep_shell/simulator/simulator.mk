@@ -36,7 +36,7 @@ MEEP_SIM_VERILOG_SRCS = $(SIM_VERILOG_SRCS) $(shell cat $(PROJECT_DIR)/fpga/comm
 .patched:
 		echo "Applying patches to axi and common_cells submodules"
 		cd $(MEEP_SIM_DIR)/../../common/rtl/axi && git apply $(MEEP_SIM_DIR)/../../common/patches/axi.patch && cd -
-		cd $(MEEP_SIM_DIR)/../../common/rtl/common_cells && git apply $(MEEP_SIM_DIR)/../../common/patches/common_cells.patch && cd -
+		cd $(MEEP_SIM_DIR)/../../../rtl/common_cells && git apply $(MEEP_SIM_DIR)/../../common/patches/common_cells.patch && cd -
 		touch .patched
 
 $(MEEP_SIMULATOR): $(MEEP_SIM_CPP_SRCS) bootrom.hex libdisasm $(MEEP_SIM_DIR)/veri_top.sv .patched

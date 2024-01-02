@@ -38,10 +38,10 @@ module axi_arbiter
   // *** iCache interface ***
   input  wire logic                               icache_miss_valid_i,
   output wire logic                               icache_miss_ready_o,
-  input  wire logic [25:0]                        icache_miss_paddr_i,
+  input  wire logic [drac_pkg::PHY_ADDR_SIZE-1:0]           icache_miss_paddr_i,
   input  wire sargantana_hpdc_pkg::hpdcache_mem_id_t         icache_miss_id_i,
   output wire logic                               icache_miss_resp_valid_o,
-  output wire logic [511:0]                       icache_miss_resp_data_o,
+  output wire logic [255:0]                       icache_miss_resp_data_o,
   output wire logic [1:0]                         icache_miss_resp_beat_o,
   
   // *** dCache interface ***
@@ -97,7 +97,7 @@ module axi_arbiter
 
   localparam AxiCacheDataWidth = sargantana_hpdc_pkg::HPDCACHE_MEM_DATA_WIDTH;
   localparam AxiCacheStrbWidth = AxiCacheDataWidth / 8;
-  localparam IFILL_WIDTH = 512;
+  localparam IFILL_WIDTH = 256;
 
   typedef logic [AxiCacheDataWidth-1:0] axi_cache_data_t;
   typedef logic [AxiCacheStrbWidth-1:0] axi_cache_strb_t;
@@ -190,7 +190,7 @@ module axi_arbiter
   assign icache_miss_req_w   = icache_miss_valid_i,
          icache_miss_ready_o = icache_miss_req_wok;
 
-  assign icache_miss_req_wdata.mem_req_addr      = {icache_miss_paddr_i, 6'b0},
+  assign icache_miss_req_wdata.mem_req_addr      = icache_miss_paddr_i,
          icache_miss_req_wdata.mem_req_len       = 4'h0,
          icache_miss_req_wdata.mem_req_size      = 3'h6,
          icache_miss_req_wdata.mem_req_id        = icache_miss_id_i,
@@ -215,7 +215,7 @@ module axi_arbiter
   assign icache_miss_resp_data_o = icache_miss_resp_data_rdata;
 
   generate
-    if (sargantana_hpdc_pkg::HPDCACHE_MEM_DATA_WIDTH < IFILL_WIDTH) begin
+   /*if (sargantana_hpdc_pkg::HPDCACHE_MEM_DATA_WIDTH < IFILL_WIDTH) begin
       hpdcache_fifo_reg #(
           .FIFO_DEPTH  (1),
           .fifo_data_t (sargantana_hpdc_pkg::hpdcache_mem_id_t)
@@ -318,13 +318,13 @@ module axi_arbiter
         end
       end
 
-    end else begin
+    end else begin*/
       assign icache_miss_resp_data_rok = icache_miss_resp_w;
       assign icache_miss_resp_meta_rok = icache_miss_resp_w;
       assign icache_miss_resp_wok = 1'b1;
       assign icache_miss_resp_meta_id = icache_miss_resp_wdata.mem_resp_r_id;
-      assign icache_miss_resp_data_rdata = icache_miss_resp_wdata.mem_resp_r_data;
-    end
+      assign icache_miss_resp_data_rdata = icache_miss_resp_wdata.mem_resp_r_data[icache_miss_req_wdata.mem_req_addr[5]*256 +: IFILL_WIDTH];
+    //end
   endgenerate
 
   //  Read request arbiter

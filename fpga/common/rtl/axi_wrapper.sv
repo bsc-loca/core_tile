@@ -26,15 +26,25 @@ module axi_wrapper (
     logic [23:0] brom_req_address;
     logic brom_req_valid;
     logic brom_ready;
-    logic [31:0] brom_resp_data;
+    logic [127:0] brom_resp_data;
     logic brom_resp_valid;
 
     // icache wires
-    logic l1_request_valid;
-    logic l2_response_valid;
-    logic [25:0] l1_request_paddr;
-    logic [511:0] l2_response_data;
+    logic icache_l1_request_valid;
+    logic icache_l2_response_valid;
+    logic [drac_pkg::PHY_ADDR_SIZE-1:0] icache_l1_request_paddr;
+    logic [255:0] icache_l2_response_data;
+
+    logic core_icache_req_valid;
+    logic core_icache_resp_valid;
+    logic [drac_pkg::PHY_ADDR_SIZE-1:0] core_icache_request_paddr;
+    logic [255:0] core_icache_response_data;
     logic [1:0] l2_response_seqnum;
+
+    assign core_icache_response_data = brom_resp_valid ? brom_resp_data : icache_l2_response_data;
+    assign core_icache_response_valid = brom_resp_valid | icache_l2_response_valid;
+    assign icache_l1_request_paddr = core_icache_request_paddr;
+    assign icache_l1_request_valid = core_icache_request_valid;
 
     //      Miss read interface
     logic                           mem_req_miss_read_ready;
@@ -92,17 +102,16 @@ module axi_wrapper (
         .reset_addr_i('h00000100),
 
         // Bootrom ports
-        .brom_ready_i(brom_ready),
         .brom_resp_data_i(brom_resp_data),
         .brom_resp_valid_i(brom_resp_valid),
         .brom_req_address_o(brom_req_address),
         .brom_req_valid_o(brom_req_valid),
 
         // icache ports
-        .io_mem_acquire_valid(l1_request_valid),
-        .io_mem_acquire_bits_addr_block(l1_request_paddr),
-        .io_mem_grant_valid(l2_response_valid),
-        .io_mem_grant_bits_data(l2_response_data),
+        .io_mem_acquire_valid(core_icache_request_valid),
+        .io_mem_acquire_bits_addr_block(core_icache_request_paddr),
+        .io_mem_grant_valid(core_icache_response_valid),
+        .io_mem_grant_bits_data(core_icache_response_data),
         .io_mem_grant_bits_addr_beat(l2_response_seqnum),
 
         // dmem ports
@@ -183,12 +192,12 @@ module axi_wrapper (
 
         // *** iCache ***
 
-        .icache_miss_valid_i(l1_request_valid),
-        .icache_miss_paddr_i(l1_request_paddr),
+        .icache_miss_valid_i(icache_l1_request_valid),
+        .icache_miss_paddr_i(icache_l1_request_paddr),
         .icache_miss_id_i(1 << (sargantana_hpdc_pkg::HPDCACHE_MEM_TID_WIDTH - 1)),
 
-        .icache_miss_resp_valid_o(l2_response_valid),
-        .icache_miss_resp_data_o(l2_response_data),
+        .icache_miss_resp_valid_o(icache_l2_response_valid),
+        .icache_miss_resp_data_o(icache_l2_response_data),
         .icache_miss_resp_beat_o(l2_response_seqnum),
 
         // *** dCache ***

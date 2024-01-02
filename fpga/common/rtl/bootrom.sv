@@ -4,7 +4,7 @@ module bootrom
     input  logic [23:0] brom_req_address_i,
     input  logic brom_req_valid_i,
     output logic brom_ready_o,
-    output logic [31:0] brom_resp_data_o,
+    output logic [127:0] brom_resp_data_o,
     output logic brom_resp_valid_o
     );
 
@@ -14,7 +14,7 @@ module bootrom
     localparam BRAM_LINE_OFFSET = $clog2(MEM_DATA_WIDTH/8);
 
     (* ram_style = "block" *) reg [MEM_DATA_WIDTH-1:0] boot_ram [0 : BRAM_LINE-1];
-    initial $readmemh("bootrom.hex", boot_ram); // TODO: Copy the bootrom.hex file to the directory where the simulation is executed
+    initial $readmemh("bootrom.hex", boot_ram);
 
     logic [MEM_DATA_WIDTH-1:0] brom_resp_data_block;
     logic [23:0] brom_req_address_d;
@@ -58,7 +58,7 @@ module bootrom
                 boot_ram[brom_req_address_d[BRAM_ADDR_WIDTH-1:BRAM_LINE_OFFSET]][i*8 +:8] <= ram_wrdata[i*8 +: 8];
     end
 
-    always_comb begin
+    /*always_comb begin
         case(brom_req_address_d[3:2])
             2'b00: brom_resp_data_o = brom_resp_data_block[31:0];
             2'b01: brom_resp_data_o = brom_resp_data_block[63:32];
@@ -66,7 +66,17 @@ module bootrom
             2'b11: brom_resp_data_o = brom_resp_data_block[127:96];
             default: brom_resp_data_o = 32'h0;
         endcase
+    end*/
+
+    always_comb begin
+        case(brom_req_address_d[3])
+            1'b0: brom_resp_data_o = {64'h0, brom_resp_data_block[63:0]};
+            1'b1: brom_resp_data_o = {64'h0, brom_resp_data_block[127:64]};
+            default: brom_resp_data_o = 32'h0;
+        endcase
     end
+
+    //assign brom_resp_data_o = brom_resp_data_block;
 
     assign brom_ready_o = ~req_active & rstn;
 
