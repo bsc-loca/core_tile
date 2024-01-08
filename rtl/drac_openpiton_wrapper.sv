@@ -6,7 +6,7 @@
  */
 
  module drac_openpiton_wrapper
- import drac_pkg::*; import hpdcache_pkg::*; import wt_cache_pkg::*;
+ import drac_pkg::*; import hpdcache_pkg::*; import wt_cache_pkg::*; import sargantana_hpdc_pkg::*;
  #(
     // IO addresses
     parameter int unsigned               NIOSections           =  1,
@@ -51,48 +51,48 @@ logic [39:0]              l2_inval_addr;
 //      Miss read interface
 logic                           mem_req_miss_read_ready;
 logic                           mem_req_miss_read_valid;
-drac_pkg::hpdcache_mem_req_t    mem_req_miss_read;
-drac_pkg::hpdcache_mem_id_t     mem_req_miss_read_base_id;
+hpdcache_mem_req_t              mem_req_miss_read;
+hpdcache_mem_id_t               mem_req_miss_read_base_id;
 
 logic                           mem_resp_miss_read_ready;
 logic                           mem_resp_miss_read_valid;
-drac_pkg::hpdcache_mem_resp_r_t mem_resp_miss_read;
+hpdcache_mem_resp_r_t           mem_resp_miss_read;
 
 //      Write-buffer write interface
 logic                           mem_req_wbuf_write_ready;
 logic                           mem_req_wbuf_write_valid;
-drac_pkg::hpdcache_mem_req_t    mem_req_wbuf_write;
-drac_pkg::hpdcache_mem_id_t     mem_req_wbuf_write_base_id;
+hpdcache_mem_req_t              mem_req_wbuf_write;
+hpdcache_mem_id_t               mem_req_wbuf_write_base_id;
 
 logic                           mem_req_wbuf_write_data_ready;
 logic                           mem_req_wbuf_write_data_valid;
-drac_pkg::hpdcache_mem_req_w_t  mem_req_wbuf_write_data;
+hpdcache_mem_req_w_t            mem_req_wbuf_write_data;
 
 logic                           mem_resp_wbuf_write_ready;
 logic                           mem_resp_wbuf_write_valid;
-drac_pkg::hpdcache_mem_resp_w_t mem_resp_wbuf_write;
+hpdcache_mem_resp_w_t           mem_resp_wbuf_write;
 
 //      Uncached read interface
 logic                           mem_req_uc_read_ready;
 logic                           mem_req_uc_read_valid;
-drac_pkg::hpdcache_mem_req_t    mem_req_uc_read;
+hpdcache_mem_req_t              mem_req_uc_read;
 
 logic                           mem_resp_uc_read_ready;
 logic                           mem_resp_uc_read_valid;
-drac_pkg::hpdcache_mem_resp_r_t mem_resp_uc_read;
+hpdcache_mem_resp_r_t           mem_resp_uc_read;
 
 //      Uncached write interface
 logic                           mem_req_uc_write_ready;
 logic                           mem_req_uc_write_valid;
-drac_pkg::hpdcache_mem_req_t    mem_req_uc_write;
+hpdcache_mem_req_t              mem_req_uc_write;
 
 logic                           mem_req_uc_write_data_ready;
 logic                           mem_req_uc_write_data_valid;
-drac_pkg::hpdcache_mem_req_w_t  mem_req_uc_write_data;
+hpdcache_mem_req_w_t            mem_req_uc_write_data;
 
 logic                           mem_resp_uc_write_ready;
 logic                           mem_resp_uc_write_valid;
-drac_pkg::hpdcache_mem_resp_w_t mem_resp_uc_write;
+hpdcache_mem_resp_w_t           mem_resp_uc_write;
 
 logic                           mem_inval_ready;
 logic                           mem_inval_valid;
@@ -131,15 +131,15 @@ localparam drac_cfg_t DracOpenPitonCfg = '{
     InitBROMEnd: InitBROMEnd
 };
 
-top_drac #(
+top_tile #(
   .DracCfg(DracOpenPitonCfg)
 ) core_inst (
- .CLK(clk_i),
- .RST(rst_n),
- .SOFT_RST(rst_n),
- .CORE_ID(hart_id_i),
+ .clk_i(clk_i),
+ .rstn_i(rst_n),
+ .soft_rstn_i(rst_n),
+ .core_id_i(hart_id_i),
  .debug_halt_i(1'b0),
- .RESET_ADDRESS(boot_addr_i), //'h00000100
+ .reset_addr_i(boot_addr_i), //'h00000100
 
  // Bootrom ports
  .brom_resp_data_i(brom_resp_data),
