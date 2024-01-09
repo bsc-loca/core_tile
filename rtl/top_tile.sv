@@ -381,7 +381,7 @@ req_cpu_icache_t  req_datapath_icache_interface_cached  ;
 
 nc_icache_buffer #(
     .DracCfg(DracCfg)
-)  _nc_icache_bf_ (    
+)  nc_icache_bf (    
     .clk_i              ( clk_i                                   ) , 
     .rstn_i             ( rstn_i                                  ) ,
     .en_translation_i   ( en_translation                          ) ,
