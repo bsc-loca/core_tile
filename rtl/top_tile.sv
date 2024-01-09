@@ -427,7 +427,11 @@ icache_interface icache_interface_inst(
     .buffer_miss_o (buffer_miss )
 );
 
-sargantana_top_icache icache (
+
+sargantana_top_icache # (
+    .KILL_RESP          ( 1'b1          ),
+    .LINES_256          ( 1'b0          )
+) icache (
     .clk_i              ( clk_i           ) ,
     .rstn_i             ( rstn_i           ) ,
     .flush_i            ( iflush        ) , 
