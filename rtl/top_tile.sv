@@ -235,17 +235,7 @@ logic          req_icache_ready;
 pmu_interface_t pmu_interface;
 assign pmu_interface.icache_req = lagarto_ireq.valid;
 assign pmu_interface.icache_kill = lagarto_ireq.kill;
-assign pmu_interface.icache_miss_l2_hit = imiss_l2_hit;
-assign pmu_interface.icache_miss_kill = imiss_kill_pmu;
 assign pmu_interface.icache_busy = !icache_resp.ready;
-assign pmu_interface.icache_miss_time = imiss_time_pmu;
-assign pmu_interface.itlb_access = pmu_itlb_access;
-assign pmu_interface.itlb_miss = pmu_itlb_miss;
-assign pmu_interface.dtlb_access = pmu_dtlb_access;
-assign pmu_interface.dtlb_miss = pmu_dtlb_miss;
-assign pmu_interface.ptw_buffer_hit = pmu_ptw_hit;
-assign pmu_interface.ptw_buffer_miss = pmu_ptw_miss;
-assign pmu_interface.itlb_stall = pmu_itlb_miss_cycle;
 
 
 // *** Memory Management Unit ***
@@ -277,7 +267,7 @@ assign itlb_tresp.ptw_v  = ptw_itlb_comm.resp.valid;
 assign itlb_tresp.ppn    = itlb_icache_comm.resp.ppn;
 assign itlb_tresp.xcpt   = itlb_icache_comm.resp.xcpt.fetch;
 
-assign pmu_itlb_miss_cycle = itlb_icache_comm.resp.miss && !itlb_icache_comm.tlb_ready;
+assign pmu_interface.itlb_stall = itlb_icache_comm.resp.miss && !itlb_icache_comm.tlb_ready;
 
 sew_t sew;
 assign sew = sew_t'(vpu_csr[37:36]);
@@ -444,8 +434,8 @@ sargantana_top_icache # (
     .icache_treq_o      ( itlb_treq     ) , //- To MMU.
     .ifill_resp_i       ( ifill_resp    ) , //- From upper levels.
     .icache_ifill_req_o ( ifill_req     ) ,  //- To upper levels. 
-    .imiss_time_pmu_o    ( imiss_time_pmu ) ,
-    .imiss_kill_pmu_o    ( imiss_kill_pmu )
+    .imiss_time_pmu_o    ( pmu_interface.icache_miss_time ) ,
+    .imiss_kill_pmu_o    ( pmu_interface.icache_miss_kill )
 );
 
 // *** dCache ***
@@ -592,8 +582,8 @@ tlb itlb (
     .tlb_cache_comm_o(itlb_icache_comm),
     .ptw_tlb_comm_i(ptw_itlb_comm),
     .tlb_ptw_comm_o(itlb_ptw_comm),
-    .pmu_tlb_access_o(pmu_itlb_access),
-    .pmu_tlb_miss_o(pmu_itlb_miss)
+    .pmu_tlb_access_o(pmu_interface.itlb_access),
+    .pmu_tlb_miss_o(pmu_interface.itlb_miss)
 );
 
 tlb dtlb (
@@ -603,8 +593,8 @@ tlb dtlb (
     .tlb_cache_comm_o(dtlb_core_comm),
     .ptw_tlb_comm_i(ptw_dtlb_comm),
     .tlb_ptw_comm_o(dtlb_ptw_comm),
-    .pmu_tlb_access_o(pmu_dtlb_access),
-    .pmu_tlb_miss_o(pmu_dtlb_miss)
+    .pmu_tlb_access_o(pmu_interface.dtlb_access),
+    .pmu_tlb_miss_o(pmu_interface.dtlb_miss )
 );
 
 ptw ptw_inst (
@@ -627,8 +617,8 @@ ptw ptw_inst (
     .csr_ptw_comm_i(csr_ptw_comm),
 
     // pmu interface
-    .pmu_ptw_hit_o(pmu_ptw_hit),
-    .pmu_ptw_miss_o(pmu_ptw_miss)
+    .pmu_ptw_hit_o(pmu_interface.ptw_buffer_hit),
+    .pmu_ptw_miss_o(pmu_interface.ptw_buffer_miss)
 );
 
 // Connect PTW to dcache
@@ -648,7 +638,6 @@ assign dmem_ptw_comm.resp.valid = dcache_rsp_valid[0];
 assign dmem_ptw_comm.resp.data = dcache_rsp[0].rdata;
 
 //PMU  
-assign imiss_l2_hit = ifill_resp.ack & io_core_pmu_l2_hit_i; 
-
+assign pmu_interface.icache_miss_l2_hit = ifill_resp.ack & io_core_pmu_l2_hit_i;
 
 endmodule

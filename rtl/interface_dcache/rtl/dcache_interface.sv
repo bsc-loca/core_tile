@@ -121,6 +121,13 @@ assign req_dcache_o.uncacheable = io_address_space;
 // CPU Interface
 //-------------------------------------------------------------
 
+// Table holding the status of all the tags.
+// This is a workaround to the HPDC not being able to process all the store
+// requests the core is able to generate in time.
+typedef enum logic [1:0] {IDLE, PENDING, KILLED} checker_state_t;
+checker_state_t [127:0] transaction_table;
+
+
 // Dcache interface to CPU 
 assign resp_dcache_cpu_o.valid = dcache_valid_i & (transaction_table[rsp_dcache_i.tid] != KILLED);
 assign resp_dcache_cpu_o.ready = dcache_ready_i & ~wait_resp_same_tag;
@@ -134,13 +141,6 @@ assign resp_dcache_cpu_o.ordered = wbuf_empty_i;
 assign dmem_is_store_o = (req_dcache_o.op == HPDCACHE_REQ_STORE) && req_cpu_dcache_i.valid;
 assign dmem_is_load_o  = (req_dcache_o.op == HPDCACHE_REQ_LOAD) && req_cpu_dcache_i.valid;
 
-// Table holding the status of all the tags.
-// This is a workaround to the HPDC not being able to process all the store
-// requests the core is able to generate in time.
-
-typedef enum logic [1:0] {IDLE, PENDING, KILLED} checker_state_t;
-
-checker_state_t [127:0] transaction_table;
 logic [7:0] transactions_in_flight;
 
 assign wait_resp_same_tag = transaction_table[req_dcache_o.tid] == PENDING;
