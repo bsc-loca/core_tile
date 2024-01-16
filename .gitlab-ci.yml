@@ -25,16 +25,6 @@ variables:
   RISCV_GCC: /opt/riscv-gnu-toolchain/rvv-1.0.0/bin/riscv64-unknown-elf-gcc 
   RISCV_OBJDUMP: /opt/riscv-gnu-toolchain/rvv-1.0.0/bin/riscv64-unknown-elf-objcopy 
 
-before_script:
-  - echo $CI_PIPELINE_SOURCE
-  - echo $CI_COMMIT_BRANCH
-  - echo $CI_OPEN_MERGE_REQUESTS
-
-  - source /load_modulefiles_bash.sh
-  - module load verilator/5.014
-  - module load rvv/1.0.0
-  - module load gcc/10.5.0
-
 stages:
   - linting
   - building
@@ -44,24 +34,43 @@ stages:
 default:
   tags:
     - dv
+  before_script:
+    - echo $CI_PIPELINE_SOURCE
+    - echo $CI_COMMIT_BRANCH
+    - echo $CI_OPEN_MERGE_REQUESTS
 
-verilator:verilog:
+    - source /load_modulefiles_bash.sh
+    - module load verilator/5.014
+    - module load rvv/1.0.0
+    - module load gcc/10.5.0
+
+lint-verilator:
   stage: linting
   script:
     - verilator --version
-    - make lint
+    - make lint-verilator
   allow_failure: true
 
-spyglass:verilog:
-  image: registry.gitlab.bsc.es/hwdesign/containerhub/spyglass:latest
+lint-spyglass:
   stage: linting
+  image: registry.gitlab.bsc.es/hwdesign/containerhub/spyglass:latest
+  variables:
+    # Needed for proper exit code detection 
+    # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/28658
+    FF_USE_NEW_BASH_EVAL_STRATEGY: 1 
+  before_script:
+    - echo $CI_PIPELINE_SOURCE
+    - echo $CI_COMMIT_BRANCH
+    - echo $CI_OPEN_MERGE_REQUESTS
+    # Setup licenses
+    - export SNPS_LICENSE_FILE=27020@epi01.bsc.es
+    - export SNPSLMD_LICENSE_FILE=27020@epi01.bsc.es
+    - export LM_LICENSE_FILE=$LM_LICENSE_FILE:$SNPS_LICENSE_FILE:$SNPSLMD_LICENSE_FILE
   script:
-    - make local_spyglass
-  allow_failure: true
-  artifacts:
-    paths:
-    - top_drac/consolidated_reports/top_drac_lint_lint_rtl/
-    expire_in: 1 week
+    - ./scripts/lint_spyglass.sh
+  allow_failure:
+    exit_codes: 11 # Only allow failure in case there are warnings but no errors
+
 
 build-isa-tests:
   stage: building

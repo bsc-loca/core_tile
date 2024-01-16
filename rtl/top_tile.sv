@@ -212,7 +212,6 @@ logic [2:0] fcsr_rm;
 logic [1:0] fcsr_fs;
 logic en_ld_st_translation;
 logic en_translation;
-logic [39:0] vpu_csr;
 
 addr_t dcache_addr;
 
@@ -268,9 +267,6 @@ assign itlb_tresp.ppn    = itlb_icache_comm.resp.ppn;
 assign itlb_tresp.xcpt   = itlb_icache_comm.resp.xcpt.fetch;
 
 assign pmu_interface.itlb_stall = itlb_icache_comm.resp.miss && !itlb_icache_comm.tlb_ready;
-
-sew_t sew;
-assign sew = sew_t'(vpu_csr[37:36]);
 
 // *** Core Instance ***
 
