@@ -179,7 +179,7 @@ module top_tile
     //PCR resp inputs
     input  logic                pcr_resp_valid_i,   // ready bit of the pcr
     input  logic [63:0]         pcr_resp_data_i,    // read data from performance counter module
-    input  logic                pcr_resp_core_id_i, // core id of the tile that the date is sended
+    input  logic [63:0]         pcr_resp_core_id_i, // core id of the tile that the date is sended
 
     //PCR outputs request
     output logic                pcr_req_valid_o,    // valid bit to make a pcr request
