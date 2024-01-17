@@ -203,8 +203,6 @@ resp_dcache_cpu_t resp_dcache_interface_datapath;
 // Request Datapath to Dcache interface
 req_cpu_dcache_t req_datapath_dcache_interface;
 
-logic killed_dcache_req;
-
 // Response CSR Interface to datapath
 resp_csr_cpu_t resp_csr_interface_datapath;
 logic [1:0] priv_lvl;
@@ -300,7 +298,6 @@ top_drac #(
     // dCache Interface
     .resp_dcache_cpu_i(resp_dcache_interface_datapath),
     .req_cpu_dcache_o(req_datapath_dcache_interface), 
-    .killed_dcache_req_o(killed_dcache_req),
 
     // MMU Interface
     .csr_ptw_comm_o(csr_ptw_comm),
@@ -454,7 +451,6 @@ dcache_interface #(
     // CPU Interface
     .req_cpu_dcache_i(req_datapath_dcache_interface),
     .resp_dcache_cpu_o(resp_dcache_interface_datapath),
-    .killed_dcache_req_i(killed_dcache_req),
 
     // dCache Interface
     .dcache_ready_i(dcache_req_ready[1]),
