@@ -48,11 +48,11 @@ module top_tile
 //------------------------------------------------------------------------------------
     
     //- From L2
-    input  logic         io_mem_grant_valid                 ,
-    input  logic [255:0] io_mem_grant_bits_data             ,
-    input  logic   [1:0] io_mem_grant_bits_addr_beat        ,
-    input  logic         io_mem_grant_inval                 ,
-    input  logic [11:0]  io_mem_grant_inval_addr            ,
+    input  logic                   io_mem_grant_valid,
+    input  logic [511:0]           io_mem_grant_bits_data,
+    input  logic [1:0]             io_mem_grant_bits_addr_beat,
+    input  logic                   io_mem_grant_inval,
+    input  logic [11:0]            io_mem_grant_inval_addr,
     
 
 //----------------------------------------------------------------------------------
@@ -374,7 +374,7 @@ nc_icache_buffer #(
     .l2_grant_valid_i   ( io_mem_grant_valid                      ) ,
     .datapath_req_i     ( req_datapath_icache_interface           ) ,
     .icache_resp_i      ( resp_icache_interface_datapath_cached   ) ,        
-    .l2_resp_data_i     ( io_mem_grant_bits_data                  ) ,
+    .l2_resp_data_i     ( io_mem_grant_bits_data[255:0]           ) ,
     .req_icache_ready_i ( req_icache_ready_cached                 ) ,
     .req_icache_ready_o ( req_icache_ready                        ) ,
     .req_nc_valid_o     ( brom_req_valid_o                        ) ,

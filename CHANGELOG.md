@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## 3.0.0 - 64B block size for instruction cache
+
+### Changed
+
+- [Tile] Augmented iCache to L2 interface to 512 bits
+
 ## 2.0.0 - Add OpenPiton Support
 
 ### Added

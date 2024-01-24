@@ -41,7 +41,7 @@ module axi_arbiter
   input  wire logic [drac_pkg::PHY_ADDR_SIZE-1:0]           icache_miss_paddr_i,
   input  wire sargantana_hpdc_pkg::hpdcache_mem_id_t         icache_miss_id_i,
   output wire logic                               icache_miss_resp_valid_o,
-  output wire logic [255:0]                       icache_miss_resp_data_o,
+  output wire logic [511:0]                       icache_miss_resp_data_o,
   output wire logic [1:0]                         icache_miss_resp_beat_o,
   
   // *** dCache interface ***
@@ -97,7 +97,7 @@ module axi_arbiter
 
   localparam AxiCacheDataWidth = sargantana_hpdc_pkg::HPDCACHE_MEM_DATA_WIDTH;
   localparam AxiCacheStrbWidth = AxiCacheDataWidth / 8;
-  localparam IFILL_WIDTH = 256;
+  localparam IFILL_WIDTH = 512;
 
   typedef logic [AxiCacheDataWidth-1:0] axi_cache_data_t;
   typedef logic [AxiCacheStrbWidth-1:0] axi_cache_strb_t;
@@ -215,7 +215,7 @@ module axi_arbiter
   assign icache_miss_resp_data_o = icache_miss_resp_data_rdata;
 
   generate
-   /*if (sargantana_hpdc_pkg::HPDCACHE_MEM_DATA_WIDTH < IFILL_WIDTH) begin
+   if (sargantana_hpdc_pkg::HPDCACHE_MEM_DATA_WIDTH < IFILL_WIDTH) begin
       hpdcache_fifo_reg #(
           .FIFO_DEPTH  (1),
           .fifo_data_t (sargantana_hpdc_pkg::hpdcache_mem_id_t)
@@ -318,13 +318,13 @@ module axi_arbiter
         end
       end
 
-    end else begin*/
+    end else begin
       assign icache_miss_resp_data_rok = icache_miss_resp_w;
       assign icache_miss_resp_meta_rok = icache_miss_resp_w;
       assign icache_miss_resp_wok = 1'b1;
       assign icache_miss_resp_meta_id = icache_miss_resp_wdata.mem_resp_r_id;
       assign icache_miss_resp_data_rdata = icache_miss_resp_wdata.mem_resp_r_data[icache_miss_req_wdata.mem_req_addr[5]*256 +: IFILL_WIDTH];
-    //end
+    end
   endgenerate
 
   //  Read request arbiter

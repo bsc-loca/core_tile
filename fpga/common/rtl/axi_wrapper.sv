@@ -33,12 +33,12 @@ module axi_wrapper (
     logic icache_l1_request_valid;
     logic icache_l2_response_valid;
     logic [drac_pkg::PHY_ADDR_SIZE-1:0] icache_l1_request_paddr;
-    logic [255:0] icache_l2_response_data;
+    logic [511:0] icache_l2_response_data;
 
     logic core_icache_req_valid;
     logic core_icache_resp_valid;
     logic [drac_pkg::PHY_ADDR_SIZE-1:0] core_icache_request_paddr;
-    logic [255:0] core_icache_response_data;
+    logic [511:0] core_icache_response_data;
     logic [1:0] l2_response_seqnum;
 
     assign core_icache_response_data = brom_resp_valid ? brom_resp_data : icache_l2_response_data;

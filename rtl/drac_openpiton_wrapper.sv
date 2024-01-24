@@ -43,7 +43,7 @@ logic           brom_resp_valid;
 logic                     l1_request_valid;
 logic                     l2_response_valid;
 logic [PHY_ADDR_SIZE-1:0] l1_request_paddr;
-logic [255:0]             l2_response_data; // TODO: LOCALPARAMETERS or PKG definition
+logic [511:0]             l2_response_data; // TODO: LOCALPARAMETERS or PKG definition
 logic [1:0]               l2_response_seqnum = '0;
 logic                     l2_inval_request;
 logic [39:0]              l2_inval_addr;
@@ -220,7 +220,7 @@ typedef logic [$clog2(5)-1:0] req_portid_t;  //NTODO: Optimize for more threads
 
 hpdcache_subsystem_l15_adapter #(
  .SwapEndianess          (1),
- .IcacheMemDataWidth     (256), //L1I cacheline
+ .IcacheMemDataWidth     (512), //L1I cacheline
  .IcacheAddrWidth        (40),
  .HPDcacheMemDataWidth   (hpdcache_pkg::HPDCACHE_CL_WIDTH), //L1D cacheline
  .IcacheNoCachableSize   (3'b011),
