@@ -4,7 +4,8 @@ import hpdcache_pkg::*;
 
 parameter HPDCACHE_NREQUESTERS = 2; // Core + PTW
 `ifdef PITON_ARIANE_HPDC
-parameter HPDCACHE_MEM_TID_WIDTH = 3; // Minimum for the HPDC with single channel to MM, OP can only support `L15_THREADID_WIDTH;
+//parameter HPDCACHE_MEM_TID_WIDTH = 3; // Minimum for the HPDC with single channel to MM, OP can only support `L15_THREADID_WIDTH;
+parameter HPDCACHE_MEM_TID_WIDTH = (`L15_THREADID_WIDTH > 2) ? (`L15_THREADID_WIDTH) : 3;   
 parameter HPDCACHE_MEM_WORDS = HPDCACHE_CL_WORDS;
 parameter int unsigned HPDCACHE_MEM_DATA_WIDTH = HPDCACHE_MEM_WORDS*HPDCACHE_WORD_WIDTH; // 128 bit memory bus
 `else
