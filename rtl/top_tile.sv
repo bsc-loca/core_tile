@@ -434,12 +434,12 @@ sargantana_top_icache # (
 // *** dCache ***
 
 // Core-dCache Interface
-logic          dcache_req_valid [HPDCACHE_NREQUESTERS-1:0];
-logic          dcache_req_ready [HPDCACHE_NREQUESTERS-1:0];
-hpdcache_req_t dcache_req       [HPDCACHE_NREQUESTERS-1:0];
+logic           [HPDCACHE_NREQUESTERS-1:0] dcache_req_valid;
+logic           [HPDCACHE_NREQUESTERS-1:0] dcache_req_ready;
+hpdcache_req_t  [HPDCACHE_NREQUESTERS-1:0] dcache_req;
 
-logic          dcache_rsp_valid [HPDCACHE_NREQUESTERS-1:0];
-hpdcache_rsp_t dcache_rsp       [HPDCACHE_NREQUESTERS-1:0];
+logic           [HPDCACHE_NREQUESTERS-1:0] dcache_rsp_valid;
+hpdcache_rsp_t  [HPDCACHE_NREQUESTERS-1:0] dcache_rsp;
 logic wbuf_empty;
 
 dcache_interface #(
