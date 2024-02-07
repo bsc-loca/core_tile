@@ -26,6 +26,9 @@ module top_tile
     input logic                 soft_rstn_i,
     input addr_t                reset_addr_i,
     input logic [63:0]          core_id_i,
+    `ifdef PITON_CINCORANCH
+    input logic [1:0]           boot_main_id_i,
+    `endif  // Custom for CincoRanch
 
 //------------------------------------------------------------------------------------
 // DEBUG RING SIGNALS INPUT
@@ -276,6 +279,9 @@ top_drac #(
     .soft_rstn_i(soft_rstn_i),
     .reset_addr_i(reset_addr_i),
     .core_id_i(core_id_i),
+    `ifdef PITON_CINCORANCH
+    .boot_main_id_i(boot_main_id_i),
+    `endif  // Custom for CincoRanch
 
     // Debug ring
     .debug_halt_i(debug_halt_i),

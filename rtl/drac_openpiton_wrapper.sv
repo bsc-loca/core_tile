@@ -24,6 +24,9 @@
  input   logic                   reset_l,     // This is an openpiton-specific name, do not change (hier. paths in TB use this)
  output  logic                   spc_grst_l,  // This is an openpiton-specific name, do not change (hier. paths in TB use this)
  input   logic [63:0]            hart_id_i,
+ `ifdef PITON_CINCORANCH
+ input   logic [1:0]             boot_main_id_i,
+ `endif  // Custom for CincoRanch
  input   addr_t                  boot_addr_i,
  output  [$size(l15_req_t)-1:0]  l15_req_o,
  input   [$size(l15_rtrn_t)-1:0] l15_rtrn_i,
@@ -138,6 +141,9 @@ top_tile #(
  .rstn_i(rst_n),
  .soft_rstn_i(rst_n),
  .core_id_i(hart_id_i),
+ `ifdef PITON_CINCORANCH
+ .boot_main_id_i(boot_main_id_i),
+ `endif  // Custom for CincoRanch
  .debug_halt_i(1'b0),
  .reset_addr_i(boot_addr_i), //'h00000100
 
