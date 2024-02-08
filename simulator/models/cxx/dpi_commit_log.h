@@ -26,7 +26,7 @@
 #define CAUSE_LD_PAGE_FAULT 0xD
 #define CAUSE_ST_AMO_PAGE_FAULT 0xF
 
-#define VVLEN 128
+#define VVLEN 128 
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,7 +56,7 @@ typedef struct {
     unsigned long long csr_data;
     unsigned long long csr_dst;
     unsigned long long csr_wr_valid;
-    uint32_t data[128/32];
+    uint32_t data[VVLEN/32];
     unsigned long long vreg_wr_valid;
     unsigned long long freg_wr_valid;
     unsigned long long reg_wr_valid;

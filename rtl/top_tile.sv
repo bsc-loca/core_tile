@@ -617,17 +617,28 @@ ptw ptw_inst (
 assign dcache_req_valid[0] = ptw_dmem_comm.req.valid;
 assign dmem_ptw_comm.dmem_ready = dcache_req_ready[0];
 assign dcache_req[0].addr = ptw_dmem_comm.req.addr;
-assign dcache_req[0].wdata = ptw_dmem_comm.req.data;
 assign dcache_req[0].op = ptw_dmem_comm.req.cmd == 5'b01010 ? HPDCACHE_REQ_AMO_OR : HPDCACHE_REQ_LOAD;
-assign dcache_req[0].be = ptw_dmem_comm.req.cmd == 5'b01010 ? 8'hff : 8'h00;
 assign dcache_req[0].size = ptw_dmem_comm.req.typ;
 assign dcache_req[0].uncacheable = 1'b0;
 assign dcache_req[0].sid = 0;
 assign dcache_req[0].tid = 0;
 assign dcache_req[0].need_rsp = 1'b1;
 
+always_comb begin
+    for (int i = 0; i < HPDCACHE_REQ_WORDS; ++i) begin
+        if ((ptw_dmem_comm.req.addr[$clog2(HPDCACHE_REQ_WORDS)+2:0] == (3'(i) << 3)) || (HPDCACHE_REQ_WORDS == 1)) begin
+            dcache_req[0].wdata[i] = ptw_dmem_comm.req.data;
+            dcache_req[0].be[i] = (ptw_dmem_comm.req.cmd == 5'b01010) ? 8'hff : 8'h00;
+        end else begin 
+            dcache_req[0].wdata[i] = '0;
+            dcache_req[0].be[i] = 8'h00;
+        end 
+    end
+end
+
 assign dmem_ptw_comm.resp.valid = dcache_rsp_valid[0];
-assign dmem_ptw_comm.resp.data = dcache_rsp[0].rdata;
+assign dmem_ptw_comm.resp.data = (HPDCACHE_REQ_WORDS == 1) ? dcache_rsp[0].rdata : 
+                                 dcache_rsp[0].rdata[ptw_dmem_comm.req.addr[$clog2(HPDCACHE_REQ_WORDS)+(HPDCACHE_REQ_WORDS==1)+2:3]];
 
 //PMU  
 assign pmu_interface.icache_miss_l2_hit = ifill_resp.ack & io_core_pmu_l2_hit_i;

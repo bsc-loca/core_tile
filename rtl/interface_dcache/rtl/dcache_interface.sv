@@ -81,14 +81,44 @@ end
 // Byte-enable
 always_comb begin
     if (req_dcache_o.op != HPDCACHE_REQ_LOAD) begin
+        req_dcache_o.be = 'h0;
         case(req_cpu_dcache_i.mem_size)
-            4'b0000, 4'b0100: req_dcache_o.be = 8'b00000001 << req_cpu_dcache_i.data_rs1[2:0];
-            4'b0001, 4'b0101: req_dcache_o.be = 8'b00000011 << {req_cpu_dcache_i.data_rs1[2:1], 1'b0};
-            4'b0010, 4'b0110: req_dcache_o.be = 8'b00001111 << {req_cpu_dcache_i.data_rs1[2], 2'b0};
-            default: req_dcache_o.be = 8'b11111111;
+            4'b0000, 4'b0100: begin
+                req_dcache_o.be = 1'b1 << req_cpu_dcache_i.data_rs1[DCACHE_MAXELEM_LOG-1:0];
+            end
+            4'b0001, 4'b0101: begin
+                req_dcache_o.be = 2'b11 << {req_cpu_dcache_i.data_rs1[DCACHE_MAXELEM_LOG-1:1], 1'b0};
+            end
+            4'b0010, 4'b0110: begin
+                req_dcache_o.be = 4'b1111 << {req_cpu_dcache_i.data_rs1[DCACHE_MAXELEM_LOG-1:2], 2'b0};
+            end
+            4'b0011, 4'b0111: begin
+                if (DCACHE_MAXELEM == 8) begin
+                    req_dcache_o.be = 8'hFF;
+                end else begin
+                    req_dcache_o.be = 8'hFF << {req_cpu_dcache_i.data_rs1[DCACHE_MAXELEM_LOG-1+(DCACHE_MAXELEM<=8):3], 3'b0};
+                end
+            end
+            4'b1000: begin
+                if (DCACHE_MAXELEM == 16) begin
+                    req_dcache_o.be = 16'hFFFF;
+                end else begin
+                    req_dcache_o.be = 16'hFFFF << {req_cpu_dcache_i.data_rs1[DCACHE_MAXELEM_LOG-1+(DCACHE_MAXELEM<=8)+(DCACHE_MAXELEM<=16):4], 4'b0};
+                end
+            end
+            4'b1001: begin
+                if (DCACHE_MAXELEM == 32) begin
+                    req_dcache_o.be = 32'hFFFFFFFF;
+                end else begin
+                    req_dcache_o.be = 32'hFFFFFFFF << {req_cpu_dcache_i.data_rs1[DCACHE_MAXELEM_LOG-1+(DCACHE_MAXELEM<=8)+(DCACHE_MAXELEM<=16)+(DCACHE_MAXELEM<=32):4], 5'b0};
+                end
+            end
+            default: begin
+                req_dcache_o.be = 64'hFFFFFFFFFFFFFFFF;
+            end
         endcase
     end else begin
-        req_dcache_o.be = 8'b0;
+        req_dcache_o.be = 'h0;
     end
 end 
 
@@ -96,21 +126,47 @@ end
 always_comb begin
     if (req_dcache_o.op != HPDCACHE_REQ_LOAD) begin
         case(req_cpu_dcache_i.mem_size)
-            4'b0000, 4'b0100: req_dcache_o.wdata[0] = req_cpu_dcache_i.data_rs2 << {req_cpu_dcache_i.data_rs1[2:0], 3'b0};
-            4'b0001, 4'b0101: req_dcache_o.wdata[0] = req_cpu_dcache_i.data_rs2 << {req_cpu_dcache_i.data_rs1[2:1], 4'b0};
-            4'b0010, 4'b0110: req_dcache_o.wdata[0] = req_cpu_dcache_i.data_rs2 << {req_cpu_dcache_i.data_rs1[2],   5'b0};
-            4'b0011, 4'b0111: req_dcache_o.wdata[0] = req_cpu_dcache_i.data_rs2;
-            default: req_dcache_o.wdata[0] = req_cpu_dcache_i.data_rs2; // TODO: Core supports bigger memory sizes than HPDC!
+            4'b0000, 4'b0100: begin
+                req_dcache_o.wdata = req_cpu_dcache_i.data_rs2 << {req_cpu_dcache_i.data_rs1[DCACHE_MAXELEM_LOG-1:0], 3'b0};
+            end
+            4'b0001, 4'b0101: begin
+                req_dcache_o.wdata = req_cpu_dcache_i.data_rs2 << {req_cpu_dcache_i.data_rs1[DCACHE_MAXELEM_LOG-1:1], 4'b0};
+            end
+            4'b0010, 4'b0110: begin
+                req_dcache_o.wdata = req_cpu_dcache_i.data_rs2 << {req_cpu_dcache_i.data_rs1[DCACHE_MAXELEM_LOG-1:2], 5'b0};
+            end
+            4'b0011, 4'b0111: begin
+                if (DCACHE_MAXELEM == 8) begin
+                    req_dcache_o.wdata = req_cpu_dcache_i.data_rs2;
+                end else begin
+                    req_dcache_o.wdata = req_cpu_dcache_i.data_rs2 << {req_cpu_dcache_i.data_rs1[DCACHE_MAXELEM_LOG-1+(DCACHE_MAXELEM<=8):3], 6'b0};
+                end
+            end
+            4'b1000: begin
+                if (DCACHE_MAXELEM == 16) begin
+                    req_dcache_o.wdata = req_cpu_dcache_i.data_rs2;
+                end else begin
+                    req_dcache_o.wdata = req_cpu_dcache_i.data_rs2 << {req_cpu_dcache_i.data_rs1[DCACHE_MAXELEM_LOG-1+(DCACHE_MAXELEM<=8)+(DCACHE_MAXELEM<=16):4], 7'b0};
+                end
+            end
+            4'b1001: begin
+                if (DCACHE_MAXELEM == 32) begin
+                    req_dcache_o.wdata = req_cpu_dcache_i.data_rs2;
+                end else begin
+                    req_dcache_o.wdata = req_cpu_dcache_i.data_rs2 << {req_cpu_dcache_i.data_rs1[DCACHE_MAXELEM_LOG-1+(DCACHE_MAXELEM<=8)+(DCACHE_MAXELEM<=16)+(DCACHE_MAXELEM<=32):5], 8'b0};
+                end
+            end
+            default: begin
+                req_dcache_o.wdata = req_cpu_dcache_i.data_rs2;
+            end
         endcase
     end else begin
-        req_dcache_o.wdata[0] = '0;
+        req_dcache_o.wdata = '0;
     end
 end 
 
 assign req_dcache_o.addr = req_cpu_dcache_i.data_rs1[48:0];
-// Request to HPDC. Pass only 2 bits as the sign extension process (see specs for LBU, LHU, LWU) is done in the mem_unit 
-// HPDC does NOT extend the sign.
-assign req_dcache_o.size = req_cpu_dcache_i.mem_size[1:0]; // TODO: Core supports bigger memory sizes than HPDC!
+assign req_dcache_o.size = {req_cpu_dcache_i.mem_size[3], req_cpu_dcache_i.mem_size[1:0]};
 assign req_dcache_o.sid = 3'b001;
 assign req_dcache_o.tid = req_cpu_dcache_i.rd;
 assign req_dcache_o.need_rsp = 1'b1;
