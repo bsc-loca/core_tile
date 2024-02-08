@@ -167,7 +167,7 @@ always_ff @(posedge clk_i or negedge rstn_i) begin
         paddr_infly_q   <= paddr_infly_d          ;
         nc_rsp_valid_q  <= nc_rsp_valid_d         ;
         req_nc_valid_q  <= req_nc_valid_d         ;
-        nc_kill_q       <= nc_kill_q              ;
+        nc_kill_q       <= nc_kill_d              ;
     end
 end
 
