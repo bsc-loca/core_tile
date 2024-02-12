@@ -1,4 +1,4 @@
-image: registry.gitlab.bsc.es/hwdesign/containerhub/riscv:latest
+image: registry.gitlab.bsc.es/hwdesign/containerhub/questa_riscv:latest
 
 ## This workflow avoids duplicate pipelines when there is an open merge request (commit_branch + merge_request) 
 ## so only the open merge request will be executed and not the commit_branch. PIPELINE_BRANCH will be used to refer to
@@ -38,6 +38,12 @@ default:
     - echo $CI_PIPELINE_SOURCE
     - echo $CI_COMMIT_BRANCH
     - echo $CI_OPEN_MERGE_REQUESTS
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.bsc.es/".insteadOf "https://gitlab.bsc.es/"
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.bsc.es/".insteadOf "git@gitlab-internal.bsc.es:"
+
+  # Setup licenses
+    - export MGLS_LICENSE_FILE=1717@epi03.bsc.es
+    - export LM_LICENSE_FILE=1717@epi03.bsc.es
 
     - source /load_modulefiles_bash.sh
     - module load verilator/5.014
@@ -70,7 +76,6 @@ lint-spyglass:
     - ./scripts/lint_spyglass.sh
   allow_failure:
     exit_codes: 11 # Only allow failure in case there are warnings but no errors
-
 
 build-isa-tests:
   stage: building
@@ -171,6 +176,46 @@ torture:
     when: on_failure
     paths:
     - tb/tb_torture/signatures
+
+random_regression:
+  stage: simulation
+  rules:
+    - if: ($CI_PIPELINE_SOURCE == "schedule")
+      when: always
+  timeout: 8h
+  script:
+    - make clone_dv
+    - cd verif/core_uvm
+    - mkdir -p tests/build/generated_tests
+    - ./generate_random_tests.sh 40
+    - make compile_all SARGANTANA=enable RTLDIR=../../ COVERAGE=enable
+    - python3 -u run.py -r riscv-dv_regression.yaml --coverage --coverage-report-html
+  artifacts:
+    untracked: true
+    when: always
+    paths:
+        - verif/core_uvm/sim/build/comp_transcript
+        - verif/core_uvm/regress/results/sargantana_random_riscvdv_tests/*
+        - verif/generated_tests_1/seed.yaml
+        - verif/generated_tests_2/seed.yaml
+        - verif/generated_tests_3/seed.yaml
+        - verif/generated_tests_4/seed.yaml
+        - verif/core_uvm/tests/build/generated_tests/*
+
+uvm_regression:
+  stage: simulation
+  timeout: 8h
+  script:
+    - make clone_uvm
+    - cd verif/core_uvm
+    - make compile_all SARGANTANA=enable RTLDIR=../../
+    - python3 -u run.py -r isa_tests_sargantana.yaml
+  artifacts:
+    untracked: true
+    when: always
+    paths:
+        - verif/core_uvm/sim/build/comp_transcript
+        - verif/core_uvm/regress/results/sargantana_isa_check/*
 
 fpga:
   stage: fpga
