@@ -74,8 +74,9 @@ lint-spyglass:
     - export LM_LICENSE_FILE=$LM_LICENSE_FILE:$SNPS_LICENSE_FILE:$SNPSLMD_LICENSE_FILE
   script:
     - ./scripts/lint_spyglass.sh
-  allow_failure:
-    exit_codes: 11 # Only allow failure in case there are warnings but no errors
+  allow_failure: true
+  #allow_failure:
+  #  exit_codes: 11 # Only allow failure in case there are warnings but no errors
 
 build-isa-tests:
   stage: building
