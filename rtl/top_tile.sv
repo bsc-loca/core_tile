@@ -422,19 +422,51 @@ icache_interface icache_interface_inst(
 
 sargantana_top_icache # (
     .KILL_RESP          ( 1'b1          ),
-    .LINES_256          ( 1'b0          )
+    .LINES_256          ( 1'b0          ),
+
+    .ICACHE_MEM_BLOCK   (ICACHELINE_SIZE/8),  // In Bytes
+    .VADDR_SIZE         (VIRT_ADDR_SIZE),
+    .PADDR_SIZE         (PHY_ADDR_SIZE),
+    .ADDR_SIZE          (PHY_VIRT_MAX_ADDR_SIZE),
+    .IDX_BITS_SIZE      (12), // TODO: Where does this come from?
+    .FETCH_WIDHT        (ICACHELINE_SIZE)
 ) icache (
-    .clk_i              ( clk_i           ) ,
-    .rstn_i             ( rstn_i           ) ,
-    .flush_i            ( iflush        ) , 
-    .lagarto_ireq_i     ( lagarto_ireq  ) , //- From Lagarto.
-    .icache_resp_o      ( icache_resp   ) , //- To Lagarto.
-    .mmu_tresp_i        ( itlb_tresp    ) , //- From MMU.
-    .icache_treq_o      ( itlb_treq     ) , //- To MMU.
-    .ifill_resp_i       ( ifill_resp    ) , //- From upper levels.
-    .icache_ifill_req_o ( ifill_req     ) ,  //- To upper levels. 
-    .imiss_time_pmu_o    ( pmu_interface.icache_miss_time ) ,
-    .imiss_kill_pmu_o    ( pmu_interface.icache_miss_kill )
+    .clk_i                      (clk_i),
+    .rstn_i                     (rstn_i),
+    .flush_i                    (iflush),
+
+    .lagarto_ireq_valid_i       (lagarto_ireq.valid),
+    .lagarto_ireq_kill_i        (lagarto_ireq.kill),
+    .lagarto_ireq_idx_i         (lagarto_ireq.idx),
+    .lagarto_ireq_vpn_i         (lagarto_ireq.vpn),
+    
+    .icache_resp_ready_o        (icache_resp.ready),
+    .icache_resp_valid_o        (icache_resp.valid),
+    .icache_resp_data_o         (icache_resp.data),
+    .icache_resp_vaddr_o        (icache_resp.vaddr),
+    .icache_resp_xcpt_o         (icache_resp.xcpt),
+    
+    .mmu_tresp_miss_i           (itlb_tresp.miss),
+    .mmu_tresp_ptw_v_i          (itlb_tresp.ptw_v),
+    .mmu_tresp_ppn_i            (itlb_tresp.ppn),
+    .mmu_tresp_xcpt_i           (itlb_tresp.xcpt),
+
+    .icache_treq_valid_o        (itlb_treq.valid),
+    .icache_treq_vpn_o          (itlb_treq.vpn),
+
+    .ifill_resp_valid_i         (ifill_resp.valid),
+    .ifill_resp_ack_i           (ifill_resp.ack),
+    .ifill_resp_data_i          (ifill_resp.data),
+    .ifill_resp_beat_i          (ifill_resp.beat),
+    .ifill_resp_inv_valid_i     (ifill_resp.inv.valid),
+    .ifill_resp_inv_paddr_i     (ifill_resp.inv.paddr),
+    
+    .icache_ifill_req_valid_o   (ifill_req.valid),
+    .icache_ifill_req_way_o     (ifill_req.way),
+    .icache_ifill_req_paddr_o   (ifill_req.paddr),
+
+    .imiss_time_pmu_o           (pmu_interface.icache_miss_time),
+    .imiss_kill_pmu_o           (pmu_interface.icache_miss_kill)
 );
 
 // *** dCache ***
