@@ -5,12 +5,13 @@
 set HPDCACHE_DIR "${g_accel_dir}/rtl/dcache/"
 
 # Function to parse flist files
-proc parseFlist {flistFile &_includeDirs &_sourceFiles basePath} {
+proc parseFlist {flistFile &_includeDirs &_sourceFiles &_defines basePath} {
     global HPDCACHE_DIR
     upvar 1 ${&_includeDirs} includeDirs
     upvar 1 ${&_sourceFiles} sourceFiles
+    upvar 1 ${&_defines} defines
 
-    puts "Parsing $flistFile"
+    puts "\[Sargantana\] Parsing $flistFile"
 
     set file [open $flistFile r]
     set content [read $file]
@@ -31,14 +32,14 @@ proc parseFlist {flistFile &_includeDirs &_sourceFiles basePath} {
         # Parse recursively for -F <path>
         if {[regexp {^-F\s+(.+)} $line - match]} {
             set subFlist [file join $basePath [subst -nocommands $match]]
-            parseFlist $subFlist includeDirs sourceFiles [file dirname $subFlist]
+            parseFlist $subFlist includeDirs sourceFiles defines [file dirname $subFlist]
         }
 
         # Parse recursively for -f <path>
         if {[regexp {^-f\s+(.+)} $line - match]} {
             # Substitute environment variables in the file path
             set subFlist [file join $basePath [subst -nocommands $match]]
-            parseFlist $subFlist includeDirs sourceFiles ""
+            parseFlist $subFlist includeDirs sourceFiles defines ""
         }
 
         # Add directory to includeDirs for +incdir+
@@ -47,8 +48,14 @@ proc parseFlist {flistFile &_includeDirs &_sourceFiles basePath} {
             lappend includeDirs [file join $basePath $directory]
         }
 
+        # Add define to list of defines for +define+
+        if {[regexp {^\+define\+(.+)} $line - match]} {
+            set definition [subst -nocommands $match]
+            lappend defines $definition
+        }
+
         # Add source file to sourceFiles
-        if {![regexp {^-F\s+.+} $line] && ![regexp {^-f\s+.+} $line] && ![regexp {^\+incdir\+.+} $line]} {
+        if {![regexp {^-F\s+.+} $line] && ![regexp {^-f\s+.+} $line] && ![regexp {^\+incdir\+.+} $line] && ![regexp {^\+define\+.+} $line]} {
             set filePath [subst -nocommands $line]
             lappend sourceFiles [file join $basePath $filePath]
         }
@@ -61,12 +68,16 @@ proc parseFlist {flistFile &_includeDirs &_sourceFiles basePath} {
 
 set files_to_add [list ]
 set include_paths [list ]
+set define_list [list ]
 
-parseFlist ${g_accel_dir}/fpga/meep_shell/filelist.f include_paths files_to_add ${g_accel_dir}/fpga/meep_shell/
+puts "\[Sargantana\] Parsing root filelist"
+parseFlist ${g_accel_dir}/fpga/meep_shell/filelist.f include_paths files_to_add define_list ${g_accel_dir}/fpga/meep_shell/
 
 ################################################################################
 # Add files                                                                    #
 ################################################################################
+
+puts "\[Sargantana\] Adding files to Vivado project"
 
 # Create 'sources_1' fileset (if not found)
 if {[string equal [get_filesets -quiet sources_1] ""]} {
@@ -82,25 +93,30 @@ add_files -norecurse -fileset $fileset_obj $files_to_add
 # Configure include directories                                                #
 ################################################################################
 
+puts "\[Sargantana\] Configuring include directories"
+
 # Mark include directories
 set_property include_dirs $include_paths $fileset_obj
-
 
 ################################################################################
 # Setup defines and global includes                                            #
 ################################################################################
 
-# Mark directories with global verilog defines
-set verilog_defines {}
+puts "\[Sargantana\] Configuring global includes"
 
-set verilog_defines [lsearch -all -inline $files_to_add *.svh]
-set_property verilog_define $verilog_defines $fileset_obj
+# Mark directories with global verilog defines
+set global_includes [lsearch -all -inline $files_to_add *.svh]
 
 # Mark files with global verilog defines
-foreach item $verilog_defines {
+foreach item $global_includes {
   set file_obj [get_files -of_objects $fileset_obj [list $item]]
   set_property "is_global_include" "1" $file_obj
 }
+
+puts "\[Sargantana\] Configuring defines found in flists"
+
+# Add defines parsed from the flist
+set_property verilog_define $define_list $fileset_obj
 
 ################################################################################
 # Add bootrom                                                                  #

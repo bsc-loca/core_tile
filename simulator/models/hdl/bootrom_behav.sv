@@ -58,10 +58,7 @@ module bootrom_behav
     logic [MEM_DATA_WIDTH-1:0] ram_wrdata, ram_rddata;
 
     always_ff @(posedge clk) begin
-        brom_resp_data_block = boot_ram[brom_req_address_d[BRAM_ADDR_WIDTH-1:BRAM_LINE_OFFSET]];
-        foreach (ram_we[i])
-            if(ram_we[i])
-                boot_ram[brom_req_address_d[BRAM_ADDR_WIDTH-1:BRAM_LINE_OFFSET]][i*8 +:8] <= ram_wrdata[i*8 +: 8];
+        brom_resp_data_block <= boot_ram[brom_req_address_d[BRAM_ADDR_WIDTH-1:BRAM_LINE_OFFSET]];
     end
 
     /*always_comb begin

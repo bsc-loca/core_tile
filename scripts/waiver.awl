@@ -1,8 +1,7 @@
-waive -rule {  {W240}  }  -ignore -comment {Input X declared but not read.}
-waive -rule {  {W415a}  }  -ignore -comment {Signal X is being assigned multiple times in same always block}
-waive -rule {  {W528}  }  -ignore -comment {Variable x set but not read.}
+waive -rule {  {W240}  }  -ignore -comment {"Input X declared but not read."}
+waive -rule {  {W415a}  }  -ignore -comment {"Signal X is being assigned multiple times in same always block"}
+waive -rule {  {W528}  }  -ignore -comment {"Variable x set but not read."}
 
-waive -du {  {control_mvp}  }  -ignore -comment {FPU errors}
-waive -du {  {fpnew_opgroup_multifmt_slice}  }  -ignore -comment {FPU errors}
+waive -du {  {control_mvp}  }  -ignore -comment {"FPU errors"}
+waive -du {  {fpnew_opgroup_multifmt_slice}  }  -ignore -comment {"FPU errors"}
 
-waive -file {  {spyglass_reports/top_tile/lint/lint_rtl/spyglass_reports/lint/SignalUsageReport.rpt}  }  -msg {Please refer to 'SignalUsageReport.rpt' for details of violating bits}  -rule {  {W123}  }  -comment {FPU Errors related}

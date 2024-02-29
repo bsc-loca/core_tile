@@ -24,3 +24,12 @@ signature.txt
 benchmarks/
 .patched
 sim-meep
+.dw_map_file
+.vcstPref
+vcst_rtdb/
+*.bak
+*.log
+report_lint.txt
+build*
+*.key
+dc-scripts/

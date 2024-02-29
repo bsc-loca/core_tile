@@ -1,3 +1,6 @@
+// Standalone Config
+-F ../../standalone_config.f
+
 // HPDC Memories
 ../../rtl/dcache/rtl/src/common/macros/behav/hpdcache_sram_1rw.sv
 ../../rtl/dcache/rtl/src/common/macros/behav/hpdcache_sram_wbyteenable_1rw.sv

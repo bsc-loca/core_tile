@@ -12,13 +12,11 @@
  * -----------------------------------------------
  */
 
-import drac_pkg::*;
-import sargantana_icache_pkg::*;
-//import lite_tile_pkg::*;
 
 module nc_icache_buffer 
+    import drac_pkg::*, sargantana_icache_pkg::*;
 #(
-    parameter drac_pkg::drac_cfg_t DracCfg     = drac_pkg::DracDefaultConfig
+    parameter drac_pkg::drac_cfg_t DRAC_CFG     = drac_pkg::DracDefaultConfig
 ) ( 
     input  logic             clk_i, rstn_i,
     input  logic             en_translation_i   ,
@@ -26,7 +24,7 @@ module nc_icache_buffer
     input  logic             l2_grant_valid_i   ,
     input  req_cpu_icache_t  datapath_req_i     ,
     input  resp_icache_cpu_t icache_resp_i      ,        
-    input  logic [255:0]     l2_resp_data_i     ,
+    input  logic [63:0]      l2_resp_data_i     ,
     output logic             req_nc_valid_o     ,
     output logic  [39:0]     req_nc_vaddr_o     ,
     output logic             req_icache_ready_o ,
@@ -68,13 +66,13 @@ nc_state_t state_nc, next_state_nc;
 //------------------------------------------
 // Stage 1 
 //------------------------------------------
-assign addr_is_nc = is_inside_IO_sections(DracCfg, datapath_req_i.vaddr) | range_check(DracCfg.InitBROMBase, DracCfg.InitBROMEnd, datapath_req_i.vaddr);
+assign addr_is_nc = is_inside_IO_sections(DRAC_CFG, {{{64-drac_pkg::PHY_ADDR_SIZE}{1'b0}},datapath_req_i.vaddr}) | range_check(DRAC_CFG.InitBROMBase, DRAC_CFG.InitBROMEnd, {{{64-PHY_ADDR_SIZE}{1'b0}},datapath_req_i.vaddr});
 
 // request to the instruccion cache with a cachable address.
-assign req_icache_valid = addr_is_nc &~ en_translation_i ? 1'b0 : datapath_req_i.valid ;
+assign req_icache_valid = (addr_is_nc & (~en_translation_i)) ? 1'b0 : datapath_req_i.valid ;
 
 // request of a non-cachable address.
-assign req_nc_valid_d = addr_is_nc &~ en_translation_i & is_inside_mapped_sections(DracCfg, datapath_req_i.vaddr) &~ nc_kill_d ? datapath_req_i.valid : 1'b0 ;
+assign req_nc_valid_d = (((addr_is_nc & (~en_translation_i)) & is_inside_mapped_sections(DRAC_CFG, {{{64-drac_pkg::PHY_ADDR_SIZE}{1'b0}},datapath_req_i.vaddr})) & (~nc_kill_d)) ? datapath_req_i.valid : 1'b0 ;
 
 // nc addr in-fly register buffer
 assign paddr_infly_d = req_nc_valid_d ? datapath_req_i.vaddr : paddr_infly_q ;
@@ -99,7 +97,7 @@ always_comb begin
     case (state_nc)
         idle_nc: begin //01
             req_nc_valid_o = req_nc_valid_q &~ same_addr_req    ;
-            next_state_nc  = req_nc_valid_q &~ same_addr_req ? wait_nc : idle_nc ;
+            next_state_nc  = (req_nc_valid_q & (~same_addr_req)) ? wait_nc : idle_nc ;
             waiting        = req_nc_valid_q &~ same_addr_req    ;  
             nc_rsp_valid_d = 1'b0                               ;
         end
@@ -146,7 +144,7 @@ assign req_icache_o.inval_fetch       = datapath_req_i.inval_fetch       ;
 // response nc/cached to the datapath
 assign resp_datapath_o.valid            = nc_rsp_valid_q | is_in_buffer | icache_resp_i.valid                   ;
 assign req_icache_ready_o               = req_icache_ready_i &~ waiting                                         ; 
-assign resp_datapath_o.data             = nc_rsp_valid_q | is_in_buffer ? nc_resp_data : icache_resp_i.data     ;
+assign resp_datapath_o.data             = (nc_rsp_valid_q | is_in_buffer) ? nc_resp_data : icache_resp_i.data     ;
 assign resp_datapath_o.instr_page_fault = icache_resp_i.instr_page_fault                                        ;
 
 // register

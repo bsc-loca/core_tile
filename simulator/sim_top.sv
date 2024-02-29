@@ -1,10 +1,21 @@
 
-module veri_top
-    (
-    // debugring disable
-    input         clk_i,
-    input         rstn_i
-    );
+module sim_top;
+    import sargantana_hpdc_pkg::*, drac_pkg::*;
+
+    logic tb_clk, tb_rstn;
+
+    // *** Clock & Reset drivers ***
+
+    initial begin
+        tb_clk = 1'b0;
+        tb_rstn = 1'b0;
+        #5 tb_rstn = 1'b1;
+    end
+
+    always #1 tb_clk = ~tb_clk;
+
+    // *** DUT ***
+
 
     // Bootrom wires
     logic [23:0] brom_req_address;
@@ -16,18 +27,18 @@ module veri_top
     // icache wires
     logic icache_l1_request_valid;
     logic icache_l2_response_valid;
-    logic [PHY_ADDR_SIZE-1:0] icache_l1_request_paddr;
-    logic [FETCH_WIDHT-1:0] icache_l2_response_data;
+    logic [drac_pkg::PHY_ADDR_SIZE-1:0] icache_l1_request_paddr;
+    logic [sargantana_icache_pkg::FETCH_WIDHT-1:0] icache_l2_response_data;
 
     logic dut_icache_req_valid;
     logic dut_icache_resp_valid;
-    logic [PHY_ADDR_SIZE-1:0] dut_icache_request_paddr;
-    logic [FETCH_WIDHT-1:0] dut_icache_response_data;
+    logic [drac_pkg::PHY_ADDR_SIZE-1:0] dut_icache_request_paddr;
+    logic [sargantana_icache_pkg::FETCH_WIDHT-1:0] dut_icache_response_data;
 
     assign dut_icache_response_data = brom_resp_valid ? brom_resp_data : icache_l2_response_data;
     assign dut_icache_response_valid = brom_resp_valid | icache_l2_response_valid;
     assign icache_l1_request_paddr = dut_icache_request_paddr;
-    assign icache_l1_request_valid = dut_icache_request_valid;
+    assign icache_l1_request_valid = dut_icache_req_valid;
 
     //      Miss read interface
     logic                          mem_req_miss_read_ready;
@@ -78,11 +89,13 @@ module veri_top
     hpdcache_mem_resp_w_t          mem_resp_uc_write;
 
     top_tile DUT(
-        .clk_i(clk_i),
-        .rstn_i(rstn_i),
-        .soft_rstn_i(rstn_i),
+        .clk_i(tb_clk),
+        .rstn_i(tb_rstn),
+        .soft_rstn_i(tb_rstn),
         .debug_halt_i(0),
-        .reset_addr_i('h00000100),
+        .reset_addr_i({{{PHY_VIRT_MAX_ADDR_SIZE-16}{1'b0}}, 16'h0100}),
+        .core_id_i(64'b0),
+
 
         // Bootrom ports
         //.brom_ready_i(brom_ready),
@@ -92,10 +105,12 @@ module veri_top
         .brom_req_valid_o(brom_req_valid),
 
         // icache ports
-        .io_mem_acquire_valid(dut_icache_request_valid),               
+        .io_mem_acquire_valid(dut_icache_req_valid),               
         .io_mem_acquire_bits_addr_block(dut_icache_request_paddr),   
         .io_mem_grant_valid(dut_icache_response_valid),         
         .io_mem_grant_bits_data(dut_icache_response_data),
+        .io_mem_grant_inval(0),
+        .io_mem_grant_inval_addr(0),
 
         // dmem ports
 
@@ -145,12 +160,60 @@ module veri_top
 
         .mem_resp_uc_read_ready_o(mem_resp_uc_read_ready),
         .mem_resp_uc_read_valid_i(mem_resp_uc_read_valid),
-        .mem_resp_uc_read_i(mem_resp_uc_read)
+        .mem_resp_uc_read_i(mem_resp_uc_read),
+
+        // dCache invalidations
+        .mem_inval_valid_i(0),
+        .mem_inval_i(0),
+
+        // Unused ports
+        .IO_FETCH_PC_VALUE(),
+        .IO_FETCH_PC_UPDATE(),
+        .IO_REG_READ(),
+        .IO_REG_ADDR(),
+        .IO_REG_WRITE(),
+        .IO_REG_WRITE_DATA(),
+        .IO_REG_READ_DATA(),
+        .IO_FETCH_PC(),
+        .IO_DEC_PC(),
+        .IO_RR_PC(),
+        .IO_EXE_PC(),
+        .IO_WB_PC(),
+        .IO_WB_PC_VALID(),
+        .IO_WB_ADDR(),
+        .IO_WB_WE(),
+        .IO_WB_BITS_ADDR(),
+
+        .pcr_req_core_id_o(),
+        .pcr_req_we_o(),
+        .pcr_req_data_o(),
+        .pcr_req_addr_o(),
+        .pcr_req_valid_o(),
+        .pcr_resp_core_id_i(),
+        .pcr_resp_data_i(),
+        .pcr_resp_valid_i(),
+        .pcr_req_ready_i(),
+        .time_i(64'd0),
+        .irq_i(1'b0),
+        .time_irq_i(1'b0),
+        .csr_spi_config_i(1'b0),
+        .io_core_pmu_l2_hit_i(),
+        .IO_REG_LIST_PADDR(),
+        .IO_REG_BACKEND_EMPTY(),
+        .io_mem_grant_ready(),
+        .io_mem_acquire_bits_union(),
+        .io_mem_acquire_bits_a_type(),
+        .io_mem_acquire_bits_is_builtin_type(),
+        .io_mem_acquire_bits_data(),
+        .io_mem_acquire_bits_addr_beat(),
+        .io_mem_acquire_bits_client_xact_id(),
+        .IO_REG_PREAD(),
+        .IO_REG_PADDR()
     );
 
     bootrom_behav brom(
-        .clk(clk_i),
-        .rstn(rstn_i),
+        .clk(tb_clk),
+        .rstn(tb_rstn),
         .brom_req_address_i(brom_req_address),
         .brom_req_valid_i(brom_req_valid),
         .brom_ready_o(brom_ready),
@@ -159,11 +222,11 @@ module veri_top
     );
 
     l2_behav #(
-        .DATA_CACHE_LINE_SIZE(512),
-        .INST_CACHE_LINE_SIZE(SET_WIDHT)
+        .DATA_CACHE_LINE_SIZE(drac_pkg::DCACHE_BUS_WIDTH),
+        .INST_CACHE_LINE_SIZE(sargantana_icache_pkg::SET_WIDHT)
     ) l2_inst (
-        .clk_i(clk_i),
-        .rstn_i(rstn_i),
+        .clk_i(tb_clk),
+        .rstn_i(tb_rstn),
 
         // *** Instruction Cache Interface ***
 
@@ -248,10 +311,12 @@ module veri_top
         .dc_uc_rd_ready_i(mem_resp_uc_read_ready)
     );
 
+    // *** Testbench monitors ***
+
     logic [63:0] cycles, max_cycles;
 
-    always @(posedge clk_i, negedge rstn_i) begin
-        if (~rstn_i) cycles <= 0;
+    always @(posedge tb_clk, negedge tb_rstn) begin
+        if (~tb_rstn) cycles <= 0;
         else cycles <= cycles + 1;
     end
 
@@ -264,9 +329,10 @@ module veri_top
         if (!$value$plusargs("max-cycles=%d", max_cycles)) max_cycles = 0;
     end
 
-    always @(posedge clk_i) begin
+    always @(posedge tb_clk) begin
         if (max_cycles > 0 && cycles == max_cycles) begin
             $error("Test timeout");
+            $finish;
         end
     end
 

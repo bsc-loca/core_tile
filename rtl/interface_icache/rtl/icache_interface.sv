@@ -24,12 +24,10 @@ module icache_interface
 
     // Request input signals from ICache
     input icache_line_t      icache_resp_datablock_i , // ICACHE_RESP_BITS_DATABLOCK
-    input [VIRT_ADDR_SIZE-1:0] icache_resp_vaddr_i     , // ICACHE_RESP_BITS_VADDR
     input logic              icache_resp_valid_i     , // ICACHE_RESP_VALID,
     input logic              icache_req_ready_i      , // ICACHE_REQ_READY,
     input logic              tlb_resp_xcp_if_i       , // TLB_RESP_XCPT_IF,
     input logic              en_translation_i        ,
-    input logic              csr_spi_config_i        ,
     // Request output signals to Icache                      
     output logic             icache_invalidate_o     , // ICACHE_INVALIDATE
     output icache_idx_t      icache_req_bits_idx_o   , // ICACHE_REQ_BITS_IDX,
@@ -66,7 +64,7 @@ assign do_icache_request_int = req_fetch_icache_i.valid                &
                                icache_req_ready_i                      ;
 
 
-assign icache_req_bits_vpn_o = req_fetch_icache_i.vaddr[PHY_VIRT_MAX_ADDR_SIZE-1:12];
+assign icache_req_bits_vpn_o = req_fetch_icache_i.vaddr[drac_pkg::PHY_VIRT_MAX_ADDR_SIZE-1:12];
 assign icache_req_bits_idx_o = req_fetch_icache_i.vaddr[11:0];
 
 

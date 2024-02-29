@@ -31,24 +31,23 @@ stages:
   - simulation
   - fpga
 
+before_script:
+  - echo $CI_PIPELINE_SOURCE
+  - echo $CI_COMMIT_BRANCH
+  - echo $CI_OPEN_MERGE_REQUESTS
+  - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.bsc.es/".insteadOf "https://gitlab.bsc.es/"
+  - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.bsc.es/".insteadOf "git@gitlab-internal.bsc.es:"
+  # Setup licenses
+  - export MGLS_LICENSE_FILE=1717@epi03.bsc.es
+  - export LM_LICENSE_FILE=1717@epi03.bsc.es
+  - source /load_modulefiles_bash.sh
+  - module load verilator/5.014
+  - module load rvv/1.0.0
+  - module load gcc/10.5.0
+
 default:
   tags:
     - dv
-  before_script:
-    - echo $CI_PIPELINE_SOURCE
-    - echo $CI_COMMIT_BRANCH
-    - echo $CI_OPEN_MERGE_REQUESTS
-    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.bsc.es/".insteadOf "https://gitlab.bsc.es/"
-    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.bsc.es/".insteadOf "git@gitlab-internal.bsc.es:"
-
-  # Setup licenses
-    - export MGLS_LICENSE_FILE=1717@epi03.bsc.es
-    - export LM_LICENSE_FILE=1717@epi03.bsc.es
-
-    - source /load_modulefiles_bash.sh
-    - module load verilator/5.014
-    - module load rvv/1.0.0
-    - module load gcc/10.5.0
 
 lint-verilator:
   stage: linting
@@ -78,6 +77,70 @@ lint-spyglass:
   #allow_failure:
   #  exit_codes: 11 # Only allow failure in case there are warnings but no errors
 
+lint-dc-elab:
+  image: registry.gitlab.bsc.es/hwdesign/containerhub/rocky_base:latest
+  stage: linting
+  tags:
+    - bm
+  timeout: 1 hrs
+  before_script:
+    - echo $CI_PIPELINE_SOURCE
+    - echo $CI_COMMIT_BRANCH
+    - echo $CI_OPEN_MERGE_REQUESTS
+    # Setup licenses
+    - export SNPS_LICENSE_FILE=27020@epi01.bsc.es
+    - export SNPSLMD_LICENSE_FILE=27020@epi01.bsc.es
+    - export LM_LICENSE_FILE=$LM_LICENSE_FILE:$SNPS_LICENSE_FILE:$SNPSLMD_LICENSE_FILE
+    # Git configurations
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.bsc.es/".insteadOf "https://gitlab.bsc.es/"
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.bsc.es/".insteadOf "git@gitlab-internal.bsc.es:"
+    # Setup synopys tools
+    - source /eda/synopsys/synopsys.sh
+  script:
+    - make dc_elab > dc_elab.$CI_PIPELINE_ID.log
+    - |  
+      TXT_RED="\e[5;41m" && TXT_GREEN="\e[5;42m" && TXT_CLEAR="\e[0;0;0m"
+      if grep -q Error: dc_elab.$CI_PIPELINE_ID.log; then
+        echo -e "\n"
+        grep Error: dc_elab.$CI_PIPELINE_ID.log
+        echo -e "\n \nRTL elaboration: ${TXT_RED} FAILED ${TXT_CLEAR}\n \n "
+        exit 1
+      else
+        echo -e "\n \nRTL elaboration: ${TXT_GREEN} PASSED ${TXT_CLEAR}\n \n "
+      fi
+  artifacts:
+    expire_in: 1 week
+    when: always
+    paths:
+        - dc_elab.$CI_PIPELINE_ID.log
+
+lint-vc-static:
+  before_script:
+    - export SNPS_LICENSE_FILE=27020@epi01.bsc.es
+    - export SNPSLMD_LICENSE_FILE=27020@epi01.bsc.es
+    - export LM_LICENSE_FILE=$LM_LICENSE_FILE:$SNPS_LICENSE_FILE:$SNPSLMD_LICENSE_FILE
+    - source /eda/synopsys/synopsys.sh
+  image: registry.gitlab.bsc.es/hwdesign/containerhub/rocky_base:latest
+  stage: linting
+  tags:
+    - bm
+  script:
+    - vc_static_shell -f scripts/lint_intel_grade.tcl 2>&1 | tee  vc_static.$CI_PIPELINE_ID.log
+    - grep -E "\[Error\]" vc_static.$CI_PIPELINE_ID.log &> /dev/null; VAR=$(echo $?)
+    - |
+      if [ $VAR -eq 0 ]; then
+        echo "Errors found" && exit 1
+      else
+        echo "No errors found"
+      fi
+  allow_failure: true
+  artifacts:
+    expire_in: 1 week
+    when: always
+    paths:
+        - report_lint.txt
+
+
 build-isa-tests:
   stage: building
   script:
@@ -92,7 +155,7 @@ build-benchmarks:
   stage: building
   script:
     - $RISCV_GCC --version
-    - make build-benchmarks
+    - make build-benchmarks BENCHMARKS_CI=1
   artifacts:
     paths:
     - benchmarks
@@ -111,6 +174,32 @@ build-simulator:
     - bootrom.hex
     expire_in: 1 week
 
+build-vcs:
+  image: registry.gitlab.bsc.es/hwdesign/containerhub/vcs-riscv:latest
+  stage: building
+  tags:
+    - dv
+  timeout: 1 hrs
+  before_script:
+    - echo $CI_PIPELINE_SOURCE
+    - echo $CI_COMMIT_BRANCH
+    - echo $CI_OPEN_MERGE_REQUESTS
+    # Setup licenses
+    - export MGLS_LICENSE_FILE=1717@epi03.bsc.es
+    - export SNPS_LICENSE_FILE=27020@epi01.bsc.es
+    - export SNPSLMD_LICENSE_FILE=27020@epi01.bsc.es
+    - export LM_LICENSE_FILE=$LM_LICENSE_FILE:$SNPS_LICENSE_FILE:$SNPSLMD_LICENSE_FILE:$MGLS_LICENSE_FILE
+    - source /load_modulefiles_bash.sh
+    - module load gcc
+  script:
+    - make libdisasm
+    - export CI_VCS=1
+    - ./simulator/vcs/sim.sh
+  artifacts:
+    paths:
+    - simulator/reference/build/libdisasm.so
+    - build_vcs
+    expire_in: 1 week 
 
 build-spike:
   stage: building
@@ -153,6 +242,31 @@ benchmarks:
   timeout: 4h
   script:
     - ./run-benchmarks.sh
+
+vcs:
+  image: registry.gitlab.bsc.es/hwdesign/containerhub/vcs-riscv:latest
+  stage: simulation
+  timeout: 1 hrs
+  dependencies:
+    - build-vcs
+    - build-isa-tests
+    - build-simulator
+  tags:
+    - dv
+  before_script:
+    - echo $CI_PIPELINE_SOURCE
+    - echo $CI_COMMIT_BRANCH
+    - echo $CI_OPEN_MERGE_REQUESTS
+    # Setup licenses
+    - export MGLS_LICENSE_FILE=1717@epi03.bsc.es
+    - export SNPS_LICENSE_FILE=27020@epi01.bsc.es
+    - export SNPSLMD_LICENSE_FILE=27020@epi01.bsc.es
+    - export LM_LICENSE_FILE=$LM_LICENSE_FILE:$SNPS_LICENSE_FILE:$SNPSLMD_LICENSE_FILE:$MGLS_LICENSE_FILE
+    - source /load_modulefiles_bash.sh
+    - module load gcc
+  script:
+    - cp bootrom.hex build_vcs/bootrom.hex
+    - ./build_vcs/simv +load=./tb/tb_isa_tests/build/isa/rv64ui-p-add
 
 torture:
   stage: simulation

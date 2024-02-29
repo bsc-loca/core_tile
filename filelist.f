@@ -1,4 +1,3 @@
-./includes/sargantana_tile_conf.svh
 -F ./rtl/core/sargantana/filelist.f
 ./rtl/dcache/rtl/src/target/generic/hpdcache_params_pkg.sv
 ./rtl/dcache/rtl/src/hpdcache_pkg.sv

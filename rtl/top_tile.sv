@@ -34,17 +34,17 @@ module top_tile
 // DEBUG RING SIGNALS INPUT
 // debug_halt_i is istall_test 
 //------------------------------------------------------------------------------------    
-    input                       debug_halt_i,
+    input  logic                debug_halt_i,
 
-    input addr_t                IO_FETCH_PC_VALUE,
-    input                       IO_FETCH_PC_UPDATE,
+    input  addr_t               IO_FETCH_PC_VALUE,
+    input  logic                IO_FETCH_PC_UPDATE,
     
-    input                       IO_REG_READ,
-    input  [4:0]                IO_REG_ADDR,
-    input                       IO_REG_WRITE,
-    input bus64_t               IO_REG_WRITE_DATA,
-    input  [5:0]	            IO_REG_PADDR,
-    input                       IO_REG_PREAD,
+    input  logic                IO_REG_READ,
+    input  logic [4:0]          IO_REG_ADDR,
+    input  logic                IO_REG_WRITE,
+    input  bus64_t              IO_REG_WRITE_DATA,
+    input  logic [5:0]	        IO_REG_PADDR,
+    input  logic                IO_REG_PREAD,
 
 //------------------------------------------------------------------------------------
 // I-CANCHE INPUT INTERFACE
@@ -120,15 +120,15 @@ module top_tile
 //-----------------------------------------------------------------------------------
 
     //- To L2
-    output logic         io_mem_acquire_valid               ,
-    output logic [PHY_ADDR_SIZE-1:0] io_mem_acquire_bits_addr_block,
-    output logic         io_mem_acquire_bits_client_xact_id ,
-    output logic   [1:0] io_mem_acquire_bits_addr_beat      ,
-    output logic [255:0] io_mem_acquire_bits_data           ,
-    output logic         io_mem_acquire_bits_is_builtin_type,
-    output logic   [2:0] io_mem_acquire_bits_a_type         ,
-    output logic  [16:0] io_mem_acquire_bits_union          ,
-    output logic         io_mem_grant_ready                 ,
+    output logic                          io_mem_acquire_valid,
+    output logic [PHY_ADDR_SIZE-1:0]      io_mem_acquire_bits_addr_block,
+    output logic                          io_mem_acquire_bits_client_xact_id,
+    output logic [1:0]                    io_mem_acquire_bits_addr_beat,
+    output logic [255:0]                  io_mem_acquire_bits_data,
+    output logic                          io_mem_acquire_bits_is_builtin_type,
+    output logic [2:0]                    io_mem_acquire_bits_a_type,
+    output logic [16:0]                   io_mem_acquire_bits_union,
+    output logic                          io_mem_grant_ready,
 
 //-----------------------------------------------------------------------------------
 // DEBUGGING MODULE SIGNALS
@@ -164,13 +164,13 @@ module top_tile
     output logic [39:0]         brom_req_address_o  ,
     output logic                brom_req_valid_o    ,
    
-    input logic                 csr_spi_config_i,
+    input  logic                csr_spi_config_i,
 
 //-----------------------------------------------------------------------------
 // INTERRUPTS
 //-----------------------------------------------------------------------------
-    input logic                 time_irq_i, // timer interrupt
-    input logic                 irq_i,      // external interrupt in
+    input  logic                time_irq_i, // timer interrupt
+    input  logic                irq_i,      // external interrupt in
     input  logic [63:0]         time_i,     // time passed since the core is reset
 
 //-----------------------------------------------------------------------------
@@ -264,7 +264,7 @@ assign icache_itlb_comm.vm_enable = en_translation;
 
 assign itlb_tresp.miss   = itlb_icache_comm.resp.miss;
 assign itlb_tresp.ptw_v  = ptw_itlb_comm.resp.valid;
-assign itlb_tresp.ppn    = itlb_icache_comm.resp.ppn;
+assign itlb_tresp.ppn    = itlb_icache_comm.resp.ppn[(drac_pkg::PHY_ADDR_SIZE-12)-1:0];
 assign itlb_tresp.xcpt   = itlb_icache_comm.resp.xcpt.fetch;
 
 assign pmu_interface.itlb_stall = itlb_icache_comm.resp.miss && !itlb_icache_comm.tlb_ready;
@@ -349,7 +349,6 @@ top_drac #(
 
 //L2 Network conection - response
 assign ifill_resp.data  = io_mem_grant_bits_data             ;
-assign ifill_resp.beat  = io_mem_grant_bits_addr_beat        ;
 assign ifill_resp.valid = io_mem_grant_valid                 ;
 assign ifill_resp.ack   = io_mem_grant_bits_addr_beat[0] &
                           io_mem_grant_bits_addr_beat[1] ;
@@ -372,7 +371,7 @@ resp_icache_cpu_t resp_icache_interface_datapath_cached ;
 req_cpu_icache_t  req_datapath_icache_interface_cached  ;
 
 nc_icache_buffer #(
-    .DracCfg(DracCfg)
+    .DRAC_CFG(DracCfg)
 )  nc_icache_bf (    
     .clk_i              ( clk_i                                   ) , 
     .rstn_i             ( rstn_i                                  ) ,
@@ -380,7 +379,7 @@ nc_icache_buffer #(
     .l2_grant_valid_i   ( io_mem_grant_valid                      ) ,
     .datapath_req_i     ( req_datapath_icache_interface           ) ,
     .icache_resp_i      ( resp_icache_interface_datapath_cached   ) ,        
-    .l2_resp_data_i     ( io_mem_grant_bits_data[255:0]           ) ,
+    .l2_resp_data_i     ( io_mem_grant_bits_data[63:0]            ) ,
     .req_icache_ready_i ( req_icache_ready_cached                 ) ,
     .req_icache_ready_o ( req_icache_ready                        ) ,
     .req_nc_valid_o     ( brom_req_valid_o                        ) ,
@@ -395,12 +394,10 @@ icache_interface icache_interface_inst(
 
     // Inputs ICache
     .icache_resp_datablock_i    ( icache_resp.data  ),
-    .icache_resp_vaddr_i        ( icache_resp.vaddr ), 
     .icache_resp_valid_i        ( icache_resp.valid ),
     .icache_req_ready_i         ( icache_resp.ready ), 
     .tlb_resp_xcp_if_i          ( icache_resp.xcpt  ),
     .en_translation_i           ( en_translation ), 
-    .csr_spi_config_i           ( csr_spi_config_i  ), 
    
     // Outputs ICache
     .icache_invalidate_o    ( iflush             ), 
@@ -416,7 +413,7 @@ icache_interface icache_interface_inst(
     .resp_icache_fetch_o  (resp_icache_interface_datapath_cached ),
     .req_fetch_ready_o(req_icache_ready_cached),
     //PMU
-    .buffer_miss_o (buffer_miss )
+    .buffer_miss_o ( )
 );
 
 
@@ -457,12 +454,11 @@ sargantana_top_icache # (
     .ifill_resp_valid_i         (ifill_resp.valid),
     .ifill_resp_ack_i           (ifill_resp.ack),
     .ifill_resp_data_i          (ifill_resp.data),
-    .ifill_resp_beat_i          (ifill_resp.beat),
     .ifill_resp_inv_valid_i     (ifill_resp.inv.valid),
     .ifill_resp_inv_paddr_i     (ifill_resp.inv.paddr),
     
     .icache_ifill_req_valid_o   (ifill_req.valid),
-    .icache_ifill_req_way_o     (ifill_req.way),
+    //.icache_ifill_req_way_o     (ifill_req.way),
     .icache_ifill_req_paddr_o   (ifill_req.paddr),
 
     .imiss_time_pmu_o           (pmu_interface.icache_miss_time),
@@ -655,8 +651,8 @@ ptw ptw_inst (
 assign dcache_req_valid[0] = ptw_dmem_comm.req.valid;
 assign dmem_ptw_comm.dmem_ready = dcache_req_ready[0];
 assign dcache_req[0].addr = ptw_dmem_comm.req.addr;
-assign dcache_req[0].op = ptw_dmem_comm.req.cmd == 5'b01010 ? HPDCACHE_REQ_AMO_OR : HPDCACHE_REQ_LOAD;
-assign dcache_req[0].size = ptw_dmem_comm.req.typ;
+assign dcache_req[0].op = (ptw_dmem_comm.req.cmd == 5'b01010) ? HPDCACHE_REQ_AMO_OR : HPDCACHE_REQ_LOAD;
+assign dcache_req[0].size = ptw_dmem_comm.req.typ[2:0];
 assign dcache_req[0].uncacheable = 1'b0;
 assign dcache_req[0].sid = 0;
 assign dcache_req[0].tid = 0;
@@ -677,6 +673,7 @@ end
 assign dmem_ptw_comm.resp.valid = dcache_rsp_valid[0];
 assign dmem_ptw_comm.resp.data = (HPDCACHE_REQ_WORDS == 1) ? dcache_rsp[0].rdata : 
                                  dcache_rsp[0].rdata[ptw_dmem_comm.req.addr[$clog2(HPDCACHE_REQ_WORDS)+(HPDCACHE_REQ_WORDS==1)+2:3]];
+assign dmem_ptw_comm.resp.nack = 1'b0;
 
 //PMU  
 assign pmu_interface.icache_miss_l2_hit = ifill_resp.ack & io_core_pmu_l2_hit_i;

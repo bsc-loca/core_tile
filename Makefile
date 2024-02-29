@@ -1,11 +1,16 @@
 PROJECT_DIR = $(abspath .)
 
-FILELIST = $(PROJECT_DIR)/filelist.f
+FILELIST = ${PROJECT_DIR}/filelist.f
 
 DV_DIR = $(PROJECT_DIR)/verif
 CORE_UVM_DIR = $(DV_DIR)/core_uvm
 CORE_UVM_REPO = git@gitlab-internal.bsc.es:hwdesign/verification/core-uvm.git
-CORE_UVM_BRANCH = sargantana_mode_changes
+CORE_UVM_BRANCH = fix/linting_if_changes
+
+DC_REPO = git@gitlab-internal.bsc.es:hwdesign/spd/dc-scripts.git
+DC_BRANCH = sargantana_lint
+DC_DIR =$(PROJECT_DIR)/dc-scripts
+
 
 RISCV_DV_DIR = $(CORE_UVM_DIR)/riscv-dv
 RISCV_DV_REPO = git@gitlab-internal.bsc.es:hwdesign/verification/riscv-dv.git
@@ -42,6 +47,12 @@ clone_uvm:
 	mkdir -p ${DV_DIR}
 	mkdir -p ${CORE_UVM_DIR}
 	git clone ${CORE_UVM_REPO} ${CORE_UVM_DIR} -b ${CORE_UVM_BRANCH}
+
+$(DC_DIR):
+	git clone ${DC_REPO} -b ${DC_BRANCH} $@
+
+dc_elab: $(DC_DIR)
+	make -C $(DC_DIR) elab BASE_DIR=$(PROJECT_DIR) RTL_BASE_PATH=$(PROJECT_DIR) FLIST_PATH=$(PROJECT_DIR)/dc_filelist.f TOP_MODULE=top_tile CLOCK_PORT=clk_i
 
 clone_riscv_dv:
 	mkdir -p ${DV_DIR}

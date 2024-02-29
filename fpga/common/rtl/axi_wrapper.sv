@@ -99,7 +99,7 @@ module axi_wrapper (
         .rstn_i(rstn_i),
         .soft_rstn_i(rstn_i),
         .debug_halt_i(0),
-        .reset_addr_i('h00000100),
+        .reset_addr_i(40'h0000000100),
 
         // Bootrom ports
         .brom_resp_data_i(brom_resp_data),
@@ -113,6 +113,8 @@ module axi_wrapper (
         .io_mem_grant_valid(core_icache_response_valid),
         .io_mem_grant_bits_data(core_icache_response_data),
         .io_mem_grant_bits_addr_beat(l2_response_seqnum),
+        .io_mem_grant_inval(0),
+        .io_mem_grant_inval_addr(0),
 
         // dmem ports
 

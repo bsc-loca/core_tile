@@ -23,30 +23,30 @@ module dcache_interface
 #(
     parameter drac_pkg::drac_cfg_t DracCfg     = drac_pkg::DracDefaultConfig
 )(
-    input  wire         clk_i,               // Clock
-    input  wire         rstn_i,              // Negative Reset Signal
+    input  logic                clk_i,             // Clock
+    input  logic                rstn_i,            // Negative Reset Signal
 
     // CPU Interface
-    input req_cpu_dcache_t req_cpu_dcache_i,
-    output resp_dcache_cpu_t resp_dcache_cpu_o, // Dcache to CPU
+    input  req_cpu_dcache_t     req_cpu_dcache_i,
+    output resp_dcache_cpu_t    resp_dcache_cpu_o, // Dcache to CPU
 
     // dCache Interface
-    input  logic dcache_ready_i,
-    input  logic dcache_valid_i,
-    output logic core_req_valid_o,
-    output hpdcache_req_t req_dcache_o,
-    input  hpdcache_rsp_t rsp_dcache_i,
-    input logic wbuf_empty_i,
+    input  logic                dcache_ready_i,
+    input  logic                dcache_valid_i,
+    output logic                core_req_valid_o,
+    output hpdcache_req_t       req_dcache_o,
+    input  hpdcache_rsp_t       rsp_dcache_i,
+    input logic                 wbuf_empty_i,
 
     // PMU
-    output logic dmem_is_store_o,
-    output logic dmem_is_load_o
+    output logic                dmem_is_store_o,
+    output logic                dmem_is_load_o
 );
 
 logic io_address_space;
 
 // The address is in the INPUT/OUTPUT space
-assign io_address_space = (is_inside_IO_sections(DracCfg, req_dcache_o.addr[PHY_VIRT_MAX_ADDR_SIZE-1:0]));
+assign io_address_space = (is_inside_IO_sections(DracCfg, {{{64-PHY_VIRT_MAX_ADDR_SIZE}{1'b0}},req_dcache_o.addr[PHY_VIRT_MAX_ADDR_SIZE-1:0]}));
 
 //-------------------------------------------------------------
 // dCache Interface
@@ -165,7 +165,7 @@ always_comb begin
     end
 end 
 
-assign req_dcache_o.addr = req_cpu_dcache_i.data_rs1[48:0];
+assign req_dcache_o.addr = req_cpu_dcache_i.data_rs1[PHY_VIRT_MAX_ADDR_SIZE-1:0];
 assign req_dcache_o.size = {req_cpu_dcache_i.mem_size[3], req_cpu_dcache_i.mem_size[1:0]};
 assign req_dcache_o.sid = 3'b001;
 assign req_dcache_o.tid = req_cpu_dcache_i.rd;
@@ -202,13 +202,14 @@ assign wait_resp_same_tag = transaction_table[req_dcache_o.tid] == PENDING;
 
 logic send, receive;
 
+assign send    = core_req_valid_o && dcache_ready_i;
+assign receive = dcache_valid_i;
+
 always_ff @(posedge clk_i, negedge rstn_i) begin
     if (!rstn_i) begin
         transaction_table <= 0;
         transactions_in_flight <= 0;
     end else begin
-        send    = core_req_valid_o && dcache_ready_i;
-        receive = dcache_valid_i;
         if (send) begin
             `ifdef VERILATOR
             if (transaction_table[req_dcache_o.tid] == PENDING) begin

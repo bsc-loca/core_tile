@@ -1,0 +1,2 @@
+-f ./standalone_config.f
+-F ./filelist.f

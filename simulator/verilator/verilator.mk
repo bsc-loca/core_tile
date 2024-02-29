@@ -1,7 +1,7 @@
 VERILATOR = verilator
 VERISIM_DIR = $(SIM_DIR)/verilator
 
-TOP_MODULE = veri_top
+TOP_MODULE = sim_top
 
 SIMULATOR = $(PROJECT_DIR)/sim
 
@@ -10,18 +10,13 @@ FLAGS ?=
 VERI_FLAGS = \
 	$(foreach flag, $(FLAGS), -D$(flag)) \
 	-DVERILATOR_GCC \
-	+define+MULTICYCLE_SIMD \
-	+define+SIM_COMMIT_LOG \
-	+define+SIM_COMMIT_LOG_DPI \
-	+define+SIM_KONATA_DUMP \
-	-F $(FILELIST) \
-	-F $(SIM_DIR)/models/filelist.f \
+	-F $(SIM_DIR)/simulator.f \
 	--top-module $(TOP_MODULE) \
 	--unroll-count 256 \
 	-Wno-lint -Wno-style -Wno-STMTDLY -Wno-fatal \
-	-CFLAGS "-std=c++11 -I$(SPIKE_DIR)/riscv-isa-sim/" \
+	-CFLAGS "-std=c++14 -I$(SPIKE_DIR)/riscv-isa-sim/" \
 	-LDFLAGS "-pthread -L$(SPIKE_DIR)/build/ -Wl,-rpath=$(SPIKE_DIR)/build/ -ldisasm -ldl" \
-	--exe \
+	--exe --main --timing \
 	--trace-fst \
 	--trace-max-array 512 \
 	--trace-max-width 256 \
@@ -29,16 +24,16 @@ VERI_FLAGS = \
 	--trace-params \
 	--trace-underscore \
 	--assert \
-	--Mdir $(VERISIM_DIR)/build \
-	--savable
+	--unroll-stmts 100000 \
+	--Mdir $(VERISIM_DIR)/build
 
 VERI_OPTI_FLAGS = -O2 -CFLAGS "-O2"
 
-SIM_CPP_SRCS = $(wildcard $(SIM_DIR)/models/cxx/*.cpp) $(VERISIM_DIR)/veri_top.cpp
+SIM_CPP_SRCS = $(wildcard $(SIM_DIR)/models/cxx/*.cpp)
 SIM_VERILOG_SRCS = $(shell cat $(FILELIST)) $(wildcard $(SIM_DIR)/models/hdl/*.sv)
  
-$(SIMULATOR): $(SIM_CPP_SRCS) bootrom.hex libdisasm $(VERISIM_DIR)/veri_top.sv
-		HPDCACHE_DIR=./rtl/dcache $(VERILATOR) --cc $(VERI_FLAGS) $(VERI_OPTI_FLAGS) $(SIM_CPP_SRCS) $(VERISIM_DIR)/veri_top.sv -o $(SIMULATOR)
+$(SIMULATOR): $(SIM_CPP_SRCS) bootrom.hex libdisasm $(SIM_DIR)/sim_top.sv
+		HPDCACHE_DIR=./rtl/dcache $(VERILATOR) --cc $(VERI_FLAGS) $(VERI_OPTI_FLAGS) -o $(SIMULATOR)
 		$(MAKE) -C $(VERISIM_DIR)/build -f V$(TOP_MODULE).mk $(SIMULATOR)
 
 clean-simulator:

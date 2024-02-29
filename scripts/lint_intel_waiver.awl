@@ -1,0 +1,54 @@
+waive -du {  {control_mvp}  }  -ignore -comment {"FPU errors"}
+waive -du {  {fpnew_opgroup_multifmt_slice}  }  -ignore -comment {"FPU errors"}
+waive -du {  {fpnew_pkg} } -ignore -comment {"FPU errors"}
+waive -du {  {fpnew_cast_multi} } -ignore -comment {"FPU errors"}
+waive -du {  {fpnew_divsqrt_multi} } -ignore -comment {"FPU errors"}
+waive -du {  {fpnew_fma_multi} } -ignore -comment {"FPU errors"}
+waive -du {  {fpnew_divsqrt_th_32} } -ignore -comment {"FPU errors"}
+waive -du {  {norm_div_sqrt_mvp} } -ignore -comment {"FPU errors"}
+waive -du {  {fpnew_classifier} } -ignore -comment {"FPU errors"}
+waive -du {  {fpnew_noncomp} } -ignore -comment {"FPU errors"}
+waive -du {  {fpnew_opgroup_block} } -ignore -comment {"FPU errors"}
+waive -du {  {fpnew_opgroup_fmt_slice} } -ignore -comment {"FPU errors"}
+waive -du {  {fpnew_rounding} } -ignore -comment {"FPU errors"}
+waive -du {  {fpnew_top} } -ignore -comment {"FPU errors"}
+waive -du {  {preprocess_mvp} } -ignore -comment {"FPU errors"}
+
+waive -du {  {fifo_v3} } -ignore -comment {"Common cell errors"}
+waive -du {  {lzc} } -ignore -comment {"Common cell errors"}
+waive -du {  {pseudoLRU} } -ignore -comment {"Common cell errors"}
+waive -du {  {rr_arb_tree} } -ignore -comment {"Common cell errors"}
+
+waive -rule {  {FlopEConst} } -du {  {register} } -ignore -comment {"FlopEConst"}
+
+waive -rule {  {FileHdr}  }  -ignore -comment {"Could not find file-header start"}
+waive -rule {  {ConstName} } -ignore -comment {"Constant does not follow recommended naming convention."}
+
+waive -du {  {hpdcache_sram_wmask_1rw} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_cmo} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_memctrl} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_miss_handler} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_rtab} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_wbuf} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_wbuf_wrapper} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_rrarb} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_memarray} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_mshr} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_plru} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_demux} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_mux} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_uncached} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_typedef} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_fifo_reg} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_fxarb} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_prio_1hot_encoder} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_sram} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_sram_wmask} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_sram_1rw} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_amo} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_ctrl_pe} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_ctrl} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_mshr_to_cache_set} } -ignore -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache} } -ignore -comment {"HPDC Will be changed in future drop"}
+
+waive -file {fpnew_pkg.sv} -ignore -regexp -comment {"FPU package errors"}

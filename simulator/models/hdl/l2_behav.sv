@@ -446,11 +446,7 @@ module l2_behav #(
                     $write("%c[1;31m", 27);
                     $write("Simulation ended with error code %d", exit_code);
                     $write("%c[0m\n", 27);
-                    `ifdef VERILATOR // Use $error because Verilator doesn't support exit codes in $finish
-                        $error;
-                    `else
-                        $finish(exit_code);
-                    `endif
+                    $error;
                 end
             end
         end
