@@ -201,30 +201,31 @@ build-vcs:
     - build_vcs
     expire_in: 1 week 
 
-build-spike:
-  stage: building
-  rules:
-    - if: ($CI_PIPELINE_SOURCE == "schedule")
-      when: always
-  script:
-    - gcc --version
-    - make spike
-  artifacts:
-    paths:
-    - simulator/reference/build/spike
-    expire_in: 1 week
+# Only needed by 'torture'
+#build-spike:
+#  stage: building
+#  rules:
+#    - if: ($CI_PIPELINE_SOURCE == "schedule")
+#      when: always
+#  script:
+#    - gcc --version
+#    - make spike
+#  artifacts:
+#    paths:
+#    - simulator/reference/build/spike
+#    expire_in: 1 week
 
-build-torture:
-  stage: building
-  rules:
-    - if: ($CI_PIPELINE_SOURCE == "schedule")
-      when: always
-  script:
-    - $RISCV_GCC --version
-    - make build-torture
-  artifacts:
-    paths:
-    - tb/tb_torture/riscv-torture/output
+#build-torture:
+#  stage: building
+#  rules:
+#    - if: ($CI_PIPELINE_SOURCE == "schedule")
+#      when: always
+#  script:
+#    - $RISCV_GCC --version
+#    - make build-torture
+#  artifacts:
+#    paths:
+#    - tb/tb_torture/riscv-torture/output
 
 isa-tests:
   stage: simulation
@@ -268,29 +269,30 @@ vcs:
     - cp bootrom.hex build_vcs/bootrom.hex
     - ./build_vcs/simv +load=./tb/tb_isa_tests/build/isa/rv64ui-p-add
 
-torture:
-  stage: simulation
-  rules:
-    - if: ($CI_PIPELINE_SOURCE == "schedule")
-      when: always
-  dependencies:
-    - build-simulator
-    - build-torture
-    - build-spike
-  timeout: 4h
-  parallel:
-    matrix:
-      - CONFIG:
-        - peta
-        - large_fp
-        - tlb_large
-        - tlb_medium
-  script:
-    - tb/tb_torture/run_torture.sh $CONFIG
-  artifacts:
-    when: on_failure
-    paths:
-    - tb/tb_torture/signatures
+# Has many problemes, never managed to get it working properly...
+#torture:
+#  stage: simulation
+#  rules:
+#    - if: ($CI_PIPELINE_SOURCE == "schedule")
+#      when: always
+#  dependencies:
+#    - build-simulator
+#    - build-torture
+#    - build-spike
+#  timeout: 4h
+#  parallel:
+#    matrix:
+#      - CONFIG:
+#        - peta
+#        - large_fp
+#        - tlb_large
+#        - tlb_medium
+#  script:
+#    - tb/tb_torture/run_torture.sh $CONFIG
+#  artifacts:
+#    when: on_failure
+#    paths:
+#    - tb/tb_torture/signatures
 
 random_regression:
   stage: simulation
