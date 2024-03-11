@@ -40,10 +40,10 @@ before_script:
   # Setup licenses
   - export MGLS_LICENSE_FILE=1717@epi03.bsc.es
   - export LM_LICENSE_FILE=1717@epi03.bsc.es
-  - source /load_modulefiles_bash.sh
-  - module load verilator/5.014
+  - source /modules.sh
+  - module load verilator
   - module load rvv/1.0.0
-  - module load gcc/10.5.0
+  - module load gcc
 
 default:
   tags:
@@ -125,7 +125,7 @@ lint-vc-static:
   tags:
     - bm
   script:
-    - vc_static_shell -f scripts/lint_intel_grade.tcl 2>&1 | tee  vc_static.$CI_PIPELINE_ID.log
+    - vc_static_shell -lic_wait 30 -f scripts/lint_intel_grade.tcl 2>&1 | tee  vc_static.$CI_PIPELINE_ID.log
     - grep -E "\[Error\]" vc_static.$CI_PIPELINE_ID.log &> /dev/null; VAR=$(echo $?)
     - |
       if [ $VAR -eq 0 ]; then

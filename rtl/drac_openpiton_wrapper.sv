@@ -28,34 +28,62 @@
  input   logic [1:0]             boot_main_id_i,
  `endif  // Custom for CincoRanch
  input   addr_t                  boot_addr_i,
- output  [$size(l15_req_t)-1:0]  l15_req_o,
- input   [$size(l15_rtrn_t)-1:0] l15_rtrn_i,
+ output  logic [$size(l15_req_t)-1:0]  l15_req_o,
+ input   logic [$size(l15_rtrn_t)-1:0] l15_rtrn_i,
 
  input logic time_irq_i,
  input logic [63:0] time_i,
- input logic irq_i
+ input logic irq_i,
+
+ // Debug ring interface
+
+    input  logic                debug_halt_i,
+
+    input  addr_t               debug_pc_addr_i,
+    input  logic                debug_pc_valid_i,
+    
+    input  logic                debug_reg_read_valid_i,
+    input  logic [4:0]          debug_reg_read_addr_i,
+    input  logic                debug_preg_write_valid_i,
+    input  bus64_t              debug_preg_write_data_i,
+    input  logic [5:0]	        debug_preg_addr_i,
+    input  logic                debug_preg_read_valid_i,
+
+    output addr_t               debug_fetch_pc_o,
+    output addr_t               debug_decode_pc_o,
+    output addr_t               debug_register_read_pc_o,
+    output addr_t               debug_execute_pc_o,
+    output addr_t               debug_writeback_pc_o,
+
+    output logic                debug_writeback_pc_valid_o,
+    output logic  [4:0]         debug_writeback_addr_o,
+    output logic                debug_writeback_we_o,
+    output bus64_t              debug_mem_addr_o,
+
+    output logic		        debug_backend_empty_o,
+    output logic  [5:0]		    debug_preg_addr_o,
+    output bus64_t              debug_preg_data_o
 );
 
 // Bootrom wires
 logic   [39:0]  brom_req_address;
 logic           brom_req_valid;
 logic   [31:0]  brom_resp_data;
-logic           brom_resp_valid;
 
 // icache wires
 logic                     l1_request_valid;
 logic                     l2_response_valid;
 logic [PHY_ADDR_SIZE-1:0] l1_request_paddr;
 logic [511:0]             l2_response_data; // TODO: LOCALPARAMETERS or PKG definition
-logic [1:0]               l2_response_seqnum = '0;
+logic [1:0]               l2_response_seqnum;
 logic                     l2_inval_request;
 logic [39:0]              l2_inval_addr;
+assign l2_response_seqnum = '0;
 
 //      Miss read interface
 logic                           mem_req_miss_read_ready;
 logic                           mem_req_miss_read_valid;
 hpdcache_mem_req_t              mem_req_miss_read;
-hpdcache_mem_id_t               mem_req_miss_read_base_id;
 
 logic                           mem_resp_miss_read_ready;
 logic                           mem_resp_miss_read_valid;
@@ -65,7 +93,6 @@ hpdcache_mem_resp_r_t           mem_resp_miss_read;
 logic                           mem_req_wbuf_write_ready;
 logic                           mem_req_wbuf_write_valid;
 hpdcache_mem_req_t              mem_req_wbuf_write;
-hpdcache_mem_id_t               mem_req_wbuf_write_base_id;
 
 logic                           mem_req_wbuf_write_data_ready;
 logic                           mem_req_wbuf_write_data_valid;
@@ -144,12 +171,9 @@ top_tile #(
  `ifdef PITON_CINCORANCH
  .boot_main_id_i(boot_main_id_i),
  `endif  // Custom for CincoRanch
- .debug_halt_i(1'b0),
  .reset_addr_i(boot_addr_i), //'h00000100
 
  // Bootrom ports
- .brom_resp_data_i(brom_resp_data),
- .brom_resp_valid_i(brom_resp_valid),
  .brom_req_address_o(brom_req_address),
  .brom_req_valid_o(brom_req_valid),
 
@@ -168,7 +192,6 @@ top_tile #(
  .mem_req_miss_read_ready_i(mem_req_miss_read_ready),
  .mem_req_miss_read_valid_o(mem_req_miss_read_valid),
  .mem_req_miss_read_o(mem_req_miss_read),
- .mem_req_miss_read_base_id_i(mem_req_miss_read_base_id),
 
  .mem_resp_miss_read_ready_o(mem_resp_miss_read_ready),
  .mem_resp_miss_read_valid_i(mem_resp_miss_read_valid),
@@ -178,7 +201,6 @@ top_tile #(
  .mem_req_wbuf_write_ready_i(mem_req_wbuf_write_ready),
  .mem_req_wbuf_write_valid_o(mem_req_wbuf_write_valid),
  .mem_req_wbuf_write_o(mem_req_wbuf_write),
- .mem_req_wbuf_write_base_id_i(mem_req_wbuf_write_base_id),
 
  .mem_req_wbuf_write_data_ready_i(mem_req_wbuf_write_data_ready),
  .mem_req_wbuf_write_data_valid_o(mem_req_wbuf_write_data_valid),
@@ -217,7 +239,37 @@ top_tile #(
 
  .time_irq_i(time_irq_i),
  .irq_i(irq_i),
- .time_i(time_i)
+ .time_i(time_i),
+
+ .debug_halt_i(debug_halt_i),
+
+ .debug_pc_addr_i(debug_pc_addr_i),
+ .debug_pc_valid_i(debug_pc_valid_i),
+
+ .debug_reg_read_valid_i(debug_reg_read_valid_i),
+ .debug_reg_read_addr_i(debug_reg_read_addr_i),
+ .debug_preg_write_valid_i(debug_preg_write_valid_i),
+ .debug_preg_write_data_i(debug_preg_write_data_i),
+ .debug_preg_addr_i(debug_preg_addr_i),
+ .debug_preg_read_valid_i(debug_preg_read_valid_i),
+
+ .debug_fetch_pc_o(debug_fetch_pc_o),
+ .debug_decode_pc_o(debug_decode_pc_o),
+ .debug_register_read_pc_o(debug_register_read_pc_o),
+ .debug_execute_pc_o(debug_execute_pc_o),
+ .debug_writeback_pc_o(debug_writeback_pc_o),
+ .debug_writeback_pc_valid_o(debug_writeback_pc_valid_o),
+ 
+ .debug_writeback_addr_o(debug_writeback_addr_o),
+ .debug_writeback_we_o(debug_writeback_we_o),
+ .debug_mem_addr_o(debug_mem_addr_o),
+
+ .debug_backend_empty_o(debug_backend_empty_o),
+ .debug_preg_addr_o(debug_preg_addr_o),
+ .debug_preg_data_o(debug_preg_data_o),
+
+ // PMU
+ .io_core_pmu_l2_hit_i(1'b0) 
 );
 
 

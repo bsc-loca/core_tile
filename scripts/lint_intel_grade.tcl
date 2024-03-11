@@ -18,6 +18,8 @@ while {[gets $file name] != -1} {
 close $file
 
 sg_read_waiver -file ./scripts/lint_intel_waiver.awl
+sg_read_waiver -file ./scripts/lint_intel_waiver_sargantana_tile.awl
+
 
 set_app_var search_path "./includes/"
 

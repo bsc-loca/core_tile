@@ -50,7 +50,6 @@ module axi_wrapper (
     logic                           mem_req_miss_read_ready;
     logic                           mem_req_miss_read_valid;
     sargantana_hpdc_pkg::hpdcache_mem_req_t    mem_req_miss_read;
-    sargantana_hpdc_pkg::hpdcache_mem_id_t     mem_req_miss_read_base_id;
 
     logic                           mem_resp_miss_read_ready;
     logic                           mem_resp_miss_read_valid;
@@ -60,7 +59,6 @@ module axi_wrapper (
     logic                           mem_req_wbuf_write_ready;
     logic                           mem_req_wbuf_write_valid;
     sargantana_hpdc_pkg::hpdcache_mem_req_t    mem_req_wbuf_write;
-    sargantana_hpdc_pkg::hpdcache_mem_id_t     mem_req_wbuf_write_base_id;
 
     logic                           mem_req_wbuf_write_data_ready;
     logic                           mem_req_wbuf_write_data_valid;
@@ -102,8 +100,6 @@ module axi_wrapper (
         .reset_addr_i(40'h0000000100),
 
         // Bootrom ports
-        .brom_resp_data_i(brom_resp_data),
-        .brom_resp_valid_i(brom_resp_valid),
         .brom_req_address_o(brom_req_address),
         .brom_req_valid_o(brom_req_valid),
 
@@ -122,7 +118,6 @@ module axi_wrapper (
         .mem_req_miss_read_ready_i(mem_req_miss_read_ready),
         .mem_req_miss_read_valid_o(mem_req_miss_read_valid),
         .mem_req_miss_read_o(mem_req_miss_read),
-        .mem_req_miss_read_base_id_i(mem_req_miss_read_base_id),
 
         .mem_resp_miss_read_ready_o(mem_resp_miss_read_ready),
         .mem_resp_miss_read_valid_i(mem_resp_miss_read_valid),
@@ -132,7 +127,6 @@ module axi_wrapper (
         .mem_req_wbuf_write_ready_i(mem_req_wbuf_write_ready),
         .mem_req_wbuf_write_valid_o(mem_req_wbuf_write_valid),
         .mem_req_wbuf_write_o(mem_req_wbuf_write),
-        .mem_req_wbuf_write_base_id_i(mem_req_wbuf_write_base_id),
 
         .mem_req_wbuf_write_data_ready_i(mem_req_wbuf_write_data_ready),
         .mem_req_wbuf_write_data_valid_o(mem_req_wbuf_write_data_valid),
@@ -146,7 +140,6 @@ module axi_wrapper (
         .mem_req_uc_write_ready_i(mem_req_uc_write_ready),
         .mem_req_uc_write_valid_o(mem_req_uc_write_valid),
         .mem_req_uc_write_o(mem_req_uc_write),
-        .mem_req_uc_write_base_id_i(mem_req_uc_write_base_id),
 
         .mem_req_uc_write_data_ready_i(mem_req_uc_write_data_ready),
         .mem_req_uc_write_data_valid_o(mem_req_uc_write_data_valid),
@@ -160,7 +153,6 @@ module axi_wrapper (
         .mem_req_uc_read_ready_i(mem_req_uc_read_ready),
         .mem_req_uc_read_valid_o(mem_req_uc_read_valid),
         .mem_req_uc_read_o(mem_req_uc_read),
-        .mem_req_uc_read_base_id_i(mem_req_uc_read_base_id),
 
         .mem_resp_uc_read_ready_o(mem_resp_uc_read_ready),
         .mem_resp_uc_read_valid_i(mem_resp_uc_read_valid),

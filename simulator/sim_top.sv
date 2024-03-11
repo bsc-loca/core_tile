@@ -44,7 +44,6 @@ module sim_top;
     logic                          mem_req_miss_read_ready;
     logic                          mem_req_miss_read_valid;
     hpdcache_mem_req_t             mem_req_miss_read;
-    hpdcache_mem_id_t              mem_req_miss_read_base_id;
 
     logic                          mem_resp_miss_read_ready;
     logic                          mem_resp_miss_read_valid;
@@ -54,7 +53,6 @@ module sim_top;
     logic                          mem_req_wbuf_write_ready;
     logic                          mem_req_wbuf_write_valid;
     hpdcache_mem_req_t             mem_req_wbuf_write;
-    hpdcache_mem_id_t              mem_req_wbuf_write_base_id;
 
     logic                          mem_req_wbuf_write_data_ready;
     logic                          mem_req_wbuf_write_data_valid;
@@ -68,7 +66,6 @@ module sim_top;
     logic                          mem_req_uc_read_ready;
     logic                          mem_req_uc_read_valid;
     hpdcache_mem_req_t             mem_req_uc_read;
-    hpdcache_mem_id_t              mem_req_uc_read_base_id;
 
     logic                          mem_resp_uc_read_ready;
     logic                          mem_resp_uc_read_valid;
@@ -78,7 +75,6 @@ module sim_top;
     logic                          mem_req_uc_write_ready;
     logic                          mem_req_uc_write_valid;
     hpdcache_mem_req_t             mem_req_uc_write;
-    hpdcache_mem_id_t              mem_req_uc_write_base_id;
 
     logic                          mem_req_uc_write_data_ready;
     logic                          mem_req_uc_write_data_valid;
@@ -98,9 +94,6 @@ module sim_top;
 
 
         // Bootrom ports
-        //.brom_ready_i(brom_ready),
-        .brom_resp_data_i(brom_resp_data),
-        .brom_resp_valid_i(brom_resp_valid),
         .brom_req_address_o(brom_req_address),
         .brom_req_valid_o(brom_req_valid),
 
@@ -118,7 +111,6 @@ module sim_top;
         .mem_req_miss_read_ready_i(mem_req_miss_read_ready),
         .mem_req_miss_read_valid_o(mem_req_miss_read_valid),
         .mem_req_miss_read_o(mem_req_miss_read),
-        .mem_req_miss_read_base_id_i(mem_req_miss_read_base_id),
 
         .mem_resp_miss_read_ready_o(mem_resp_miss_read_ready),
         .mem_resp_miss_read_valid_i(mem_resp_miss_read_valid),
@@ -128,7 +120,6 @@ module sim_top;
         .mem_req_wbuf_write_ready_i(mem_req_wbuf_write_ready),
         .mem_req_wbuf_write_valid_o(mem_req_wbuf_write_valid),
         .mem_req_wbuf_write_o(mem_req_wbuf_write),
-        .mem_req_wbuf_write_base_id_i(mem_req_wbuf_write_base_id),
 
         .mem_req_wbuf_write_data_ready_i(mem_req_wbuf_write_data_ready),
         .mem_req_wbuf_write_data_valid_o(mem_req_wbuf_write_data_valid),
@@ -142,7 +133,6 @@ module sim_top;
         .mem_req_uc_write_ready_i(mem_req_uc_write_ready),
         .mem_req_uc_write_valid_o(mem_req_uc_write_valid),
         .mem_req_uc_write_o(mem_req_uc_write),
-        .mem_req_uc_write_base_id_i(mem_req_uc_write_base_id),
 
         .mem_req_uc_write_data_ready_i(mem_req_uc_write_data_ready),
         .mem_req_uc_write_data_valid_o(mem_req_uc_write_data_valid),
@@ -156,7 +146,6 @@ module sim_top;
         .mem_req_uc_read_ready_i(mem_req_uc_read_ready),
         .mem_req_uc_read_valid_o(mem_req_uc_read_valid),
         .mem_req_uc_read_o(mem_req_uc_read),
-        .mem_req_uc_read_base_id_i(mem_req_uc_read_base_id),
 
         .mem_resp_uc_read_ready_o(mem_resp_uc_read_ready),
         .mem_resp_uc_read_valid_i(mem_resp_uc_read_valid),
@@ -167,48 +156,31 @@ module sim_top;
         .mem_inval_i(0),
 
         // Unused ports
-        .IO_FETCH_PC_VALUE(),
-        .IO_FETCH_PC_UPDATE(),
-        .IO_REG_READ(),
-        .IO_REG_ADDR(),
-        .IO_REG_WRITE(),
-        .IO_REG_WRITE_DATA(),
-        .IO_REG_READ_DATA(),
-        .IO_FETCH_PC(),
-        .IO_DEC_PC(),
-        .IO_RR_PC(),
-        .IO_EXE_PC(),
-        .IO_WB_PC(),
-        .IO_WB_PC_VALID(),
-        .IO_WB_ADDR(),
-        .IO_WB_WE(),
-        .IO_WB_BITS_ADDR(),
+        .debug_pc_addr_i(0),
+        .debug_pc_valid_i(0),
+        .debug_reg_read_valid_i(0),
+        .debug_reg_read_addr_i(0),
+        .debug_preg_write_valid_i(0),
+        .debug_preg_write_data_i(0),
+        .debug_preg_addr_i(0),
+        .debug_preg_read_valid_i(0),
+        .debug_fetch_pc_o(),
+        .debug_decode_pc_o(),
+        .debug_register_read_pc_o(),
+        .debug_execute_pc_o(),
+        .debug_writeback_pc_o(),
+        .debug_writeback_pc_valid_o(),
+        .debug_writeback_addr_o(),
+        .debug_writeback_we_o(),
+        .debug_mem_addr_o(),
+        .debug_backend_empty_o(),
+        .debug_preg_addr_o(),
+        .debug_preg_data_o(),
 
-        .pcr_req_core_id_o(),
-        .pcr_req_we_o(),
-        .pcr_req_data_o(),
-        .pcr_req_addr_o(),
-        .pcr_req_valid_o(),
-        .pcr_resp_core_id_i(),
-        .pcr_resp_data_i(),
-        .pcr_resp_valid_i(),
-        .pcr_req_ready_i(),
         .time_i(64'd0),
         .irq_i(1'b0),
         .time_irq_i(1'b0),
-        .csr_spi_config_i(1'b0),
-        .io_core_pmu_l2_hit_i(),
-        .IO_REG_LIST_PADDR(),
-        .IO_REG_BACKEND_EMPTY(),
-        .io_mem_grant_ready(),
-        .io_mem_acquire_bits_union(),
-        .io_mem_acquire_bits_a_type(),
-        .io_mem_acquire_bits_is_builtin_type(),
-        .io_mem_acquire_bits_data(),
-        .io_mem_acquire_bits_addr_beat(),
-        .io_mem_acquire_bits_client_xact_id(),
-        .IO_REG_PREAD(),
-        .IO_REG_PADDR()
+        .io_core_pmu_l2_hit_i()
     );
 
     bootrom_behav brom(
@@ -256,7 +228,6 @@ module sim_top;
         .dc_wb_req_len_i(mem_req_wbuf_write.mem_req_len),
         .dc_wb_req_size_i(mem_req_wbuf_write.mem_req_size),
         .dc_wb_req_id_i(mem_req_wbuf_write.mem_req_id),
-        .dc_wb_req_base_id_o(mem_req_wbuf_write_base_id),
 
         .dc_wb_req_data_ready_o(mem_req_wbuf_write_data_ready),
         .dc_wb_req_data_valid_i(mem_req_wbuf_write_data_valid),
@@ -278,7 +249,6 @@ module sim_top;
         .dc_uc_wr_req_id_i(mem_req_uc_write.mem_req_id),
         .dc_uc_wr_req_command_i(mem_req_uc_write.mem_req_command),
         .dc_uc_wr_req_atomic_i(mem_req_uc_write.mem_req_atomic),
-        .dc_uc_wr_req_base_id_o(mem_req_uc_write_base_id),
 
         .dc_uc_wr_req_data_ready_o(mem_req_uc_write_data_ready),
         .dc_uc_wr_req_data_valid_i(mem_req_uc_write_data_valid),
@@ -301,7 +271,6 @@ module sim_top;
         .dc_uc_rd_req_id_i(mem_req_uc_read.mem_req_id),
         .dc_uc_rd_req_command_i(mem_req_uc_read.mem_req_command),
         .dc_uc_rd_req_atomic_i(mem_req_uc_read.mem_req_atomic),
-        .dc_uc_rd_req_base_id_o(mem_req_uc_read_base_id),
 
         .dc_uc_rd_valid_o(mem_resp_uc_read_valid),
         .dc_uc_rd_error_o(mem_resp_uc_read_error),

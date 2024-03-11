@@ -34,17 +34,17 @@ module top_tile
 // DEBUG RING SIGNALS INPUT
 // debug_halt_i is istall_test 
 //------------------------------------------------------------------------------------    
-    input  logic                debug_halt_i,
+    input  logic                debug_halt_i, // Halt core / debug mode
 
-    input  addr_t               IO_FETCH_PC_VALUE,
-    input  logic                IO_FETCH_PC_UPDATE,
+    input  addr_t               debug_pc_addr_i,  // Address to set in the PC of the fetch stage
+    input  logic                debug_pc_valid_i, // Write the address debug_pc_addr_i into the PC of the fetch stage
     
-    input  logic                IO_REG_READ,
-    input  logic [4:0]          IO_REG_ADDR,
-    input  logic                IO_REG_WRITE,
-    input  bus64_t              IO_REG_WRITE_DATA,
-    input  logic [5:0]	        IO_REG_PADDR,
-    input  logic                IO_REG_PREAD,
+    input  logic                debug_reg_read_valid_i,   // Read the physical register address corresponding to the register indicated in debug_reg_read_addr_i
+    input  logic [4:0]          debug_reg_read_addr_i,    // Address of the architectural register to be translated to the physical register address
+    input  logic                debug_preg_write_valid_i, // Enable the write of debug_preg_write_data_i into the physical register indicated by debug_preg_addr_i
+    input  bus64_t              debug_preg_write_data_i,  // Data to write into the physical register indicated by debug_preg_read_valid_i
+    input  logic [5:0]	        debug_preg_addr_i,        // Address of the physical register which will be read or written into
+    input  logic                debug_preg_read_valid_i,  // Enable the read of the contents of the physical register indicated by debug_preg_addr_i
 
 //------------------------------------------------------------------------------------
 // I-CANCHE INPUT INTERFACE
@@ -66,7 +66,6 @@ module top_tile
     input  logic                          mem_req_miss_read_ready_i,
     output logic                          mem_req_miss_read_valid_o,
     output hpdcache_mem_req_t             mem_req_miss_read_o,
-    input  hpdcache_mem_id_t              mem_req_miss_read_base_id_i,
 
     output logic                          mem_resp_miss_read_ready_o,
     input  logic                          mem_resp_miss_read_valid_i,
@@ -76,7 +75,6 @@ module top_tile
     input  logic                          mem_req_wbuf_write_ready_i,
     output logic                          mem_req_wbuf_write_valid_o,
     output hpdcache_mem_req_t             mem_req_wbuf_write_o,
-    input  hpdcache_mem_id_t              mem_req_wbuf_write_base_id_i,
 
     input  logic                          mem_req_wbuf_write_data_ready_i,
     output logic                          mem_req_wbuf_write_data_valid_o,
@@ -90,7 +88,6 @@ module top_tile
     input  logic                          mem_req_uc_read_ready_i,
     output logic                          mem_req_uc_read_valid_o,
     output hpdcache_mem_req_t             mem_req_uc_read_o,
-    input  hpdcache_mem_id_t              mem_req_uc_read_base_id_i,
 
     output logic                          mem_resp_uc_read_ready_o,
     input  logic                          mem_resp_uc_read_valid_i,
@@ -100,7 +97,6 @@ module top_tile
     input  logic                          mem_req_uc_write_ready_i,
     output logic                          mem_req_uc_write_valid_o,
     output hpdcache_mem_req_t             mem_req_uc_write_o,
-    input  hpdcache_mem_id_t              mem_req_uc_write_base_id_i,
 
     input  logic                          mem_req_uc_write_data_ready_i,
     output logic                          mem_req_uc_write_data_valid_o,
@@ -122,33 +118,25 @@ module top_tile
     //- To L2
     output logic                          io_mem_acquire_valid,
     output logic [PHY_ADDR_SIZE-1:0]      io_mem_acquire_bits_addr_block,
-    output logic                          io_mem_acquire_bits_client_xact_id,
-    output logic [1:0]                    io_mem_acquire_bits_addr_beat,
-    output logic [255:0]                  io_mem_acquire_bits_data,
-    output logic                          io_mem_acquire_bits_is_builtin_type,
-    output logic [2:0]                    io_mem_acquire_bits_a_type,
-    output logic [16:0]                   io_mem_acquire_bits_union,
-    output logic                          io_mem_grant_ready,
 
 //-----------------------------------------------------------------------------------
 // DEBUGGING MODULE SIGNALS
 //-----------------------------------------------------------------------------------
 
-// PC
-    output addr_t               IO_FETCH_PC,
-    output addr_t               IO_DEC_PC,
-    output addr_t               IO_RR_PC,
-    output addr_t               IO_EXE_PC,
-    output addr_t               IO_WB_PC,
-// WB
-    output logic                IO_WB_PC_VALID,
-    output logic  [4:0]         IO_WB_ADDR,
-    output logic                IO_WB_WE,
-    output bus64_t              IO_WB_BITS_ADDR,
+    output addr_t               debug_fetch_pc_o,         // PC of the instr. at fetch stage
+    output addr_t               debug_decode_pc_o,        // PC of the instr. at decode stage
+    output addr_t               debug_register_read_pc_o, // PC of the instr. at register read stage
+    output addr_t               debug_execute_pc_o,       // PC of the instr. at execute stage
+    output addr_t               debug_writeback_pc_o,     // PC of the instr. at writeback stage
 
-    output logic		IO_REG_BACKEND_EMPTY,
-    output logic  [5:0]		IO_REG_LIST_PADDR,
-    output bus64_t              IO_REG_READ_DATA,
+    output logic                debug_writeback_pc_valid_o, // Indicates if the instr. at writeback stage is valid
+    output logic  [4:0]         debug_writeback_addr_o,     // Address of the destination register of the instr. at writeback
+    output logic                debug_writeback_we_o,       // Indicates if the instr. at writeback stage writes to the regfile
+    output bus64_t              debug_mem_addr_o,           // Address of the latest access to memory
+
+    output logic		        debug_backend_empty_o, // Indicates if the backend is empty (i.e. no instruction in the graduation list)
+    output logic  [5:0]		    debug_preg_addr_o,     // Physical register address corresponding to the register indicated by debug_reg_read_addr_i
+    output bus64_t              debug_preg_data_o,     // Data contained in the register indicated by debug_preg_addr_i
 
 
 //-----------------------------------------------------------------------------
@@ -159,20 +147,10 @@ module top_tile
 //-----------------------------------------------------------------------------
 // BOOTROM CONTROLER INTERFACE
 //-----------------------------------------------------------------------------
-    input  logic [31:0]         brom_resp_data_i    ,
-    input  logic                brom_resp_valid_i   ,
     output logic [39:0]         brom_req_address_o  ,
     output logic                brom_req_valid_o    ,
-   
-    input  logic                csr_spi_config_i,
 
-//-----------------------------------------------------------------------------
-// INTERRUPTS
-//-----------------------------------------------------------------------------
-    input  logic                time_irq_i, // timer interrupt
-    input  logic                irq_i,      // external interrupt in
-    input  logic [63:0]         time_i,     // time passed since the core is reset
-
+`ifdef CONF_SARGANTANA_ENABLE_PCR
 //-----------------------------------------------------------------------------
 // PCR
 //-----------------------------------------------------------------------------
@@ -189,7 +167,15 @@ module top_tile
     output logic  [11:0]        pcr_req_addr_o,     // read/write address to performance counter module (up to 29 aux counters possible in riscv encoding.h)
     output logic  [63:0]        pcr_req_data_o,     // write data to performance counter module
     output logic  [2:0]         pcr_req_we_o,       // Cmd of the petition
-    output logic  [63:0]        pcr_req_core_id_o   // core id of the tile
+    output logic  [63:0]        pcr_req_core_id_o,  // core id of the tile
+`endif // CONF_SARGANTANA_ENABLE_PCR
+
+//-----------------------------------------------------------------------------
+// INTERRUPTS
+//-----------------------------------------------------------------------------
+    input  logic                time_irq_i, // timer interrupt
+    input  logic                irq_i,      // external interrupt in
+    input  logic [63:0]         time_i     // time passed since the core is reset
 
 );
 
@@ -207,18 +193,8 @@ resp_dcache_cpu_t resp_dcache_interface_datapath;
 req_cpu_dcache_t req_datapath_dcache_interface;
 
 // Response CSR Interface to datapath
-resp_csr_cpu_t resp_csr_interface_datapath;
 logic [1:0] priv_lvl;
-logic [2:0] fcsr_rm;
-logic [1:0] fcsr_fs;
-logic en_ld_st_translation;
 logic en_translation;
-
-addr_t dcache_addr;
-
-// struct debug input/output
-debug_in_t debug_in;
-debug_out_t debug_out;
 
 //iCache
 iresp_o_t      icache_resp  ;
@@ -285,14 +261,14 @@ top_drac #(
 
     // Debug ring
     .debug_halt_i(debug_halt_i),
-    .IO_FETCH_PC_VALUE(IO_FETCH_PC_VALUE),
-    .IO_FETCH_PC_UPDATE(IO_FETCH_PC_UPDATE),
-    .IO_REG_READ(IO_REG_READ),
-    .IO_REG_ADDR(IO_REG_ADDR),
-    .IO_REG_WRITE(IO_REG_WRITE),
-    .IO_REG_WRITE_DATA(IO_REG_WRITE_DATA),
-    .IO_REG_PADDR(IO_REG_PADDR),
-    .IO_REG_PREAD(IO_REG_PREAD),
+    .debug_pc_addr_i(debug_pc_addr_i),
+    .debug_pc_valid_i(debug_pc_valid_i),
+    .debug_reg_read_valid_i(debug_reg_read_valid_i),
+    .debug_reg_read_addr_i(debug_reg_read_addr_i),
+    .debug_preg_write_valid_i(debug_preg_write_valid_i),
+    .debug_preg_write_data_i(debug_preg_write_data_i),
+    .debug_preg_addr_i(debug_preg_addr_i),
+    .debug_preg_read_valid_i(debug_preg_read_valid_i),
 
     // iCache Interface
     .req_icache_ready_i(req_icache_ready),
@@ -311,27 +287,23 @@ top_drac #(
     .dtlb_comm_i(dtlb_core_comm),
 
     // Debug Module
-    .IO_FETCH_PC(IO_FETCH_PC),
-    .IO_DEC_PC(IO_DEC_PC),
-    .IO_RR_PC(IO_RR_PC),
-    .IO_EXE_PC(IO_EXE_PC),
-    .IO_WB_PC(IO_WB_PC),
-    .IO_WB_PC_VALID(IO_WB_PC_VALID),
-    .IO_WB_ADDR(IO_WB_ADDR),
-    .IO_WB_WE(IO_WB_WE),
-    .IO_WB_BITS_ADDR(IO_WB_BITS_ADDR),
-    .IO_REG_BACKEND_EMPTY(IO_REG_BACKEND_EMPTY),
-    .IO_REG_LIST_PADDR(IO_REG_LIST_PADDR),
-    .IO_REG_READ_DATA(IO_REG_READ_DATA),
+    .debug_fetch_pc_o(debug_fetch_pc_o),
+    .debug_decode_pc_o(debug_decode_pc_o),
+    .debug_register_read_pc_o(debug_register_read_pc_o),
+    .debug_execute_pc_o(debug_execute_pc_o),
+    .debug_writeback_pc_o(debug_writeback_pc_o),
+    .debug_writeback_pc_valid_o(debug_writeback_pc_valid_o),
+    .debug_writeback_addr_o(debug_writeback_addr_o),
+    .debug_writeback_we_o(debug_writeback_we_o),
+    .debug_mem_addr_o(debug_mem_addr_o),
+    .debug_backend_empty_o(debug_backend_empty_o),
+    .debug_preg_addr_o(debug_preg_addr_o),
+    .debug_preg_data_o(debug_preg_data_o),
 
     // PMU Interface
     .pmu_interface_i(pmu_interface),
 
-    // Interrupts
-    .time_irq_i(time_irq_i), // timer interrupt
-    .irq_i(irq_i),      // external interrupt in
-    .time_i(time_i),     // time passed since the core is reset
-
+`ifdef CONF_SARGANTANA_ENABLE_PCR
     // PCR
     .pcr_req_ready_i(pcr_req_ready_i),    // ready bit of the pcr
     .pcr_resp_valid_i(pcr_resp_valid_i),   // ready bit of the pcr
@@ -341,8 +313,13 @@ top_drac #(
     .pcr_req_addr_o(pcr_req_addr_o),     // read/write address to performance counter module (up to 29 aux counters possible in riscv encoding.h)h
     .pcr_req_data_o(pcr_req_data_o),     // write data to performance counter module
     .pcr_req_we_o(pcr_req_we_o),       // Cmd of the petition
-    .pcr_req_core_id_o(pcr_req_core_id_o)   // core id of the tile
+    .pcr_req_core_id_o(pcr_req_core_id_o),   // core id of the tile
+`endif // CONF_SARGANTANA_ENABLE_PCR
 
+    // Interrupts
+    .time_irq_i(time_irq_i), // timer interrupt
+    .irq_i(irq_i),      // external interrupt in
+    .time_i(time_i)     // time passed since the core is reset
 );
 
 // *** iCache ***
@@ -359,13 +336,6 @@ assign ifill_resp.inv.paddr = io_mem_grant_inval_addr;
 //L2 Network conection - request
 assign io_mem_acquire_valid                = ifill_req.valid        ;
 assign io_mem_acquire_bits_addr_block      = ifill_req.paddr        ;
-assign io_mem_acquire_bits_client_xact_id  =   1'b0                 ;
-assign io_mem_acquire_bits_addr_beat       =   2'b0                 ;
-assign io_mem_acquire_bits_data            = 127'b0                 ;
-assign io_mem_acquire_bits_is_builtin_type =   1'b1                 ;
-assign io_mem_acquire_bits_a_type          =   3'b001               ;
-assign io_mem_acquire_bits_union           =  17'b00000000111000001 ;
-assign io_mem_grant_ready                  =   1'b1                 ;
 
 resp_icache_cpu_t resp_icache_interface_datapath_cached ;
 req_cpu_icache_t  req_datapath_icache_interface_cached  ;
@@ -411,9 +381,7 @@ icache_interface icache_interface_inst(
     
     // Fetch stage interface - Response packet icache to fetch
     .resp_icache_fetch_o  (resp_icache_interface_datapath_cached ),
-    .req_fetch_ready_o(req_icache_ready_cached),
-    //PMU
-    .buffer_miss_o ( )
+    .req_fetch_ready_o(req_icache_ready_cached)
 );
 
 
@@ -422,7 +390,6 @@ sargantana_top_icache # (
     .LINES_256          ( 1'b0          ),
 
     .ICACHE_MEM_BLOCK   (ICACHELINE_SIZE/8),  // In Bytes
-    .VADDR_SIZE         (VIRT_ADDR_SIZE),
     .PADDR_SIZE         (PHY_ADDR_SIZE),
     .ADDR_SIZE          (PHY_VIRT_MAX_ADDR_SIZE),
     .IDX_BITS_SIZE      (12), // TODO: Where does this come from?
@@ -568,17 +535,17 @@ hpdcache #(
     .mem_inval_i(mem_inval_i),
 
     // PMU events
-    .evt_stall_o(),
-    .evt_stall_refill_o(),
-    .evt_rtab_rollback_o(),
-    .evt_req_on_hold_o(),
-    .evt_prefetch_req_o(),
-    .evt_read_req_o(),
-    .evt_write_req_o(),
-    .evt_cmo_req_o(),
-    .evt_uncached_req_o(),
-    .evt_cache_read_miss_o(),
-    .evt_cache_write_miss_o(),
+    .evt_stall_o(pmu_interface.dcache_stall),
+    .evt_stall_refill_o(pmu_interface.dcache_stall_refill),
+    .evt_rtab_rollback_o(pmu_interface.dcache_rtab_rollback),
+    .evt_req_on_hold_o(pmu_interface.dcache_req_onhold),
+    .evt_prefetch_req_o(pmu_interface.dcache_prefetch_req),
+    .evt_read_req_o(pmu_interface.dcache_read_req),
+    .evt_write_req_o(pmu_interface.dcache_write_req),
+    .evt_cmo_req_o(pmu_interface.dcache_cmo_req),
+    .evt_uncached_req_o(pmu_interface.dcache_uncached_req),
+    .evt_cache_read_miss_o(pmu_interface.dcache_miss_read_req),
+    .evt_cache_write_miss_o(pmu_interface.dcache_miss_write_req),
 
     // Write buffer
     .wbuf_empty_o(wbuf_empty),
@@ -649,7 +616,6 @@ ptw ptw_inst (
 
 // Connect PTW to dcache
 assign dcache_req_valid[0] = ptw_dmem_comm.req.valid;
-assign dmem_ptw_comm.dmem_ready = dcache_req_ready[0];
 assign dcache_req[0].addr = ptw_dmem_comm.req.addr;
 assign dcache_req[0].op = (ptw_dmem_comm.req.cmd == 5'b01010) ? HPDCACHE_REQ_AMO_OR : HPDCACHE_REQ_LOAD;
 assign dcache_req[0].size = ptw_dmem_comm.req.typ[2:0];
@@ -658,22 +624,51 @@ assign dcache_req[0].sid = 0;
 assign dcache_req[0].tid = 0;
 assign dcache_req[0].need_rsp = 1'b1;
 
-always_comb begin
-    for (int i = 0; i < HPDCACHE_REQ_WORDS; ++i) begin
-        if ((ptw_dmem_comm.req.addr[$clog2(HPDCACHE_REQ_WORDS)+2:0] == (3'(i) << 3)) || (HPDCACHE_REQ_WORDS == 1)) begin
-            dcache_req[0].wdata[i] = ptw_dmem_comm.req.data;
-            dcache_req[0].be[i] = (ptw_dmem_comm.req.cmd == 5'b01010) ? 8'hff : 8'h00;
-        end else begin 
-            dcache_req[0].wdata[i] = '0;
-            dcache_req[0].be[i] = 8'h00;
-        end 
+generate
+    if (HPDCACHE_REQ_WORDS == 1) begin
+        assign dcache_req[0].wdata = ptw_dmem_comm.req.data;
+        assign dcache_req[0].be = (ptw_dmem_comm.req.cmd == 5'b01010) ? 8'hff : 8'h00;
+    end else begin
+        always_comb begin
+            for (int i = 0; i < HPDCACHE_REQ_WORDS; ++i) begin
+                if ((ptw_dmem_comm.req.addr[$clog2(HPDCACHE_REQ_WORDS)+2:0] == (3'(i) << 3))) begin
+                    dcache_req[0].wdata[i] = ptw_dmem_comm.req.data;
+                    dcache_req[0].be[i] = (ptw_dmem_comm.req.cmd == 5'b01010) ? 8'hff : 8'h00;
+                end else begin 
+                    dcache_req[0].wdata[i] = '0;
+                    dcache_req[0].be[i] = 8'h00;
+                end 
+            end
+        end
     end
-end
+endgenerate
 
-assign dmem_ptw_comm.resp.valid = dcache_rsp_valid[0];
-assign dmem_ptw_comm.resp.data = (HPDCACHE_REQ_WORDS == 1) ? dcache_rsp[0].rdata : 
-                                 dcache_rsp[0].rdata[ptw_dmem_comm.req.addr[$clog2(HPDCACHE_REQ_WORDS)+(HPDCACHE_REQ_WORDS==1)+2:3]];
-assign dmem_ptw_comm.resp.nack = 1'b0;
+assign dmem_ptw_comm.dmem_ready         = dcache_req_ready[0];
+assign dmem_ptw_comm.resp.valid         = dcache_rsp_valid[0];
+assign dmem_ptw_comm.resp.nack          = '0;
+assign dmem_ptw_comm.resp.addr          = '0;
+assign dmem_ptw_comm.resp.tag_addr      = '0;
+assign dmem_ptw_comm.resp.cmd           = '0;
+assign dmem_ptw_comm.resp.typ           = '0;
+assign dmem_ptw_comm.resp.replay        = '0;
+assign dmem_ptw_comm.resp.has_data      = '0;
+assign dmem_ptw_comm.resp.data_subw     = '0;
+assign dmem_ptw_comm.resp.store_data    = '0;
+assign dmem_ptw_comm.resp.rnvalid       = '0;
+assign dmem_ptw_comm.resp.rnext         = '0;
+assign dmem_ptw_comm.resp.xcpt_ma_ld    = '0;
+assign dmem_ptw_comm.resp.xcpt_ma_st    = '0;
+assign dmem_ptw_comm.resp.xcpt_pf_ld    = '0;
+assign dmem_ptw_comm.resp.xcpt_pf_st    = '0;
+assign dmem_ptw_comm.resp.ordered       = '0;
+
+generate
+    if (HPDCACHE_REQ_WORDS == 1) begin
+        assign dmem_ptw_comm.resp.data = dcache_rsp[0].rdata;
+    end else begin
+        assign dmem_ptw_comm.resp.data = dcache_rsp[0].rdata[ptw_dmem_comm.req.addr[$clog2(HPDCACHE_REQ_WORDS)+2:3]];
+    end
+endgenerate
 
 //PMU  
 assign pmu_interface.icache_miss_l2_hit = ifill_resp.ack & io_core_pmu_l2_hit_i;

@@ -37,18 +37,13 @@ module icache_interface
     
     // Fetch stage interface - Request packet icache to fetch
     output resp_icache_cpu_t  resp_icache_fetch_o,
-    output logic              req_fetch_ready_o,
-    // PMU flag                                         
-    output logic  buffer_miss_o                         
+    output logic              req_fetch_ready_o        
     
 );
 
 
 // wire that says if we need to access icache
 logic icache_access_needed_int;
-
-// FSM icache
-icache_state_t state_int, next_state_int;
 
 // this signal codifies if a new request must be done
 // to the icache
@@ -121,8 +116,5 @@ assign resp_icache_fetch_valid = (tlb_resp_xcp_if_i) | icache_resp_valid_i;
 assign resp_icache_fetch_o.valid =  resp_icache_fetch_valid;
 assign resp_icache_fetch_o.instr_page_fault = tlb_resp_xcp_if_i; 
 assign req_fetch_ready_o = icache_req_ready_i; 
-
-//PMU
-assign buffer_miss_o = '0; // TODO
 
 endmodule

@@ -195,9 +195,9 @@ typedef struct packed {
   );
     logic [63:0] out;
     unique case(size)
-      2'b00:   for(int k=0; k<8; k++) out[k*8  +: 8]    = data[offset*8 +: 8];  // byte
-      2'b01:   for(int k=0; k<4; k++) out[k*16 +: 16]   = data[offset*8 +: 16]; // hword
-      2'b10:   for(int k=0; k<2; k++) out[k*32 +: 32]   = data[offset*8 +: 32]; // word
+      2'b00:   for(int k=0; k<8; k++) out[k*8  +: 8]    = data[offset[2:0]*8 +: 8];  // byte
+      2'b01:   for(int k=0; k<4; k++) out[k*16 +: 16]   = data[offset[2:1]*8 +: 16]; // hword
+      2'b10:   for(int k=0; k<2; k++) out[k*32 +: 32]   = data[offset[2]*8   +: 32]; // word
       default: out   = data; // dword
     endcase // size
     return out;

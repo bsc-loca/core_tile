@@ -1,0 +1,14 @@
+waive -rule {  {RegInput-ML} } -ignore -comment {"Input port is not registered"}
+waive -rule {  {RegOutputs} } -ignore -comment {"Port is not driven by a register"}
+
+waive -rule {  {W175} } -file {riscv_pkg.sv} -ignore -comment {"Parameter declared but not used"}
+waive -rule {  {W175} } -file {drac_pkg.sv} -ignore -comment {"Parameter declared but not used"}
+
+waive -rule {  {W287b} } -file {datapath.sv} -ignore -comment {"Instance output port is not connected"}
+waive -rule {  {W287b} } -file {exe_stage.sv} -ignore -comment {"Instance output port is not connected"}
+waive -rule {  {W287b} } -file {fpu_drac_wrapper.sv} -ignore -comment {"Instance output port is not connected"}
+
+waive -rule {  {AlwaysFalseTrueCond-ML} } -file {fpu_drac_wrapper.sv} -ignore -comment {"Condition can never be true"}
+waive -rule {  {AlwaysFalseTrueCond-ML} } -file {csr_bsc.sv} -ignore -comment {"Condition can never be true"}
+waive -rule {  {AlwaysFalseTrueCond-ML} } -file {hpm_counters.sv} -ignore -comment {"Condition can never be true"}
+waive -rule {  {AlwaysFalseTrueCond-ML} } -file {riscv_pkg.sv} -ignore -comment {"Condition can never be true"}

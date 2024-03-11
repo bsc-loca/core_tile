@@ -1,54 +1,87 @@
-waive -du {  {control_mvp}  }  -ignore -comment {"FPU errors"}
-waive -du {  {fpnew_opgroup_multifmt_slice}  }  -ignore -comment {"FPU errors"}
-waive -du {  {fpnew_pkg} } -ignore -comment {"FPU errors"}
-waive -du {  {fpnew_cast_multi} } -ignore -comment {"FPU errors"}
-waive -du {  {fpnew_divsqrt_multi} } -ignore -comment {"FPU errors"}
-waive -du {  {fpnew_fma_multi} } -ignore -comment {"FPU errors"}
-waive -du {  {fpnew_divsqrt_th_32} } -ignore -comment {"FPU errors"}
-waive -du {  {norm_div_sqrt_mvp} } -ignore -comment {"FPU errors"}
-waive -du {  {fpnew_classifier} } -ignore -comment {"FPU errors"}
-waive -du {  {fpnew_noncomp} } -ignore -comment {"FPU errors"}
-waive -du {  {fpnew_opgroup_block} } -ignore -comment {"FPU errors"}
-waive -du {  {fpnew_opgroup_fmt_slice} } -ignore -comment {"FPU errors"}
-waive -du {  {fpnew_rounding} } -ignore -comment {"FPU errors"}
-waive -du {  {fpnew_top} } -ignore -comment {"FPU errors"}
-waive -du {  {preprocess_mvp} } -ignore -comment {"FPU errors"}
+waive -du {  {control_mvp}  }  -comment {"FPU errors"}
+waive -du {  {fpnew_opgroup_multifmt_slice}  }  -comment {"FPU errors"}
+waive -du {  {fpnew_pkg} } -comment {"FPU errors"}
+waive -du {  {fpnew_cast_multi} } -comment {"FPU errors"}
+waive -du {  {fpnew_divsqrt_multi} } -comment {"FPU errors"}
+waive -du {  {fpnew_fma_multi} } -comment {"FPU errors"}
+waive -du {  {fpnew_divsqrt_th_32} } -comment {"FPU errors"}
+waive -du {  {norm_div_sqrt_mvp} } -comment {"FPU errors"}
+waive -du {  {fpnew_classifier} } -comment {"FPU errors"}
+waive -du {  {fpnew_noncomp} } -comment {"FPU errors"}
+waive -du {  {fpnew_opgroup_block} } -comment {"FPU errors"}
+waive -du {  {fpnew_opgroup_fmt_slice} } -comment {"FPU errors"}
+waive -du {  {fpnew_rounding} } -comment {"FPU errors"}
+waive -du {  {fpnew_top} } -comment {"FPU errors"}
+waive -du {  {preprocess_mvp} } -comment {"FPU errors"}
 
-waive -du {  {fifo_v3} } -ignore -comment {"Common cell errors"}
-waive -du {  {lzc} } -ignore -comment {"Common cell errors"}
-waive -du {  {pseudoLRU} } -ignore -comment {"Common cell errors"}
-waive -du {  {rr_arb_tree} } -ignore -comment {"Common cell errors"}
+waive -du {  {fifo_v3} } -comment {"Common cell errors"}
+waive -du {  {lzc} } -comment {"Common cell errors"}
+waive -du {  {pseudoLRU} } -comment {"Common cell errors"}
+waive -du {  {rr_arb_tree} } -comment {"Common cell errors"}
+waive -rule { {W164a_b} } -file {cf_math_pkg.sv} -comment {"Allow different width in signal assignment in common cell package"}
 
-waive -rule {  {FlopEConst} } -du {  {register} } -ignore -comment {"FlopEConst"}
+waive -rule {  {FlopEConst} } -du {  {register} } -comment {"FlopEConst"}
+waive -rule { {AlwaysFalseTrueCond-ML} } -du { {top_tile} } -comment {"Signal depends on externally defined parameter."}
+waive -rule { {AlwaysFalseTrueCond-ML} } -du { {dcache_interface} } -comment {"Signal depends on externally defined parameter."}
+waive -rule { {AlwaysFalseTrueCond-ML} } -du { {sargantana_icache_checker} } -comment {"Signal depends on externally defined parameter."}
+waive -rule { {UndrivenInTerm-ML} } -du { {dcache_interface} } -comment {"By construction, signal will never be read."}
+waive -rule { {W120} } -du { {dcache_interface} } -comment {"Unused part of common struct in input."}
 
-waive -rule {  {FileHdr}  }  -ignore -comment {"Could not find file-header start"}
-waive -rule {  {ConstName} } -ignore -comment {"Constant does not follow recommended naming convention."}
+waive -rule {  {FileHdr}  }  -comment {"Could not find file-header start"}
+waive -rule {  {ConstName} } -comment {"Constant does not follow recommended naming convention."}
+waive -rule {  {UnloadedInPort-ML} } -comment {"Detected unloaded (unconnected) input port"}
+waive -rule {  {UnloadedNet-ML} } -comment {"Detected unloaded (unconnected) net"}
+waive -rule {  {UnloadedOutTerm-ML} } -comment {"Detected unloaded (unconnected) output terminal"}
+waive -rule {  {ParamName} } -comment {"Parameter name does not follow naming convention"}
+waive -rule {  {ConstName} } -comment {"Constant name does not follow naming convention"}
+waive -rule {  {AvoidAsync} } -comment {"Asynchronous signal used at flop"}
+waive -rule {  {W240}  }  -comment {"Input '[Signal]' declared but not read."}
 
-waive -du {  {hpdcache_sram_wmask_1rw} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_cmo} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_memctrl} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_miss_handler} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_rtab} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_wbuf} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_wbuf_wrapper} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_rrarb} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_memarray} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_mshr} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_plru} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_demux} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_mux} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_uncached} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_typedef} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_fifo_reg} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_fxarb} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_prio_1hot_encoder} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_sram} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_sram_wmask} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_sram_1rw} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_amo} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_ctrl_pe} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_ctrl} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_mshr_to_cache_set} } -ignore -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache} } -ignore -comment {"HPDC Will be changed in future drop"}
 
-waive -file {fpnew_pkg.sv} -ignore -regexp -comment {"FPU package errors"}
+waive -du {  {hpdcache_sram_wmask_1rw} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_cmo} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_memctrl} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_miss_handler} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_rtab} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_wbuf} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_wbuf_wrapper} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_rrarb} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_memarray} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_mshr} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_plru} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_demux} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_mux} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_uncached} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_typedef} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_fifo_reg} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_fxarb} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_prio_1hot_encoder} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_sram} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_sram_wmask} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_sram_1rw} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_amo} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_ctrl_pe} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_ctrl} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_mshr_to_cache_set} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache} } -comment {"HPDC Will be changed in future drop"}
+
+waive -file {fpnew_pkg.sv} -regexp -comment {"FPU package errors"}
+waive -rule { {W175} } -file {defs_div_sqrt_mvp.sv} -regexp -comment {"Allow unused parameters in FPU package"}
+
+waive -rule { {AlwaysFalseTrueCond-ML} } -regexp -msg {DCACHE_RESP_DATA_WIDTH|DCACHE_MAXELEM|VLEN|VMAXELEM} -comment {"Allow always false/true conditions that depend on parameters"}
+waive -rule { {ImproperRangeIndex-ML} } -du {vagu} -regexp -msg {+:} -comment {"Allow larger indices than required for max value when using indexed part select"}
+waive -rule { {ImproperRangeIndex-ML} } -du {mem_unit} -regexp -msg {+:} -comment {"Allow larger indices than required for max value when using indexed part select"}
+waive -rule { {W468} } -du {vagu} -regexp -msg {mask_buffer.+velem_cnt_q} -comment {"Allow indexing mask_buffer with velem_cnt_q in vagu"}
+waive -rule { {W164a_a} } -du {mem_unit} -regexp -msg {deadcode} -comment {"Allow width missmatch in code for other values of a parameter"}
+
+waive -rule { {W164a_b} } -du {alu} -regexp -msg {data_rs2[4:0]} -comment {"Allow width missmatch in shift"}
+waive -rule { {W164a_b} } -du {alu} -regexp -msg {data_rs2[5:0]} -comment {"Allow width missmatch in shift"}
+
+waive -rule { {AlwaysFalseTrueCond-ML} } -regexp -msg {OPERAND_ID|MEMORY_TYPE|REVERT} -comment {"Allow always false/true conditions that depend on parameters"}
+waive -rule { {SigName} } -du {data_selection_unit_v2} -comment {"Allow signal names starting with '_'"}
+waive -rule { {STARC05-1.1.1.2} } -du {data_selection_unit_v2} -comment {"Allow signal names starting with '_'"}
+waive -rule { {W287b} } -du {src_scratchpad} -comment {"Allow leaving output port unconnected, to be trimmed during synthesis"}
+
+waive -rule {  {AlwaysFalseTrueCond-ML} } -file {csr_bsc.sv} -regexp -msg {def_pkg|riscv_pkg} -comment {"Condition depends on external configuration"}
+waive -rule {  {AlwaysFalseTrueCond-ML} } -file {hpm_counters.sv} -regexp -msg {XLEN} -comment {"Condition depends on external configuration"}
+waive -rule {  {W287b} } -du {drac_openpiton_wrapper} -regexp -msg {icache_miss_ready_o} -comment {"Interface not supported, will always be ready by design"}

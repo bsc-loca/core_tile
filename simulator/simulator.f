@@ -3,6 +3,7 @@
 +define+SIM_COMMIT_LOG
 +define+SIM_COMMIT_LOG_DPI
 +define+SIM_KONATA_DUMP
++define+SARG_BYPASS_LSQ
 -F ../standalone_config.f
 
 // Load Sargantana RTL

@@ -227,7 +227,6 @@ module l2_behav #(
     input hpdcache_mem_len_t     dc_wb_req_len_i,
     input hpdcache_mem_size_t    dc_wb_req_size_i,
     input hpdcache_mem_id_t      dc_wb_req_id_i,
-    output hpdcache_mem_id_t     dc_wb_req_base_id_o,
 
     output logic                 dc_wb_req_data_ready_o,
     input logic                  dc_wb_req_data_valid_i,
@@ -250,7 +249,6 @@ module l2_behav #(
     input hpdcache_mem_id_t      dc_uc_wr_req_id_i,
     input hpdcache_mem_command_e dc_uc_wr_req_command_i,
     input hpdcache_mem_atomic_e  dc_uc_wr_req_atomic_i,
-    output hpdcache_mem_id_t     dc_uc_wr_req_base_id_o,
 
     output logic                 dc_uc_wr_req_data_ready_o,
     input logic                  dc_uc_wr_req_data_valid_i,
@@ -274,7 +272,6 @@ module l2_behav #(
     input hpdcache_mem_id_t      dc_uc_rd_req_id_i,
     input hpdcache_mem_command_e dc_uc_rd_req_command_i,
     input hpdcache_mem_atomic_e  dc_uc_rd_req_atomic_i,
-    output hpdcache_mem_id_t     dc_uc_rd_req_base_id_o,
 
     output logic                   dc_uc_rd_valid_o,
     output hpdcache_mem_error_e    dc_uc_rd_error_o,
