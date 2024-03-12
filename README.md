@@ -1,158 +1,71 @@
-# DRAC in-order
+# Sargantana Tile
 
-This repo contains the code of the drac in-order (based on Lagarto). It is a core with 5 stages (Fetch-Decode-ReadRegister-Execution-Commit). It is built with educational purposes but with the ASIC in mind. It has some current development and uses the RISCV ISA: 64 bits with M & A extensions and privileged specification.
+This module includes the [Sargantana](https://gitlab.bsc.es/hwdesign/rtl/cores/sargantana) core, as well as the iCache, dCache (HPDCache from OpenHardware), and MMU to make it all work.
 
-[develop] status: [![pipeline status](https://repo.hca.bsc.es/gitlab/lagarto/drac-inorder/badges/develop/pipeline.svg)](https://repo.hca.bsc.es/gitlab/lagarto/drac-inorder/commits/develop)
+## Table of Contents
 
-## Project structure
+- [Sargantana Tile](#sargantana-tile)
+  - [Table of Contents](#table-of-contents)
+  - [1. Installing the dependencies](#1-installing-the-dependencies)
+  - [2. Building the simulator](#2-building-the-simulator)
+    - [2.1 Verilator](#21-verilator)
+    - [2.2 Questasim](#22-questasim)
+  - [3. Running simulations](#3-running-simulations)
+    - [3.1 Optional parameters](#31-optional-parameters)
+    - [3.2 Running the ISA tests or benchmarks](#32-running-the-isa-tests-or-benchmarks)
 
-The project structure is the following:
+## 1. Installing the dependencies
 
-* includes
-* docs
-* rtl
-* tb
+The following software is required to build the simulator, bootrom, and the RISC-V tests and benchmarks:
 
-It has been decided to have a granularity of stages, so that we have
+- `gcc >= 10.5`
+- `verilator >= 5.004`
+- `riscv64-unknown-elf-gcc >= 12.0`
+- `device-tree-compiler` (any recent version should work)
 
-* control_unit --> It has the control unit
-* datapath --> contains all the stages
-* interface_dcache --> access to the dcache decoupled from the mem_stage WIP
-* interface_icache --> access to the icache decoupled from the fetch
+Optionally, to visualize waveforms the following software can be used:
 
-## Drac Top Level Diagram
+- `gtkwave`
 
-![drac top level diagram](/rtl/datapath/doc/Drac-top-level-diagram.png)
+Optionally, to visualize pipeline diagrams, the following software can be used:
 
-## Verification
+- `konata`
 
-### Tools
+## 2. Building the simulator
 
-For verification it is used:
+### 2.1 Verilator
 
-* Simulator Questasim for verification of modules
-* Simulator Verilator for verification of the whole module
-* SpyGlass for linting
-* Verific as the front-end of yosys
-* Yosys is a synthesize-map-route open-source tool
-* Verilator is "the fastest Verilog/SystemVerilog simulator", used for building a simulation model of the core
-* `riscv64-unknown-elf-gcc` for compiling the RISC-V ISA tests and benchmarks
+To build the simulator run `make -j$(nproc) sim` from the root folder of the project. That should build the bootrom and the simulator itself (as well as some needed libraries from `riscv-isa-sim`).
 
-### Set Up
+### 2.2 Questasim
 
-**Questasim:**
+To use questasim, first compile the bootrom and helper libraries using `make -j$(nproc) bootrom.hex libdisasm`. Everything else will be compiled by Questasim at runtime.
 
-Installation files are in the "/home/drac/Downloads/questasim" folder. You can connect using:
+## 3. Running simulations
 
-```
-ssh -X drac@192.168.10.38
-```
+To run a simulation using **Verilator**, use the following command:
 
-The password is "dracdrac"
+`./sim +load=<path/to/binary>`
 
-Copy these install files to your local machine and execute "install.linux64" binary. Follow the installation steps. At the end make sure that the command "vsim" is visible in your machine. If not add the "bin" directory of the Questasim installation to your "$PATH" environment variable. An easy way is modifying the ".bashrc" file and adding at the end:
+To run a simulation using **Questasim** (headless), use the following command:
 
-```
-export PATH=$PATH:/route/to/questasim/bin
-```
+`./simulator/questa/sim.sh -c -suppress 3999 +load=<path/to/binary>`
 
-It is also necessary to add the next line to your ".bashrc" in order to indicate where questasim should verify the license
+To run the simulations using Questasim's GUI, remove the `-c` argument of the previous command.
 
-```
-export LM_LICENSE_FILE="1900@bsc-caos-gw.bsc.es"
-```
+### 3.1 Optional parameters
 
-For the moment Questasim only works within the BSC network. We are working to make it work through the BSC VPN.
+- `+vcd[=path/to/waveform.vcd]` Generates a waveform of the simulation. By default, it will save it as `dump.vcd`.
+- `+commit_log[=path/to/log.txt]` Generates a log of the commited instructions. By default, it will save it as `signature.txt`.
+- `+konata_dump[=path/to/konata.txt]` Generates a dump of the pipeline to later be visualized as a pipeline diagram using konata. By default, it will save it as `konata.txt`.
 
-**Spyglass:**
+The output of all the optional parameters can be overriden by appending `=` and the path of the desired output.
 
-There is a script in /scripts directory called runLintSV.sh for running spyglass in the server. This script automatically connects to drac server, sends the files specified as arguments in the command line and runs the linting check. After that, it creates a directory locally with all the reports generated by spyglass. To run the script is necessary to be connected to the BSC VPN.
+### 3.2 Running the ISA tests or benchmarks
 
-As an example you can run the script as follows:
-First run the following command in a terminal to launch the BSC_VPN. If you are already on the BSC network omit this step
+1. Build the isa tests or benchmarks using `make -j$(nproc) build-isa-tests` or `make -j$(nproc) build-benchmarks` respectively.
+2. Run all test or benchmarks using `make run-isa-tests` or `make run-benchmarks`.
 
-```
-sudo ./jvpn.pl
-```
-
-Then run the spyglass script in a directory. Notice that the script will generate a directory with the first argument you give
-
-```
-./runLintSV.sh includes/necessary_include.sv src/top_file.sv src/other_files.sv
-```
-
-After the linting the script would have copied all the reports in new directory "necessary_include/".
-
-In order to run the script without introducing the password every time, you can use key authentication. First, is necessary create a new pair of RSA keys using the following command, and leaving all the options to default (press enter on each step):
-
-```
-ssh-keygen -t rsa -b 4096
-```
-
-Once you have the keys you must check that your "$HOME/.ssh" directory is only readable/writable/executable by your user. You can change the permissions using:
-
-```
-chmod 0700 ~/.ssh
-```
-
-After that, you must copy your public key in the drac server:
-
-```
-ssh-copy-id -i ~/.ssh/mykey.pub drac@192.168.10.38
-```
-
-**Verilator**
-
-Install Verilator using your favourite package manager (or compile it yourself, you can find it in [github](https://github.com/verilator/verilator)). Make sure you have compatible versions of verilator and GCC as seen in the following table:
-
-| Verilator | GCC    | Works? |
-|-----------|--------|--------|
-| 5.010     | 13.1.1 | YES    |
-| 4.224     | 13.1.1 | YES    |
-| 4.224     | 7.5.0  | YES    |
-| 4.102     | 9.4.0  | YES    |
-
-If you use a verilator and GCC version combination and is not in the table above, please update it. Specially if it doesn't work.
-
-**RISC-V Compiler**
-
-Install the RISC-V GCC crosscompiler toolchain using your favourite package manager. You can compile it yourself, at your own risk of course ;)
-
-This table shows the RISC-V compiler versions that have been tested and are known to work:
-
-| Version | Works? |
-|---------|--------|
-| 12.2.0  | YES    |
-| 11.1.0  | YES    |
-| 7.2.0   | NO     |
-
-Again, if you have a different version, add it to the table, specially if you have trouble compiling the ISA tests.
-
-### Recommendations
-
-* Warnings should be zero or accurately explained why is happening
-* Mandatory: one test-bench per module
-* Usage of assertions in the code
-
-## Simulations
-
-### Specific test-benches
-
-Inside every test-bench folder there is one script called runtest.sh with this would be enough
-
-### Running all test-benches
-
-There is a make in every folder of tb and one in general, in the future this should be enough for making the regression test.
-
-### Run Lagarto along Drac in simulation
-
-To run both cores along the SoC you need to clone the lagarto-lowrisc repository in a different folder.
-Checkout to the branch ```feature/drac-inorder```
-Initialize and update git submodules.
-Run make ```make vsim/DefaultConfig-sim```
-
-### Running verilator simulations
-
-To build the verilog simulator, run `make $(nproc) sim`. This will create an executable in the root folder named `sim`. To run a program, simply run `./sim +load=<path/to/file>`. To generate the waveforms for a simulation, run with `+vcd`.
-
-The isa tests can be run using `make run-isa-tests`. This command should take care of both the compilation of the simulation and the isa tests.
+The programs can be run individually using:
+- `<simulator> +load=<tb/tb_isa_tests/build/isa/<binary>` or
+- `<simulator> +load=<benchmarks/benchmarks/<binary>`
