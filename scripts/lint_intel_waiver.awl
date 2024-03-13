@@ -86,3 +86,7 @@ waive -rule { {W287b} } -du {src_scratchpad} -comment {"Allow leaving output por
 waive -rule {  {AlwaysFalseTrueCond-ML} } -file {csr_bsc.sv} -regexp -msg {def_pkg|riscv_pkg} -comment {"Condition depends on external configuration"}
 waive -rule {  {AlwaysFalseTrueCond-ML} } -file {hpm_counters.sv} -regexp -msg {XLEN} -comment {"Condition depends on external configuration"}
 waive -rule {  {W287b} } -du {drac_openpiton_wrapper} -regexp -msg {icache_miss_ready_o} -comment {"Interface not supported, will always be ready by design"}
+
+waive -rule { {STARC05-1.1.1.3} -du {sargantana_icache_way} } -comment {"Not reserved for verilog"}
+waive -rule { {STARC05-1.1.1.3} -du {sargantana_itag_memory_sram} } -comment {"Not reserved for verilog"}
+waive -rule { {W164a_a} -du {sargantana_icache_checker} } -regex -msg {Inside deadcode} -comment {"Warning inside dead code region guarded by ifdefs"}
