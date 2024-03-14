@@ -1,10 +1,17 @@
 
-module veri_top
-    (
-    // debugring disable
-    input         clk_i,
-    input         rstn_i
-    );
+module sim_meep_top;
+
+    logic clk_i, rstn_i;
+
+    // *** Clock & Reset drivers ***
+
+    initial begin
+        clk_i = 1'b0;
+        rstn_i = 1'b0;
+        #5 rstn_i = 1'b1;
+    end
+
+    always #1 clk_i = ~clk_i;
 
     // AXI Write Address Channel Signals
     logic   [`MEM_ID_WIDTH     -1:0]    mem_awid;

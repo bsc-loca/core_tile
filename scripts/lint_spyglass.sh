@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export HPDCACHE_DIR=$(pwd)/rtl/dcache
+
 # Run spyglass
 echo "Running spyglass. This will take a while..."
 sg_shell -enable_pass_exit_codes < ./scripts/lint_spyglass.tcl

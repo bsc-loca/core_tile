@@ -38,6 +38,8 @@ package wt_cache_pkg;
   localparam L15_WAY_WIDTH                      = $clog2(L15_SET_ASSOC);
   localparam DCACHE_SET_ASSOC                   = `CONFIG_L1D_ASSOCIATIVITY;
   localparam L1D_WAY_WIDTH                      = $clog2(DCACHE_SET_ASSOC);
+  localparam L15_BYTE_MASK_WIDHT                = `L15_BYTE_MASK_WIDHT;
+  localparam L15_PADDR_WIDTH                    = `L15_PADDR_WIDTH;
 
 typedef enum logic [4:0] {
   L15_LOAD_RQ     = 5'b00000, // load request
@@ -93,6 +95,7 @@ typedef struct packed {
     logic [63:0]                       l15_data_next_entry;       // unused in Ariane (only used for CAS atomic requests)
     logic [L15_TLB_CSM_WIDTH-1:0]      l15_csm_data;              // unused in Ariane
     logic [3:0]                        l15_amo_op;                // atomic operation type
+    logic [L15_BYTE_MASK_WIDHT-1:0]    l15_be;                    // Byte mask
   } l15_req_t;
 
   typedef struct packed {
@@ -110,7 +113,7 @@ typedef struct packed {
     logic [L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0] l15_data;          // data
     logic                              l15_inval_icache_all_way;  // invalidate all ways
     logic                              l15_inval_dcache_all_way;  // unused in openpiton
-    logic [`L15_PADDR_MASK]            l15_inval_address;         // invalidation address
+    logic [L15_PADDR_WIDTH-1:0]        l15_inval_address;         // invalidation address
     logic                              l15_cross_invalidate;      // unused in openpiton
     logic [L1D_WAY_WIDTH-1:0]          l15_cross_invalidate_way;  // unused in openpiton
     logic                              l15_inval_dcache_inval;    // invalidate selected cacheline and way

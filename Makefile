@@ -5,7 +5,7 @@ FILELIST = ${PROJECT_DIR}/filelist.f
 DV_DIR = $(PROJECT_DIR)/verif
 CORE_UVM_DIR = $(DV_DIR)/core_uvm
 CORE_UVM_REPO = git@gitlab-internal.bsc.es:hwdesign/verification/core-uvm.git
-CORE_UVM_BRANCH ?= sargantana_mode_changes
+CORE_UVM_BRANCH ?= ft/hpdc-update
 
 DC_REPO = git@gitlab-internal.bsc.es:hwdesign/spd/dc-scripts.git
 DC_BRANCH = sargantana_lint
@@ -15,6 +15,8 @@ DC_DIR =$(PROJECT_DIR)/dc-scripts
 RISCV_DV_DIR = $(CORE_UVM_DIR)/riscv-dv
 RISCV_DV_REPO = git@gitlab-internal.bsc.es:hwdesign/verification/riscv-dv.git
 RISCV_DV_BRANCH ?= master
+export HPDCACHE_DIR = $(PROJECT_DIR)/rtl/dcache
+
 # *** Simulators ***
 include simulator/simulator.mk
 

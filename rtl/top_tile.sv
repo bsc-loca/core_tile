@@ -16,7 +16,10 @@
 module top_tile
     import drac_pkg::*, sargantana_icache_pkg::*, mmu_pkg::*, hpdcache_pkg::*, sargantana_hpdc_pkg::*;
 #(
-    parameter drac_pkg::drac_cfg_t DracCfg     = drac_pkg::DracDefaultConfig
+    parameter drac_pkg::drac_cfg_t DracCfg     = drac_pkg::DracDefaultConfig,
+    // HPDC Write coalescing
+    parameter logic          WriteCoalescingEn     =  0,
+    parameter wbuf_timecnt_t WriteCoalescingTh     =  0
 )(
 //------------------------------------------------------------------------------------
 // ORIGINAL INPUTS OF LAGARTO 
@@ -106,10 +109,11 @@ module top_tile
     input  logic                          mem_resp_uc_write_valid_i,
     input  hpdcache_mem_resp_w_t          mem_resp_uc_write_i,
 
+`ifdef HPDCACHE_OPENPITON
     //      Invalidation interface
-    output logic                          mem_inval_ready_o,
     input  logic                          mem_inval_valid_i,
-    input  hpdcache_pkg::hpdcache_req_t   mem_inval_i,
+    input  hpdcache_pkg::hpdcache_nline_t mem_inval_i,
+`endif
 
 //-----------------------------------------------------------------------------------
 // I-CACHE OUTPUT INTERFACE
@@ -199,7 +203,6 @@ logic en_translation;
 //iCache
 iresp_o_t      icache_resp  ;
 ireq_i_t       lagarto_ireq ;
-tresp_i_t      itlb_tresp   ;
 treq_o_t       itlb_treq    ;
 ifill_resp_i_t ifill_resp   ;
 ifill_req_o_t  ifill_req    ;
@@ -237,11 +240,6 @@ assign icache_itlb_comm.req.instruction = 1'b1;
 assign icache_itlb_comm.req.store = 1'b0;
 assign icache_itlb_comm.priv_lvl = priv_lvl;
 assign icache_itlb_comm.vm_enable = en_translation;
-
-assign itlb_tresp.miss   = itlb_icache_comm.resp.miss;
-assign itlb_tresp.ptw_v  = ptw_itlb_comm.resp.valid;
-assign itlb_tresp.ppn    = itlb_icache_comm.resp.ppn[(drac_pkg::PHY_ADDR_SIZE-12)-1:0];
-assign itlb_tresp.xcpt   = itlb_icache_comm.resp.xcpt.fetch;
 
 assign pmu_interface.itlb_stall = itlb_icache_comm.resp.miss && !itlb_icache_comm.tlb_ready;
 
@@ -384,6 +382,8 @@ icache_interface icache_interface_inst(
     .req_fetch_ready_o(req_icache_ready_cached)
 );
 
+// PPN Size is address size - set bits - offset bits 
+localparam int unsigned ICACHE_PPN_SIZE = PHY_VIRT_MAX_ADDR_SIZE - $clog2(64) - $clog2(ICACHELINE_SIZE/8);
 
 sargantana_top_icache # (
     .KILL_RESP          ( 1'b1          ),
@@ -409,11 +409,11 @@ sargantana_top_icache # (
     .icache_resp_data_o         (icache_resp.data),
     .icache_resp_vaddr_o        (icache_resp.vaddr),
     .icache_resp_xcpt_o         (icache_resp.xcpt),
-    
-    .mmu_tresp_miss_i           (itlb_tresp.miss),
-    .mmu_tresp_ptw_v_i          (itlb_tresp.ptw_v),
-    .mmu_tresp_ppn_i            (itlb_tresp.ppn),
-    .mmu_tresp_xcpt_i           (itlb_tresp.xcpt),
+
+    .mmu_tresp_miss_i           (itlb_icache_comm.resp.miss),
+    .mmu_tresp_ptw_v_i          (ptw_itlb_comm.resp.valid),
+    .mmu_tresp_ppn_i            (itlb_icache_comm.resp.ppn[ICACHE_PPN_SIZE-1:0]),
+    .mmu_tresp_xcpt_i           (itlb_icache_comm.resp.xcpt.fetch),
 
     .icache_treq_valid_o        (itlb_treq.valid),
     .icache_treq_vpn_o          (itlb_treq.vpn),
@@ -435,12 +435,15 @@ sargantana_top_icache # (
 // *** dCache ***
 
 // Core-dCache Interface
-logic           [HPDCACHE_NREQUESTERS-1:0] dcache_req_valid;
-logic           [HPDCACHE_NREQUESTERS-1:0] dcache_req_ready;
-hpdcache_req_t  [HPDCACHE_NREQUESTERS-1:0] dcache_req;
+logic          dcache_req_valid [HPDCACHE_NREQUESTERS-1:0];
+logic          dcache_req_ready [HPDCACHE_NREQUESTERS-1:0];
+hpdcache_req_t dcache_req       [HPDCACHE_NREQUESTERS-1:0];
+logic          dcache_req_abort [HPDCACHE_NREQUESTERS-1:0];
+hpdcache_tag_t dcache_req_tag   [HPDCACHE_NREQUESTERS-1:0];
+hpdcache_pma_t dcache_req_pma   [HPDCACHE_NREQUESTERS-1:0];
 
-logic           [HPDCACHE_NREQUESTERS-1:0] dcache_rsp_valid;
-hpdcache_rsp_t  [HPDCACHE_NREQUESTERS-1:0] dcache_rsp;
+logic           dcache_rsp_valid [HPDCACHE_NREQUESTERS-1:0];
+hpdcache_rsp_t  dcache_rsp [HPDCACHE_NREQUESTERS-1:0];
 logic wbuf_empty;
 
 dcache_interface #(
@@ -458,6 +461,9 @@ dcache_interface #(
     .dcache_valid_i(dcache_rsp_valid[1]),
     .core_req_valid_o(dcache_req_valid[1]),
     .req_dcache_o(dcache_req[1]),
+    .req_dcache_abort_o(dcache_req_abort[1]),
+    .req_dcache_tag_o(dcache_req_tag[1]),
+    .req_dcache_pma_o(dcache_req_pma[1]),
     .rsp_dcache_i(dcache_rsp[1]),
     .wbuf_empty_i(wbuf_empty),
 
@@ -479,60 +485,64 @@ hpdcache #(
     .rst_ni(rstn_i),
 
     // Core interface
-    .core_req_valid_i(dcache_req_valid),
-    .core_req_ready_o(dcache_req_ready),
-    .core_req_i(dcache_req),
-    .core_rsp_valid_o(dcache_rsp_valid),
-    .core_rsp_o(dcache_rsp),
+    .core_req_valid_i                  (dcache_req_valid),
+    .core_req_ready_o                  (dcache_req_ready),
+    .core_req_i                        (dcache_req),
+    .core_req_abort_i                  (dcache_req_abort),
+    .core_req_tag_i                    (dcache_req_tag),
+    .core_req_pma_i                    (dcache_req_pma),
+
+    .core_rsp_valid_o                  (dcache_rsp_valid),
+    .core_rsp_o                        (dcache_rsp),
 
     // dMem miss-read interface
-    .mem_req_miss_read_ready_i(mem_req_miss_read_ready_i),
-    .mem_req_miss_read_valid_o(mem_req_miss_read_valid_o),
-    .mem_req_miss_read_o(mem_req_miss_read_o),
+    .mem_req_miss_read_ready_i         (mem_req_miss_read_ready_i),
+    .mem_req_miss_read_valid_o         (mem_req_miss_read_valid_o),
+    .mem_req_miss_read_o               (mem_req_miss_read_o),
 
-    .mem_resp_miss_read_ready_o(mem_resp_miss_read_ready_o),
-    .mem_resp_miss_read_valid_i(mem_resp_miss_read_valid_i),
-    .mem_resp_miss_read_i(mem_resp_miss_read_i),
+    .mem_resp_miss_read_ready_o        (mem_resp_miss_read_ready_o),
+    .mem_resp_miss_read_valid_i        (mem_resp_miss_read_valid_i),
+    .mem_resp_miss_read_i              (mem_resp_miss_read_i),
+  `ifdef HPDCACHE_OPENPITON
+    // Invalidation interface
+    .mem_resp_miss_read_inval_i        (mem_inval_valid_i),
+    .mem_resp_miss_read_inval_nline_i  (mem_inval_i),
+  `endif
 
     // dMem writeback interface
-    .mem_req_wbuf_write_ready_i(mem_req_wbuf_write_ready_i),
-    .mem_req_wbuf_write_valid_o(mem_req_wbuf_write_valid_o),
-    .mem_req_wbuf_write_o(mem_req_wbuf_write_o),
+    .mem_req_wbuf_write_ready_i        (mem_req_wbuf_write_ready_i),
+    .mem_req_wbuf_write_valid_o        (mem_req_wbuf_write_valid_o),
+    .mem_req_wbuf_write_o              (mem_req_wbuf_write_o),
 
-    .mem_req_wbuf_write_data_ready_i(mem_req_wbuf_write_data_ready_i),
-    .mem_req_wbuf_write_data_valid_o(mem_req_wbuf_write_data_valid_o),
-    .mem_req_wbuf_write_data_o(mem_req_wbuf_write_data_o),
+    .mem_req_wbuf_write_data_ready_i   (mem_req_wbuf_write_data_ready_i),
+    .mem_req_wbuf_write_data_valid_o   (mem_req_wbuf_write_data_valid_o),
+    .mem_req_wbuf_write_data_o         (mem_req_wbuf_write_data_o),
 
-    .mem_resp_wbuf_write_ready_o(mem_resp_wbuf_write_ready_o),
-    .mem_resp_wbuf_write_valid_i(mem_resp_wbuf_write_valid_i),
-    .mem_resp_wbuf_write_i(mem_resp_wbuf_write_i),
+    .mem_resp_wbuf_write_ready_o       (mem_resp_wbuf_write_ready_o),
+    .mem_resp_wbuf_write_valid_i       (mem_resp_wbuf_write_valid_i),
+    .mem_resp_wbuf_write_i             (mem_resp_wbuf_write_i),
 
     // dMem uncacheable write interface
-    .mem_req_uc_write_ready_i(mem_req_uc_write_ready_i),
-    .mem_req_uc_write_valid_o(mem_req_uc_write_valid_o),
-    .mem_req_uc_write_o(mem_req_uc_write_o),
+    .mem_req_uc_write_ready_i          (mem_req_uc_write_ready_i),
+    .mem_req_uc_write_valid_o          (mem_req_uc_write_valid_o),
+    .mem_req_uc_write_o                (mem_req_uc_write_o),
 
-    .mem_req_uc_write_data_ready_i(mem_req_uc_write_data_ready_i),
-    .mem_req_uc_write_data_valid_o(mem_req_uc_write_data_valid_o),
-    .mem_req_uc_write_data_o(mem_req_uc_write_data_o),
+    .mem_req_uc_write_data_ready_i     (mem_req_uc_write_data_ready_i),
+    .mem_req_uc_write_data_valid_o     (mem_req_uc_write_data_valid_o),
+    .mem_req_uc_write_data_o           (mem_req_uc_write_data_o),
 
-    .mem_resp_uc_write_ready_o(mem_resp_uc_write_ready_o),
-    .mem_resp_uc_write_valid_i(mem_resp_uc_write_valid_i),
-    .mem_resp_uc_write_i(mem_resp_uc_write_i),
+    .mem_resp_uc_write_ready_o         (mem_resp_uc_write_ready_o),
+    .mem_resp_uc_write_valid_i         (mem_resp_uc_write_valid_i),
+    .mem_resp_uc_write_i               (mem_resp_uc_write_i),
 
     // dMem uncacheable read interface
-    .mem_req_uc_read_ready_i(mem_req_uc_read_ready_i),
-    .mem_req_uc_read_valid_o(mem_req_uc_read_valid_o),
-    .mem_req_uc_read_o(mem_req_uc_read_o),
+    .mem_req_uc_read_ready_i           (mem_req_uc_read_ready_i),
+    .mem_req_uc_read_valid_o           (mem_req_uc_read_valid_o),
+    .mem_req_uc_read_o                 (mem_req_uc_read_o),
 
-    .mem_resp_uc_read_ready_o(mem_resp_uc_read_ready_o),
-    .mem_resp_uc_read_valid_i(mem_resp_uc_read_valid_i),
-    .mem_resp_uc_read_i(mem_resp_uc_read_i),
-
-    // Invalidation interface
-    .mem_inval_ready_o(mem_inval_ready_o),
-    .mem_inval_valid_i(mem_inval_valid_i),
-    .mem_inval_i(mem_inval_i),
+    .mem_resp_uc_read_ready_o          (mem_resp_uc_read_ready_o),
+    .mem_resp_uc_read_valid_i          (mem_resp_uc_read_valid_i),
+    .mem_resp_uc_read_i                (mem_resp_uc_read_i),
 
     // PMU events
     .evt_stall_o(pmu_interface.dcache_stall),
@@ -553,13 +563,8 @@ hpdcache #(
 
     // Config
     .cfg_enable_i                        (1'b1),
-  `ifdef WRITE_BYTE_MASK
-    .cfg_wbuf_inhibit_write_coalescing_i (1'b0),
-    .cfg_wbuf_threshold_i                (4'd5),
-  `else
-    .cfg_wbuf_inhibit_write_coalescing_i (1'b1),
-    .cfg_wbuf_threshold_i                (4'd0),
-  `endif
+    .cfg_wbuf_inhibit_write_coalescing_i (!WriteCoalescingEn),
+    .cfg_wbuf_threshold_i                (WriteCoalescingTh),
     .cfg_wbuf_reset_timecnt_on_write_i   (1'b1),
     .cfg_wbuf_sequential_waw_i           (1'b0),
     .cfg_prefetch_updt_plru_i            (1'b1),
@@ -616,13 +621,20 @@ ptw ptw_inst (
 
 // Connect PTW to dcache
 assign dcache_req_valid[0] = ptw_dmem_comm.req.valid;
-assign dcache_req[0].addr = ptw_dmem_comm.req.addr;
-assign dcache_req[0].op = (ptw_dmem_comm.req.cmd == 5'b01010) ? HPDCACHE_REQ_AMO_OR : HPDCACHE_REQ_LOAD;
-assign dcache_req[0].size = ptw_dmem_comm.req.typ[2:0];
-assign dcache_req[0].uncacheable = 1'b0;
-assign dcache_req[0].sid = 0;
-assign dcache_req[0].tid = 0;
-assign dcache_req[0].need_rsp = 1'b1;
+assign dcache_req[0].addr_offset = ptw_dmem_comm.req.addr[(HPDCACHE_OFFSET_WIDTH+HPDCACHE_SET_WIDTH)-1:0],
+       dcache_req[0].op = ((ptw_dmem_comm.req.cmd == 5'b01010) ? HPDCACHE_REQ_AMO_OR : HPDCACHE_REQ_LOAD),
+       dcache_req[0].size = ptw_dmem_comm.req.typ[2:0],
+       dcache_req[0].sid = '0,
+       dcache_req[0].tid = '0,
+       dcache_req[0].need_rsp = 1'b1,
+       dcache_req[0].phys_indexed = 1'b1,
+       dcache_req[0].addr_tag = ptw_dmem_comm.req.addr[SIZE_VADDR:(HPDCACHE_OFFSET_WIDTH+HPDCACHE_SET_WIDTH)],
+       dcache_req[0].pma.io = 1'b0, 
+       dcache_req[0].pma.uncacheable = 1'b0;
+// Unused signals on physically indexed requests
+assign dcache_req_abort[0] = 1'b0,
+       dcache_req_tag[0] = '0,
+       dcache_req_pma[0] = '0;
 
 generate
     if (HPDCACHE_REQ_WORDS == 1) begin
@@ -672,5 +684,7 @@ endgenerate
 
 //PMU  
 assign pmu_interface.icache_miss_l2_hit = ifill_resp.ack & io_core_pmu_l2_hit_i;
+
+
 
 endmodule

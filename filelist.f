@@ -1,8 +1,9 @@
 -F ./rtl/core/sargantana/filelist.f
-./rtl/dcache/rtl/src/target/generic/hpdcache_params_pkg.sv
-./rtl/dcache/rtl/src/hpdcache_pkg.sv
-./rtl/dcache/rtl/src/hwpf_stride/hwpf_stride_pkg.sv
+./rtl/dcache/rtl/src/target/cinco_ranch/cinco_ranch_hpdcache_params_pkg.sv
 -F ./rtl/dcache/rtl/hpdcache.Flist
+./rtl/dcache/rtl/src/common/macros/behav/hpdcache_sram_1rw.sv
+./rtl/dcache/rtl/src/common/macros/behav/hpdcache_sram_wbyteenable_1rw.sv
+./rtl/dcache/rtl/src/common/macros/behav/hpdcache_sram_wmask_1rw.sv
 -F ./rtl/icache/filelist.f
 -F ./rtl/mmu/filelist.f
 +incdir+./includes

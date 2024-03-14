@@ -18,7 +18,11 @@
     parameter logic [NrMaxRules*64-1:0]  InitMappedEnd         = 64'hFFFFFFFFFF,
     // BROM address
     parameter logic [64-1:0]             InitBROMBase          = 64'h00C0000000,
-    parameter logic [64-1:0]             InitBROMEnd           = 64'hFFFFFFFFFF
+    parameter logic [64-1:0]             InitBROMEnd           = 64'hFFFFFFFFFF,
+    // HPDC Write coalescing
+    parameter logic                      WriteCoalescingEn     =  0,
+    parameter int unsigned               WriteCoalescingTh     =  0
+
 ) (
  input   logic                   clk_i,
  input   logic                   reset_l,     // This is an openpiton-specific name, do not change (hier. paths in TB use this)
@@ -124,9 +128,8 @@ logic                           mem_resp_uc_write_ready;
 logic                           mem_resp_uc_write_valid;
 hpdcache_mem_resp_w_t           mem_resp_uc_write;
 
-logic                           mem_inval_ready;
 logic                           mem_inval_valid;
-hpdcache_pkg::hpdcache_req_t    mem_inval;
+hpdcache_pkg::hpdcache_nline_t  mem_inval;
 
 logic [15:0] wake_up_cnt_d, wake_up_cnt_q;
 logic rst_n;
@@ -162,7 +165,9 @@ localparam drac_cfg_t DracOpenPitonCfg = '{
 };
 
 top_tile #(
-  .DracCfg(DracOpenPitonCfg)
+  .DracCfg(DracOpenPitonCfg),
+  .WriteCoalescingEn(WriteCoalescingEn),
+  .WriteCoalescingTh(WriteCoalescingTh)
 ) core_inst (
  .clk_i(clk_i),
  .rstn_i(rst_n),
@@ -233,7 +238,6 @@ top_tile #(
  .mem_resp_uc_read_i(mem_resp_uc_read),
 
  // Invalidation interface
- .mem_inval_ready_o(mem_inval_ready),
  .mem_inval_valid_i(mem_inval_valid),
  .mem_inval_i(mem_inval),
 
@@ -272,16 +276,34 @@ top_tile #(
  .io_core_pmu_l2_hit_i(1'b0) 
 );
 
+localparam NUM_PORTS_ADAPTER = 6;
+localparam NUM_PORTS_ADAPTER_WIDTH = $clog2(NUM_PORTS_ADAPTER);
+// Adapter HPDC-L1.5 Request Ports type
+// 0: Maximum priority 
+// NUM_PORTS_ADAPTER - 1 : Less priority 
+localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] ICACHE_PORT            = 0;
+localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] DCACHE_PORT            = 1;
+localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] DCACHE_WBUF_PORT       = 2;
+localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] DCACHE_UNC_READ_PORT   = 3;
+localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] DCACHE_UNC_WRITE_PORT  = 4;
+localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] DCACHE_AMO_PORT        = 5;
 
-//Adapter HPDC-L1.5 Request Ports type
-typedef logic [$clog2(5)-1:0] req_portid_t;  //NTODO: Optimize for more threads
+typedef logic [NUM_PORTS_ADAPTER_WIDTH-1:0] req_portid_t;
 
-hpdcache_subsystem_l15_adapter #(
+cinco_ranch_hpdcache_subsystem_l15_adapter #(
  .SwapEndianess          (1),
+ .NumPorts               (NUM_PORTS_ADAPTER),
+ .IcachePort             (ICACHE_PORT),
+ .DcachePort             (DCACHE_PORT),
+ .DcacheWbufPort         (DCACHE_WBUF_PORT),
+ .DcacheUncReadPort      (DCACHE_UNC_READ_PORT),
+ .DcacheUncWritePort     (DCACHE_UNC_WRITE_PORT),
+ .DcacheAmoPort          (DCACHE_AMO_PORT),
  .IcacheMemDataWidth     (512), //L1I cacheline
  .IcacheAddrWidth        (40),
  .HPDcacheMemDataWidth   (hpdcache_pkg::HPDCACHE_CL_WIDTH), //L1D cacheline
- .IcacheNoCachableSize   (3'b011),
+ .IcacheNoCachableSize   (3'b100), // 8B
+ .WriteCoalescingEn      (WriteCoalescingEn),
  .hpdcache_mem_req_t     (hpdcache_mem_req_t),
  .hpdcache_mem_req_w_t   (hpdcache_mem_req_w_t),
  .hpdcache_mem_resp_r_t  (hpdcache_mem_resp_r_t),
@@ -290,15 +312,15 @@ hpdcache_subsystem_l15_adapter #(
  .hpdcache_mem_addr_t    (hpdcache_mem_addr_t),
  .req_portid_t           (req_portid_t)
 ) l15_adapter_inst(
+
  .clk_i(clk_i),
  .rst_ni(reset_l),
 
  //  Interfaces from/to I$
  // {{{
  .icache_miss_valid_i(l1_request_valid),
- .icache_miss_ready_o (  ),
+ .icache_miss_ready_o (/*unused*/),
  .icache_miss_paddr_i(l1_request_paddr),
- .icache_miss_pid_i(3'b000),
 
  .icache_miss_resp_valid_o(l2_response_valid),
  .icache_miss_resp_data_o(l2_response_data),
@@ -315,17 +337,18 @@ hpdcache_subsystem_l15_adapter #(
  .dcache_miss_ready_o(mem_req_miss_read_ready),
  .dcache_miss_valid_i(mem_req_miss_read_valid),
  .dcache_miss_i(mem_req_miss_read),
- .dcache_miss_pid_i(3'b001),
 
  .dcache_miss_resp_ready_i(mem_resp_miss_read_ready),
  .dcache_miss_resp_valid_o(mem_resp_miss_read_valid),
  .dcache_miss_resp_o(mem_resp_miss_read),
+  // Invalidation interface
+ .dcache_inval_valid_o(mem_inval_valid),
+ .dcache_inval_o(mem_inval),
 
  //      Write-buffer write interface
  .dcache_wbuf_ready_o(mem_req_wbuf_write_ready),
  .dcache_wbuf_valid_i(mem_req_wbuf_write_valid),
  .dcache_wbuf_i(mem_req_wbuf_write),
- .dcache_wbuf_pid_i(3'b010),
 
  .dcache_wbuf_data_ready_o(mem_req_wbuf_write_data_ready),
  .dcache_wbuf_data_valid_i(mem_req_wbuf_write_data_valid),
@@ -339,7 +362,6 @@ hpdcache_subsystem_l15_adapter #(
  .dcache_uc_read_ready_o(mem_req_uc_read_ready),
  .dcache_uc_read_valid_i(mem_req_uc_read_valid),
  .dcache_uc_read_i(mem_req_uc_read),
- .dcache_uc_read_pid_i(3'b011),
 
  .dcache_uc_read_resp_ready_i(mem_resp_uc_read_ready),
  .dcache_uc_read_resp_valid_o(mem_resp_uc_read_valid),
@@ -349,8 +371,7 @@ hpdcache_subsystem_l15_adapter #(
  .dcache_uc_write_ready_o(mem_req_uc_write_ready),
  .dcache_uc_write_valid_i(mem_req_uc_write_valid),
  .dcache_uc_write_i(mem_req_uc_write),
- .dcache_uc_write_pid_i(3'b100),
-
+ 
  .dcache_uc_write_data_ready_o(mem_req_uc_write_data_ready),
  .dcache_uc_write_data_valid_i(mem_req_uc_write_data_valid),
  .dcache_uc_write_data_i(mem_req_uc_write_data),
@@ -358,11 +379,6 @@ hpdcache_subsystem_l15_adapter #(
  .dcache_uc_write_resp_ready_i(mem_resp_uc_write_ready),
  .dcache_uc_write_resp_valid_o(mem_resp_uc_write_valid),
  .dcache_uc_write_resp_o(mem_resp_uc_write),
-
- // Invalidation interface
- .dcache_inval_ready_i(mem_inval_ready),
- .dcache_inval_valid_o(mem_inval_valid),
- .dcache_inval_o(mem_inval),
  // }}}
 
  //    Ports to/from L1.5

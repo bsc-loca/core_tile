@@ -151,10 +151,6 @@ module sim_top;
         .mem_resp_uc_read_valid_i(mem_resp_uc_read_valid),
         .mem_resp_uc_read_i(mem_resp_uc_read),
 
-        // dCache invalidations
-        .mem_inval_valid_i(0),
-        .mem_inval_i(0),
-
         // Unused ports
         .debug_pc_addr_i(0),
         .debug_pc_valid_i(0),

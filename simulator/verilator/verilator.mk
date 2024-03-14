@@ -33,7 +33,7 @@ SIM_CPP_SRCS = $(wildcard $(SIM_DIR)/models/cxx/*.cpp)
 SIM_VERILOG_SRCS = $(shell cat $(FILELIST)) $(wildcard $(SIM_DIR)/models/hdl/*.sv)
  
 $(SIMULATOR): $(SIM_CPP_SRCS) bootrom.hex libdisasm $(SIM_DIR)/sim_top.sv
-		HPDCACHE_DIR=./rtl/dcache $(VERILATOR) --cc $(VERI_FLAGS) $(VERI_OPTI_FLAGS) -o $(SIMULATOR)
+		$(VERILATOR) --cc $(VERI_FLAGS) $(VERI_OPTI_FLAGS) -o $(SIMULATOR)
 		$(MAKE) -C $(VERISIM_DIR)/build -f V$(TOP_MODULE).mk $(SIMULATOR)
 
 clean-simulator:

@@ -64,6 +64,7 @@ waive -du {  {hpdcache_ctrl_pe} } -comment {"HPDC Will be changed in future drop
 waive -du {  {hpdcache_ctrl} } -comment {"HPDC Will be changed in future drop"}
 waive -du {  {hpdcache_mshr_to_cache_set} } -comment {"HPDC Will be changed in future drop"}
 waive -du {  {hpdcache} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_core_arbiter} } -comment {"HPDC Will be changed in future drop"}
 
 waive -file {fpnew_pkg.sv} -regexp -comment {"FPU package errors"}
 waive -rule { {W175} } -file {defs_div_sqrt_mvp.sv} -regexp -comment {"Allow unused parameters in FPU package"}

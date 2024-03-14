@@ -31,12 +31,15 @@ module dcache_interface
     output resp_dcache_cpu_t    resp_dcache_cpu_o, // Dcache to CPU
 
     // dCache Interface
-    input  logic                dcache_ready_i,
-    input  logic                dcache_valid_i,
-    output logic                core_req_valid_o,
-    output hpdcache_req_t       req_dcache_o,
-    input  hpdcache_rsp_t       rsp_dcache_i,
-    input logic                 wbuf_empty_i,
+    input  logic dcache_ready_i,
+    input  logic dcache_valid_i,
+    output logic core_req_valid_o,
+    output hpdcache_req_t req_dcache_o,
+    output logic req_dcache_abort_o,
+    output hpdcache_tag_t req_dcache_tag_o,
+    output hpdcache_pma_t req_dcache_pma_o,
+    input  hpdcache_rsp_t rsp_dcache_i,
+    input logic wbuf_empty_i,
 
     // PMU
     output logic                dmem_is_store_o,
@@ -46,7 +49,7 @@ module dcache_interface
 logic io_address_space;
 
 // The address is in the INPUT/OUTPUT space
-assign io_address_space = (is_inside_IO_sections(DracCfg, {{{64-PHY_VIRT_MAX_ADDR_SIZE}{1'b0}},req_dcache_o.addr[PHY_VIRT_MAX_ADDR_SIZE-1:0]}));
+assign io_address_space = (is_inside_IO_sections(DracCfg, req_cpu_dcache_i.data_rs1));
 
 //-------------------------------------------------------------
 // dCache Interface
@@ -138,12 +141,22 @@ endgenerate
 
 assign req_dcache_o.be = aligned_be[{req_cpu_dcache_i.mem_size[3], req_cpu_dcache_i.mem_size[1:0]}];
 
-assign req_dcache_o.addr = req_cpu_dcache_i.data_rs1[PHY_VIRT_MAX_ADDR_SIZE-1:0];
-assign req_dcache_o.size = {req_cpu_dcache_i.mem_size[3], req_cpu_dcache_i.mem_size[1:0]};
+assign req_dcache_o.addr_offset = req_cpu_dcache_i.data_rs1[(HPDCACHE_OFFSET_WIDTH+HPDCACHE_SET_WIDTH)-1:0],
+       req_dcache_o.addr_tag = req_cpu_dcache_i.data_rs1[HPDCACHE_PA_WIDTH-1:(HPDCACHE_OFFSET_WIDTH+HPDCACHE_SET_WIDTH)];
+// Request to HPDC. Pass only 2 bits as the sign extension process (see specs for LBU, LHU, LWU) is done in the mem_unit 
+// HPDC does NOT extend the sign.
+assign req_dcache_o.size = {req_cpu_dcache_i.mem_size[3], req_cpu_dcache_i.mem_size[1:0]}; // TODO: Core supports bigger memory sizes than HPDC!
 assign req_dcache_o.sid = 3'b001;
 assign req_dcache_o.tid = req_cpu_dcache_i.rd;
 assign req_dcache_o.need_rsp = 1'b1;
-assign req_dcache_o.uncacheable = io_address_space;
+assign req_dcache_o.phys_indexed = 1'b1;
+assign req_dcache_o.pma.io = 1'b0;
+assign req_dcache_o.pma.uncacheable = io_address_space;
+
+// Unused signals on physically indexed requests
+assign req_dcache_abort_o = 1'b0,
+       req_dcache_tag_o = '0,
+       req_dcache_pma_o = '0;
 
 //-------------------------------------------------------------
 // CPU Interface

@@ -9,6 +9,11 @@
 // Core Tile
 -F ../../filelist.f
 
+// HPDC Arbiters
+../../rtl/dcache/rtl/src/utils/hpdcache_mem_req_read_arbiter.sv
+../../rtl/dcache/rtl/src/utils/hpdcache_mem_req_write_arbiter.sv
+../../rtl/dcache/rtl/src/utils/hpdcache_mem_resp_demux.sv
+
 // Common Cells
 +incdir+../../rtl/common_cells/include/
 ../../rtl/common_cells/include/common_cells/registers.svh

@@ -3,4 +3,4 @@
 models/hdl/axi_mem_behav.sv
 models/hdl/axi_uart_behav.sv
 models/hdl/axi_tohost_behav.sv
-veri_top.sv
+sim_meep_top.sv

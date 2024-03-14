@@ -1,6 +1,7 @@
 set -e
 
 BASE_DIR=$(pwd)
+export HPDCACHE_DIR=${BASE_DIR}/rtl/dcache
 CCFLAGS="-I${BASE_DIR}/simulator/reference/riscv-isa-sim/ "
 CCFLAGS+="-I${BASE_DIR}/simulator/models/cxx "
 LDFLAGS="-L${BASE_DIR}/simulator/reference/build/ -Wl,-rpath=${BASE_DIR}/simulator/reference/build/"
