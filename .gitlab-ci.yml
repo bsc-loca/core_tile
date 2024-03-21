@@ -6,6 +6,8 @@ image: registry.gitlab.bsc.es/hwdesign/containerhub/questa_riscv:latest
 ## If a rule matches, when: always is the default, and when: never is the default if nothing matches
 workflow:
   rules:
+    - if: ($CI_PIPELINE_SOURCE == "pipeline") # Triggered pipelines
+      when: always
     - if: ($CI_PIPELINE_SOURCE == "merge_request_event") # Merge requests 
       variables: 
         PIPELINE_BRANCH: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME 
@@ -25,6 +27,11 @@ variables:
   RISCV_GCC: /opt/riscv-gnu-toolchain/rvv-1.0.0/bin/riscv64-unknown-elf-gcc 
   RISCV_OBJDUMP: /opt/riscv-gnu-toolchain/rvv-1.0.0/bin/riscv64-unknown-elf-objcopy 
 
+.default_rules:
+  rules:
+    - if: ($CI_PIPELINE_SOURCE == "pipeline" && $JOB_ALLOW_TRIGGER != "true")
+      when: never
+    - when: always
 stages:
   - linting
   - building
@@ -51,6 +58,8 @@ default:
 
 lint-verilator:
   stage: linting
+  rules:
+    - !reference [.default_rules, rules]
   script:
     - verilator --version
     - make lint-verilator
@@ -58,6 +67,8 @@ lint-verilator:
 
 lint-spyglass:
   stage: linting
+  rules:
+    - !reference [.default_rules, rules]
   image: registry.gitlab.bsc.es/hwdesign/containerhub/spyglass:latest
   variables:
     # Needed for proper exit code detection 
@@ -80,6 +91,8 @@ lint-spyglass:
 lint-dc-elab:
   image: registry.gitlab.bsc.es/hwdesign/containerhub/rocky_base:latest
   stage: linting
+  rules:
+    - !reference [.default_rules, rules]
   tags:
     - bm
   timeout: 1 hrs
@@ -122,6 +135,8 @@ lint-vc-static:
     - source /eda/synopsys/synopsys.sh
   image: registry.gitlab.bsc.es/hwdesign/containerhub/rocky_base:latest
   stage: linting
+  rules:
+    - !reference [.default_rules, rules]
   tags:
     - bm
   script:
@@ -143,6 +158,8 @@ lint-vc-static:
 
 build-isa-tests:
   stage: building
+  rules:
+    - !reference [.default_rules, rules]
   script:
     - $RISCV_GCC --version
     - make build-isa-tests
@@ -153,6 +170,8 @@ build-isa-tests:
 
 build-benchmarks:
   stage: building
+  rules:
+    - !reference [.default_rules, rules]
   script:
     - $RISCV_GCC --version
     - make build-benchmarks BENCHMARKS_CI=1
@@ -163,6 +182,8 @@ build-benchmarks:
 
 build-simulator:
   stage: building
+  rules:
+    - !reference [.default_rules, rules]
   script:
     - verilator --version
     - gcc --version
@@ -177,6 +198,8 @@ build-simulator:
 build-vcs:
   image: registry.gitlab.bsc.es/hwdesign/containerhub/vcs-riscv:latest
   stage: building
+  rules:
+    - !reference [.default_rules, rules]
   tags:
     - dv
   timeout: 1 hrs
@@ -229,6 +252,8 @@ build-vcs:
 
 isa-tests:
   stage: simulation
+  rules:
+    - !reference [.default_rules, rules]
   dependencies:
     - build-simulator
     - build-isa-tests
@@ -237,6 +262,8 @@ isa-tests:
 
 benchmarks:
   stage: simulation
+  rules:
+    - !reference [.default_rules, rules]
   dependencies:
     - build-simulator
     - build-benchmarks
@@ -247,6 +274,8 @@ benchmarks:
 vcs:
   image: registry.gitlab.bsc.es/hwdesign/containerhub/vcs-riscv:latest
   stage: simulation
+  rules:
+    - !reference [.default_rules, rules]
   timeout: 1 hrs
   dependencies:
     - build-vcs
@@ -321,6 +350,10 @@ random_regression:
 
 uvm_regression:
   stage: simulation
+  variables:
+    JOB_ALLOW_TRIGGER: "true"
+  rules:
+    - !reference [.default_rules, rules]
   timeout: 8h
   script:
     - make clone_uvm
@@ -336,6 +369,8 @@ uvm_regression:
 
 fpga:
   stage: fpga
+  rules:
+    - !reference [.default_rules, rules]
   variables:
     COMMIT_SHA: $CI_COMMIT_SHA
     COMMIT_REF: $CI_COMMIT_REF_NAME

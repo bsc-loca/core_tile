@@ -14,7 +14,7 @@ DC_DIR =$(PROJECT_DIR)/dc-scripts
 
 RISCV_DV_DIR = $(CORE_UVM_DIR)/riscv-dv
 RISCV_DV_REPO = git@gitlab-internal.bsc.es:hwdesign/verification/riscv-dv.git
-RISCV_DV_BRANCH = master
+RISCV_DV_BRANCH ?= master
 # *** Simulators ***
 include simulator/simulator.mk
 
@@ -46,7 +46,7 @@ clone_dv: clone_uvm clone_riscv_dv
 clone_uvm:
 	mkdir -p ${DV_DIR}
 	mkdir -p ${CORE_UVM_DIR}
-	git clone ${CORE_UVM_REPO} ${CORE_UVM_DIR} -b ${CORE_UVM_BRANCH}
+	git clone ${SHALLOW_CLONE} ${CORE_UVM_REPO} ${CORE_UVM_DIR} -b ${CORE_UVM_BRANCH}
 
 $(DC_DIR):
 	git clone ${DC_REPO} -b ${DC_BRANCH} $@
@@ -57,4 +57,4 @@ dc_elab: $(DC_DIR)
 clone_riscv_dv:
 	mkdir -p ${DV_DIR}
 	mkdir -p ${RISCV_DV_DIR}
-	git clone ${RISCV_DV_REPO} ${RISCV_DV_DIR} -b ${RISCV_DV_BRANCH}
+	git clone ${SHALLOW_CLONE} ${RISCV_DV_REPO} ${RISCV_DV_DIR} -b ${RISCV_DV_BRANCH}
