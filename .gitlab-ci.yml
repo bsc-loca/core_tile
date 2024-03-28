@@ -56,6 +56,9 @@ default:
   tags:
     - dv
 
+.rule_only_merge:
+  - if: ($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /Draft:/) # Merge requests, not draft 
+
 lint-verilator:
   stage: linting
   rules:
@@ -91,7 +94,7 @@ lint-dc-elab:
   image: registry.gitlab.bsc.es/hwdesign/containerhub/rocky_base:latest
   stage: linting
   rules:
-    - !reference [.default_rules, rules]
+    !reference [.rule_only_merge]
   tags:
     - bm
   timeout: 1 hrs
@@ -100,6 +103,7 @@ lint-dc-elab:
     - echo $CI_COMMIT_BRANCH
     - echo $CI_OPEN_MERGE_REQUESTS
     # Setup licenses
+    - export SNPSLMD_QUEUE=true
     - export SNPS_LICENSE_FILE=27020@epi01.bsc.es
     - export SNPSLMD_LICENSE_FILE=27020@epi01.bsc.es
     - export LM_LICENSE_FILE=$LM_LICENSE_FILE:$SNPS_LICENSE_FILE:$SNPSLMD_LICENSE_FILE
@@ -130,22 +134,26 @@ lint-vc-static:
   before_script:
     - export SNPS_LICENSE_FILE=27020@epi01.bsc.es
     - export SNPSLMD_LICENSE_FILE=27020@epi01.bsc.es
+    - export SNPSLMD_QUEUE=true
     - export LM_LICENSE_FILE=$LM_LICENSE_FILE:$SNPS_LICENSE_FILE:$SNPSLMD_LICENSE_FILE
     - source /eda/synopsys/synopsys.sh
   image: registry.gitlab.bsc.es/hwdesign/containerhub/rocky_base:latest
   stage: linting
   rules:
-    - !reference [.default_rules, rules]
+    !reference [.rule_only_merge]  
   tags:
     - bm
   script:
-    - vc_static_shell -lic_wait 30 -f scripts/lint_intel_grade.tcl 2>&1 | tee  vc_static.$CI_PIPELINE_ID.log
-    - grep -E "\[Error\]" vc_static.$CI_PIPELINE_ID.log &> /dev/null; VAR=$(echo $?)
+    - vc_static_shell -f scripts/lint_intel_grade.tcl 2>&1 | tee  vc_static.$CI_PIPELINE_ID.log
+    - VAR=$(grep -E -m 1 "^..Total.+" vc_static.$CI_PIPELINE_ID.log)
+    - FATALS=$(echo $VAR | awk -F' ' '{ print $2 }')
+    - ERRORS=$(echo $VAR | awk -F' ' '{ print $3 }')
+    - WARNINGS=$(echo $VAR | awk -F' ' '{ print $4 }')
     - |
-      if [ $VAR -eq 0 ]; then
-        echo "Errors found" && exit 1
+      if [ $ERRORS -ne 0 ] || [ $FATALS -ne 0 ]; then
+        echo "$ERRORS errors / $FATALS fatals found" && exit 1
       else
-        echo "No errors found"
+        echo "No errors found. $WARNINGS warnings"
       fi
   allow_failure: true
   artifacts:
@@ -349,6 +357,9 @@ random_regression:
 
 uvm_regression:
   stage: simulation
+  parallel:
+    matrix:
+      - regression_type: [isa_tests, rvv_tests]
   variables:
     JOB_ALLOW_TRIGGER: "true"
   rules:
@@ -358,7 +369,7 @@ uvm_regression:
     - make clone_uvm
     - cd verif/core_uvm
     - make compile_all SARGANTANA=enable RTLDIR=../../
-    - python3 -u run.py -r isa_tests_sargantana.yaml
+    - python3 -u run.py -r ${regression_type}_sargantana.yaml
   artifacts:
     untracked: true
     when: always

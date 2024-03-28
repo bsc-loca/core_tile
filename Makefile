@@ -5,7 +5,7 @@ FILELIST = ${PROJECT_DIR}/filelist.f
 DV_DIR = $(PROJECT_DIR)/verif
 CORE_UVM_DIR = $(DV_DIR)/core_uvm
 CORE_UVM_REPO = git@gitlab-internal.bsc.es:hwdesign/verification/core-uvm.git
-CORE_UVM_BRANCH ?= ft/hpdc-update
+CORE_UVM_BRANCH ?= sargantana_mode_changes
 
 DC_REPO = git@gitlab-internal.bsc.es:hwdesign/spd/dc-scripts.git
 DC_BRANCH = sargantana_lint
@@ -49,6 +49,8 @@ clone_uvm:
 	mkdir -p ${DV_DIR}
 	mkdir -p ${CORE_UVM_DIR}
 	git clone ${SHALLOW_CLONE} ${CORE_UVM_REPO} ${CORE_UVM_DIR} -b ${CORE_UVM_BRANCH}
+	make -C ${CORE_UVM_DIR} clone_spike
+	make -C ${CORE_UVM_DIR} clone_tests
 
 $(DC_DIR):
 	git clone ${DC_REPO} -b ${DC_BRANCH} $@
