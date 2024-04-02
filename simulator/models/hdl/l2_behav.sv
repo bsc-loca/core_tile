@@ -61,7 +61,7 @@ module mem_channel #(
     } mem_op_t;
 
     mem_op_t memory [0:SIZE-1];
-    logic [$clog2(SIZE):0] write_ptr, read_ptr;
+    logic [$clog2(SIZE)-1:0] write_ptr, read_ptr;
     logic [$clog2(SIZE):0] count;
 
     logic empty, full;
