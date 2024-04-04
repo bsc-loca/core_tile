@@ -31,6 +31,11 @@
  `ifdef PITON_CINCORANCH
  input   logic [1:0]             boot_main_id_i,
  `endif  // Custom for CincoRanch
+ `ifdef EXTERNAL_HPM_EVENT_NUM
+ input logic [`EXTERNAL_HPM_EVENT_NUM-1: 0]  external_hpm_i,
+ `endif
+ 
+ 
  input   addr_t                  boot_addr_i,
  output  logic [$size(l15_req_t)-1:0]  l15_req_o,
  input   logic [$size(l15_rtrn_t)-1:0] l15_rtrn_i,
@@ -176,6 +181,10 @@ top_tile #(
  `ifdef PITON_CINCORANCH
  .boot_main_id_i(boot_main_id_i),
  `endif  // Custom for CincoRanch
+`ifdef EXTERNAL_HPM_EVENT_NUM
+ .external_hpm_i(external_hpm_i),
+ `endif
+ 
  .reset_addr_i(boot_addr_i), //'h00000100
 
  // Bootrom ports
