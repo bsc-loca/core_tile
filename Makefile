@@ -8,9 +8,13 @@ CORE_UVM_REPO = git@gitlab-internal.bsc.es:hwdesign/verification/core-uvm.git
 CORE_UVM_BRANCH ?= sargantana_mode_changes
 
 DC_REPO = git@gitlab-internal.bsc.es:hwdesign/spd/dc-scripts.git
-DC_BRANCH = sargantana_lint
+DC_BRANCH = sargantana_syn
 DC_DIR =$(PROJECT_DIR)/dc-scripts
 
+SRAM_WRAPPER_REPO = git@gitlab-internal.bsc.es:hwdesign/chips/cincoranch.git
+SRAM_WRAPPER_BRANCH = main
+SRAM_WRAPPER_DIR =$(PROJECT_DIR)/cincoranch
+SRAM_WRAPPER =$(SRAM_WRAPPER_DIR)/piton/design/common/rtl/asic_sram_1p.v
 
 RISCV_DV_DIR = $(CORE_UVM_DIR)/riscv-dv
 RISCV_DV_REPO = git@gitlab-internal.bsc.es:hwdesign/verification/riscv-dv.git
@@ -55,8 +59,37 @@ clone_uvm:
 $(DC_DIR):
 	git clone ${DC_REPO} -b ${DC_BRANCH} $@
 
-dc_elab: $(DC_DIR)
-	make -C $(DC_DIR) elab BASE_DIR=$(PROJECT_DIR) RTL_BASE_PATH=$(PROJECT_DIR) FLIST_PATH=$(PROJECT_DIR)/dc_filelist.f TOP_MODULE=top_tile CLOCK_PORT=clk_i
+$(SRAM_WRAPPER_DIR):
+	git clone ${SRAM_WRAPPER_REPO} -b ${SRAM_WRAPPER_BRANCH} $@
+
+$(SRAM_WRAPPER): $(SRAM_WRAPPER_DIR)
+	printf "\n$(@)\n" >> $(PROJECT_DIR)/dc_filelist.f
+
+DC_VARS = \
+	BASE_DIR=$(PROJECT_DIR) \
+	RTL_BASE_PATH=$(PROJECT_DIR) \
+	FLIST_PATH=$(PROJECT_DIR)/dc_filelist.f \
+	TOP_MODULE=top_tile \
+	CLOCK_PORT=clk_i \
+	ASYNC_RESET_PORT=rstn_i \
+	CONSTANT_IN_CONSTRAINTS=true \
+	CONSTANT_IN_LIST="reset_addr_i core_id_i" \
+	SYNTH_DEFINES+=SRAM_IP \
+	SYNTH_DEFINES+=CONF_HPDCACHE_MSHR_SETS=32 \
+
+dc_elab: $(DC_DIR) $(SRAM_WRAPPER)
+	make -C $< elab $(DC_VARS)
+
+dc_syn: $(DC_DIR) $(SRAM_WRAPPER)
+	make -C $< syn $(DC_VARS)
+
+dc_clean: $(DC_DIR)
+	make -C $< clean-dc $(DC_VARS)
+	rm -rf $<
+
+sram_wrapper_clean: $(SRAM_WRAPPER_DIR)
+	rm -rf $<
+	git checkout $(PROJECT_DIR)/dc_filelist.f
 
 clone_riscv_dv:
 	mkdir -p ${DV_DIR}
