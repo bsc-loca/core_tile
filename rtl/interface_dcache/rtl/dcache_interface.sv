@@ -197,7 +197,9 @@ assign receive = dcache_valid_i;
 
 always_ff @(posedge clk_i, negedge rstn_i) begin
     if (!rstn_i) begin
-        transaction_table <= 0;
+        for (int i = 0; i < 128; ++i) begin
+            transaction_table[i] <= IDLE;
+        end
         `ifdef SIMULATION
         transactions_in_flight <= 0;
         `endif
