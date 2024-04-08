@@ -26,16 +26,31 @@ variables:
   GIT_SUBMODULE_DEPTH: 1
   RISCV_GCC: /opt/riscv-gnu-toolchain/rvv-1.0.0/bin/riscv64-unknown-elf-gcc 
   RISCV_OBJDUMP: /opt/riscv-gnu-toolchain/rvv-1.0.0/bin/riscv64-unknown-elf-objcopy 
+  SARGANTANA_OUT_DIR: /nfs/synthesis/CI-SARGANTANA
 
 .default_rules:
   rules:
     - if: ($CI_PIPELINE_SOURCE == "pipeline" && $JOB_ALLOW_TRIGGER != "true")
       when: never
+    - if: ($do_synthesis && ($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web"))
+      when: never
     - when: always
+
+.synthesis_rules:
+  - if: ($do_synthesis && ($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web"))
+
+.random_regression_rules:
+  - if: ($CI_PIPELINE_SOURCE == "schedule" && $do_synthesis == null)
+    when: always
+
+.rule_only_merge:
+  - if: ($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /Draft:/) # Merge requests, not draft 
+
 stages:
   - linting
   - building
   - simulation
+  - synthesis
   - fpga
 
 before_script:
@@ -55,9 +70,6 @@ before_script:
 default:
   tags:
     - dv
-
-.rule_only_merge:
-  - if: ($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /Draft:/) # Merge requests, not draft 
 
 lint-verilator:
   stage: linting
@@ -333,8 +345,7 @@ vcs:
 random_regression:
   stage: simulation
   rules:
-    - if: ($CI_PIPELINE_SOURCE == "schedule")
-      when: always
+    - !reference [ .random_regression_rules ]
   timeout: 8h
   script:
     - make clone_dv
@@ -376,6 +387,37 @@ uvm_regression:
     paths:
         - verif/core_uvm/sim/build/comp_transcript
         - verif/core_uvm/regress/results/sargantana_isa_check/*
+
+dc_synthesis:
+  image: registry.gitlab.bsc.es/hwdesign/containerhub/rocky_base:latest
+  stage: synthesis
+  tags: 
+    - bm
+  timeout: 8h
+  rules:
+    - !reference [.synthesis_rules]
+  before_script:
+    # add ci token to git url
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.bsc.es/".insteadOf "https://gitlab.bsc.es/"
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.bsc.es/".insteadOf "git@gitlab-internal.bsc.es:"
+    # setup licenses
+    - export SNPSLMD_QUEUE=true
+    - export SNPS_LICENSE_FILE=27020@epi01.bsc.es
+    - export SNPSLMD_LICENSE_FILE=27020@epi01.bsc.es
+    - export LM_LICENSE_FILE=$LM_LICENSE_FILE:$SNPS_LICENSE_FILE:$SNPSLMD_LICENSE_FILE
+    # setup tools
+    - source /eda/synopsys/synopsys.sh
+  script:
+    - make dc_syn 2>&1 | tee ./dc_syn.$CI_PIPELINE_ID.log 
+    - mkdir -p $SARGANTANA_OUT_DIR/$CI_COMMIT_REF_NAME/$CI_COMMIT_SHORT_SHA
+    - find $SARGANTANA_OUT_DIR/$CI_COMMIT_REF_NAME -mindepth 1 -mtime +30 -delete
+    - cp ./dc_syn.$CI_PIPELINE_ID.log $SARGANTANA_OUT_DIR/$CI_COMMIT_REF_NAME/$CI_COMMIT_SHORT_SHA
+    - cp -r build/dc/* $SARGANTANA_OUT_DIR/$CI_COMMIT_REF_NAME/$CI_COMMIT_SHORT_SHA
+    - ln -srfn $SARGANTANA_OUT_DIR/$CI_COMMIT_REF_NAME/$CI_COMMIT_SHORT_SHA $SARGANTANA_OUT_DIR/$CI_COMMIT_REF_NAME/latest    
+  artifacts:
+    paths:
+      - dc_syn.$CI_PIPELINE_ID.log
+    when: always
 
 fpga:
   stage: fpga
