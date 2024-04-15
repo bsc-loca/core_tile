@@ -95,3 +95,4 @@ clone_riscv_dv:
 	mkdir -p ${DV_DIR}
 	mkdir -p ${RISCV_DV_DIR}
 	git clone ${SHALLOW_CLONE} ${RISCV_DV_REPO} ${RISCV_DV_DIR} -b ${RISCV_DV_BRANCH}
+	${RISCV_DV_DIR}/clone_targets.sh ${RISCV_DV_DIR}
