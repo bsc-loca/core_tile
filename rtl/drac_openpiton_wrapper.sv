@@ -43,6 +43,7 @@
  input logic time_irq_i,
  input logic [63:0] time_i,
  input logic irq_i,
+ input logic soft_irq_i,
 
  // Debug ring interface
 
@@ -252,6 +253,7 @@ top_tile #(
 
  .time_irq_i(time_irq_i),
  .irq_i(irq_i),
+ .soft_irq_i(soft_irq_i),
  .time_i(time_i),
 
  .debug_halt_i(debug_halt_i),

@@ -160,6 +160,7 @@ module axi_wrapper (
 
         .time_irq_i(time_irq_i),
         .irq_i(1'b0),
+        .soft_irq_i(1'b0),
         .time_i(time_i)
     );
 

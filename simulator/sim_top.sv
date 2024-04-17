@@ -175,6 +175,7 @@ module sim_top;
 
         .time_i(64'd0),
         .irq_i(1'b0),
+        .soft_irq_i(1'b0),
         .time_irq_i(1'b0),
         .io_core_pmu_l2_hit_i()
     );

@@ -183,6 +183,7 @@ module top_tile
 //-----------------------------------------------------------------------------
     input  logic                time_irq_i, // timer interrupt
     input  logic                irq_i,      // external interrupt in
+    input  logic                soft_irq_i, // software interrupt
     input  logic [63:0]         time_i     // time passed since the core is reset
 
 );
@@ -325,6 +326,7 @@ top_drac #(
     // Interrupts
     .time_irq_i(time_irq_i), // timer interrupt
     .irq_i(irq_i),      // external interrupt in
+    .soft_irq_i(soft_irq_i),
     .time_i(time_i)     // time passed since the core is reset
 );
 
