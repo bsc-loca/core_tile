@@ -156,7 +156,7 @@ lint-vc-static:
   tags:
     - bm
   script:
-    - vc_static_shell -f scripts/lint_intel_grade.tcl 2>&1 | tee  vc_static.$CI_PIPELINE_ID.log
+    - make lint-vc 2>&1 | tee  vc_static.$CI_PIPELINE_ID.log
     - VAR=$(grep -E -m 1 "^..Total.+" vc_static.$CI_PIPELINE_ID.log)
     - FATALS=$(echo $VAR | awk -F' ' '{ print $2 }')
     - ERRORS=$(echo $VAR | awk -F' ' '{ print $3 }')
@@ -167,7 +167,6 @@ lint-vc-static:
       else
         echo "No errors found. $WARNINGS warnings"
       fi
-  allow_failure: true
   artifacts:
     expire_in: 1 week
     when: always
@@ -315,7 +314,7 @@ vcs:
     - module load gcc
   script:
     - cp bootrom.hex build_vcs/bootrom.hex
-    - ./build_vcs/simv +load=./tb/tb_isa_tests/build/isa/rv64ui-p-add
+    - ./build_vcs/simv +vcs+lic+wait +load=./tb/tb_isa_tests/build/isa/rv64ui-p-add
 
 # Has many problemes, never managed to get it working properly...
 #torture:
@@ -429,16 +428,3 @@ fpga:
     strategy: depend
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-
-#questa:verilog:
-#  image: localhost:5000/epi_rtl-vsim
-#  stage: simulation
-#  tags:
-#    - questasim
-#  script:
-#    - make questa
-#  allow_failure: true
-#  artifacts:
-#    paths:
-#    - artifact_questa.log
-#    expire_in: 1 week

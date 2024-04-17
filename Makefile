@@ -47,6 +47,9 @@ lint-verilator:
 lint-spyglass:
 		./scripts/lint_spyglass.sh
 
+lint-vc:
+		vc_static_shell -lic_wait 30 -f scripts/lint_intel_grade.tcl
+
 clone_dv: clone_uvm clone_riscv_dv
 
 clone_uvm:

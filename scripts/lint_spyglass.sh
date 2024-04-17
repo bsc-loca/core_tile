@@ -4,7 +4,7 @@ export HPDCACHE_DIR=$(pwd)/rtl/dcache
 
 # Run spyglass
 echo "Running spyglass. This will take a while..."
-sg_shell -enable_pass_exit_codes < ./scripts/lint_spyglass.tcl
+sg_shell -licqueue -enable_pass_exit_codes < ./scripts/lint_spyglass.tcl
 
 SPYGLASS_RETURN_CODE=$?
 
