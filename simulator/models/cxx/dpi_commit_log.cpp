@@ -217,13 +217,15 @@ void CommitLog::dump_file(const commit_data_t *commit_data){
                 }
                 break;
             case 3: // AMO
-                signatureFile << " mem " << HEX_DATA(signedAddr);
-                uint64_t amo = amo_writes.top();
-                signatureFile << " mem " << HEX_DATA(signedAddr) << " ";
-                if (func3 == 0b010) signatureFile << HEX_WORD((uint32_t) amo);
-                else signatureFile << HEX_DATA(amo);
-                amo_writes.pop();
-                break;
+                if (!amo_writes.empty()) {
+                    signatureFile << " mem " << HEX_DATA(signedAddr);
+                    uint64_t amo = amo_writes.top();
+                    signatureFile << " mem " << HEX_DATA(signedAddr) << " ";
+                    if (func3 == 0b010) signatureFile << HEX_WORD((uint32_t) amo);
+                    else signatureFile << HEX_DATA(amo);
+                    amo_writes.pop();
+                    break;
+                }
         }
 	    signatureFile << "\n";
     }
