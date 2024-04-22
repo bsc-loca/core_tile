@@ -24,6 +24,7 @@ waive -rule {  {FlopEConst} } -du {  {register} } -comment {"FlopEConst"}
 waive -rule { {AlwaysFalseTrueCond-ML} } -du { {top_tile} } -comment {"Signal depends on externally defined parameter."}
 waive -rule { {AlwaysFalseTrueCond-ML} } -du { {dcache_interface} } -comment {"Signal depends on externally defined parameter."}
 waive -rule { {AlwaysFalseTrueCond-ML} } -du { {sargantana_icache_checker} } -comment {"Signal depends on externally defined parameter."}
+waive -rule { {AlwaysFalseTrueCond-ML} } -du { {regfile} } -comment {"Signal depends on externally defined parameter."}
 waive -rule { {UndrivenInTerm-ML} } -du { {dcache_interface} } -comment {"By construction, signal will never be read."}
 waive -rule { {W120} } -du { {dcache_interface} } -comment {"Unused part of common struct in input."}
 
