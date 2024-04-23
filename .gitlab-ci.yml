@@ -352,7 +352,7 @@ random_regression:
     - mkdir -p tests/build/generated_tests
     - ./generate_random_tests.sh 40
     - make compile_all SARGANTANA=enable RTLDIR=../../ COVERAGE=enable
-    - python3 -u run.py -r riscv-dv_regression.yaml --coverage --coverage-report-html
+    - python3 -u run.py -r riscv-dv_regression.yaml --coverage --coverage-report-html --interrupts
   artifacts:
     untracked: true
     when: always
