@@ -48,6 +48,8 @@
  // Debug ring interface
 
     input  logic                debug_halt_i,
+    input debug_intel_in_t      debug_intel_i,
+
 
     input  addr_t               debug_pc_addr_i,
     input  logic                debug_pc_valid_i,
@@ -73,6 +75,7 @@
     output logic		        debug_backend_empty_o,
     output logic  [5:0]		    debug_preg_addr_o,
     output bus64_t              debug_preg_data_o,
+    output debug_intel_out_t    debug_intel_o,
 
     output visa_signals_t       visa_o
 );
@@ -259,6 +262,8 @@ top_tile #(
  .time_i(time_i),
 
  .debug_halt_i(debug_halt_i),
+ .debug_intel_i(debug_intel_i),
+ .debug_intel_o(debug_intel_o),
 
  .debug_pc_addr_i(debug_pc_addr_i),
  .debug_pc_valid_i(debug_pc_valid_i),

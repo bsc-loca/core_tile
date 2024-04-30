@@ -172,6 +172,8 @@ module sim_top;
         .debug_backend_empty_o(),
         .debug_preg_addr_o(),
         .debug_preg_data_o(),
+        .debug_intel_i('0),
+        .debug_intel_o(),
 
         .time_i(64'd0),
         .irq_i(1'b0),

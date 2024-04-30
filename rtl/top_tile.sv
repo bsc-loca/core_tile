@@ -42,6 +42,7 @@ module top_tile
 // debug_halt_i is istall_test 
 //------------------------------------------------------------------------------------    
     input  logic                debug_halt_i, // Halt core / debug mode
+    input debug_intel_in_t      debug_intel_i,
 
     input  addr_t               debug_pc_addr_i,  // Address to set in the PC of the fetch stage
     input  logic                debug_pc_valid_i, // Write the address debug_pc_addr_i into the PC of the fetch stage
@@ -147,6 +148,8 @@ module top_tile
     output bus64_t              debug_preg_data_o,     // Data contained in the register indicated by debug_preg_addr_i
 
     output visa_signals_t       visa_o,
+    output debug_intel_out_t    debug_intel_o,
+
 
 //-----------------------------------------------------------------------------
 // PMU INTERFACE
@@ -309,6 +312,8 @@ top_drac #(
     .debug_preg_data_o(debug_preg_data_o),
 
     .visa_o(visa_o),
+    .debug_intel_i(debug_intel_i),
+    .debug_intel_o(debug_intel_o),
 
     // PMU Interface
     .pmu_interface_i(pmu_interface),
