@@ -146,6 +146,7 @@ module top_tile
     output logic  [5:0]		    debug_preg_addr_o,     // Physical register address corresponding to the register indicated by debug_reg_read_addr_i
     output bus64_t              debug_preg_data_o,     // Data contained in the register indicated by debug_preg_addr_i
 
+    output visa_signals_t       visa_o,
 
 //-----------------------------------------------------------------------------
 // PMU INTERFACE
@@ -306,6 +307,8 @@ top_drac #(
     .debug_backend_empty_o(debug_backend_empty_o),
     .debug_preg_addr_o(debug_preg_addr_o),
     .debug_preg_data_o(debug_preg_data_o),
+
+    .visa_o(visa_o),
 
     // PMU Interface
     .pmu_interface_i(pmu_interface),

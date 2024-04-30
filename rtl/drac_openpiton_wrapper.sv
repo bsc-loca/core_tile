@@ -72,7 +72,9 @@
 
     output logic		        debug_backend_empty_o,
     output logic  [5:0]		    debug_preg_addr_o,
-    output bus64_t              debug_preg_data_o
+    output bus64_t              debug_preg_data_o,
+
+    output visa_signals_t       visa_o
 );
 
 // Bootrom wires
@@ -282,6 +284,8 @@ top_tile #(
  .debug_backend_empty_o(debug_backend_empty_o),
  .debug_preg_addr_o(debug_preg_addr_o),
  .debug_preg_data_o(debug_preg_data_o),
+
+ .visa_o(visa_o),
 
  // PMU
  .io_core_pmu_l2_hit_i(1'b0) 
