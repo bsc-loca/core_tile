@@ -56,7 +56,7 @@ clone_uvm:
 	mkdir -p ${DV_DIR}
 	mkdir -p ${CORE_UVM_DIR}
 	git clone ${SHALLOW_CLONE} ${CORE_UVM_REPO} ${CORE_UVM_DIR} -b ${CORE_UVM_BRANCH}
-	make -C ${CORE_UVM_DIR} clone_spike
+	make -C ${CORE_UVM_DIR} clone_spike SPIKE_URL_BASE=https://gitlab.bsc.es/api/v4/projects/1982/packages/generic/sargantana-rvv-1.0-new-insts/0.0.1/spike 
 	make -C ${CORE_UVM_DIR} clone_tests
 
 $(DC_DIR):
