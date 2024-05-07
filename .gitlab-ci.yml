@@ -346,6 +346,8 @@ random_regression:
   rules:
     - !reference [ .random_regression_rules ]
   timeout: 8h
+  variables:
+    RUNNER_SCRIPT_TIMEOUT: 7h30m
   script:
     - make clone_dv
     - cd verif/core_uvm
