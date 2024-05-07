@@ -343,6 +343,9 @@ vcs:
 
 random_regression:
   stage: simulation
+  parallel:
+    matrix:
+      - testname: [riscv_total_random_test, base_scalar, base_rvv]
   rules:
     - !reference [ .random_regression_rules ]
   timeout: 8h
@@ -352,7 +355,7 @@ random_regression:
     - make clone_dv
     - cd verif/core_uvm
     - mkdir -p tests/build/generated_tests
-    - ./generate_random_tests.sh 40
+    - ./generate_random_tests.sh 20 ${testname}
     - make compile_all SARGANTANA=enable RTLDIR=../../ COVERAGE=enable INTERRUPTS=enable
     - python3 -u run.py -r riscv-dv_regression.yaml --coverage --coverage-report-html --interrupts
   artifacts:
