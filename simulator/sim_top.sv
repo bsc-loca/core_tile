@@ -281,7 +281,7 @@ module sim_top;
 
     // *** Testbench monitors ***
 
-    logic [63:0] cycles, max_cycles;
+    logic [63:0] cycles, max_cycles, start_cycles;
 
     always @(posedge tb_clk, negedge tb_rstn) begin
         if (~tb_rstn) cycles <= 0;
@@ -290,11 +290,20 @@ module sim_top;
 
     initial begin
         string dumpfile;
+        start_cycles = 0;
         if ($test$plusargs("vcd")) begin
             $dumpfile("dump_file.vcd");
-            $dumpvars();
+            if (!$value$plusargs("start-vcd-cycles=%d", start_cycles)) begin
+                $dumpvars();
+            end
         end
         if (!$value$plusargs("max-cycles=%d", max_cycles)) max_cycles = 0;
+    end
+
+    always @(posedge tb_clk) begin
+        if (start_cycles > 0 && cycles == start_cycles) begin
+            $dumpvars();
+        end
     end
 
     always @(posedge tb_clk) begin
