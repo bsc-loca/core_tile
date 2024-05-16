@@ -378,7 +378,7 @@ uvm_regression:
     - !reference [.default_rules, rules]
   timeout: 8h
   script:
-    - make clone_uvm SPIKE_URL_BASE=https://gitlab.bsc.es/api/v4/projects/1982/packages/generic/sargantana-rvv-1.0/0.0.1/spike
+    - make clone_uvm
     - cd verif/core_uvm
     - make compile_all SARGANTANA=enable RTLDIR=../../
     - python3 -u run.py -r ${regression_type}_sargantana.yaml
