@@ -180,20 +180,20 @@ assign resp_dcache_cpu_o.ordered = wbuf_empty_i;
 // It's fine by now, the error signal is propagated from higher levels of the
 // memory, which does *not* set it ever under any circumstance.
 
+logic send, receive;
+
+assign send    = core_req_valid_o && dcache_ready_i;
+assign receive = dcache_valid_i;
+
 //-PMU
-assign dmem_is_store_o = (req_dcache_o.op == HPDCACHE_REQ_STORE) && req_cpu_dcache_i.valid;
-assign dmem_is_load_o  = (req_dcache_o.op == HPDCACHE_REQ_LOAD) && req_cpu_dcache_i.valid;
+assign dmem_is_store_o = (req_dcache_o.op == HPDCACHE_REQ_STORE) && send;
+assign dmem_is_load_o  = (req_dcache_o.op == HPDCACHE_REQ_LOAD) && send;
 
 `ifdef SIMULATION
 logic [7:0] transactions_in_flight;
 `endif
 
 assign wait_resp_same_tag = transaction_table[req_dcache_o.tid] == PENDING;
-
-logic send, receive;
-
-assign send    = core_req_valid_o && dcache_ready_i;
-assign receive = dcache_valid_i;
 
 always_ff @(posedge clk_i, negedge rstn_i) begin
     if (!rstn_i) begin
