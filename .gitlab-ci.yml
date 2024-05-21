@@ -387,7 +387,7 @@ uvm_regression:
     when: always
     paths:
         - verif/core_uvm/sim/build/comp_transcript
-        - verif/core_uvm/regress/results/sargantana_isa_check/*
+        - verif/core_uvm/regress/results/sargantana_*_check/*
 
 dc_synthesis:
   image: registry.gitlab.bsc.es/hwdesign/containerhub/rocky_base:latest
