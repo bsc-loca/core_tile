@@ -90,3 +90,5 @@ waive -rule {  {W287b} } -du {drac_openpiton_wrapper} -regexp -msg {icache_miss_
 waive -rule { {STARC05-1.1.1.3} } -du {sargantana_icache_way} -comment {"Not reserved for verilog"}
 waive -rule { {STARC05-1.1.1.3} } -du {sargantana_itag_memory_sram} -comment {"Not reserved for verilog"}
 waive -rule { {W164a_a} } -du {sargantana_icache_checker} -regexp -msg {deadcode} -comment {"Warning inside dead code region guarded by ifdefs"}
+
+waive -rule {  {AlwaysFalseTrueCond-ML} } -file {top_drac.sv} -comment {"Condition depends on external configuration"}
