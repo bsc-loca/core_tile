@@ -9,6 +9,3 @@
 ./cxx/dpi_rename_checking.cpp
 ./cxx/dpi_commit_log.cpp
 ./cxx/loadelf.cpp
-../../rtl/dcache/rtl/src/common/macros/behav/hpdcache_sram_1rw.sv
-../../rtl/dcache/rtl/src/common/macros/behav/hpdcache_sram_wbyteenable_1rw.sv
-../../rtl/dcache/rtl/src/common/macros/behav/hpdcache_sram_wmask_1rw.sv
