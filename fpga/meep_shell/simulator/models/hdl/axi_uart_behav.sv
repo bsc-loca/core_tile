@@ -66,7 +66,7 @@ module axi_uart_behav (
         .RegNumBytes(32),
         .AxiAddrWidth(13),
         .AxiDataWidth(32),
-        .RegRstVal({8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h40, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0}),
+        .RegRstVal({8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h40, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0, 8'h60, 8'h0, 8'h0, 8'h0, 8'h0, 8'h0}),
         .AxiReadOnly(32'b0),
         .req_lite_t(fpga_pkg::axi_lite_req_t),
         .resp_lite_t(fpga_pkg::axi_lite_resp_t)
@@ -100,7 +100,8 @@ module axi_uart_behav (
     end
 
     always_ff @(posedge clk_i) begin
-        if (should_transmit) $write("%s", reg_q[0]);
+        if (should_transmit) 
+        $display(" uart data received : %s", reg_q[0]);
     end
 
     /*always_ff @(posedge clk_i) begin
