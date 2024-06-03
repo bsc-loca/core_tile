@@ -4,6 +4,7 @@
 
 `include "axi/assign.svh"
 `include "defines.svh"
+`include "axi/typedef.svh"
 
 package fpga_pkg;
 
