@@ -356,7 +356,7 @@ random_regression:
     - cd verif/core_uvm
     - mkdir -p tests/build/generated_tests
     - ./generate_random_tests.sh 20 ${testname}
-    - make compile_all SARGANTANA=enable RTLDIR=../../ COVERAGE=enable INTERRUPTS=enable
+    - make compile_all SARGANTANA=enable RTLDIR=$(realpath ../../) COVERAGE=enable INTERRUPTS=enable
     - python3 -u run.py -r riscv-dv_regression.yaml --coverage --coverage-report-html --interrupts
   artifacts:
     untracked: true
@@ -380,7 +380,7 @@ uvm_regression:
   script:
     - make clone_uvm
     - cd verif/core_uvm
-    - make compile_all SARGANTANA=enable RTLDIR=../../
+    - make compile_all SARGANTANA=enable RTLDIR=$(realpath ../../)
     - python3 -u run.py -r ${regression_type}_sargantana.yaml
   artifacts:
     untracked: true
