@@ -31,6 +31,7 @@
  `ifdef PITON_CINCORANCH
  input   logic [1:0]             boot_main_id_i,
  `endif  // Custom for CincoRanch
+ input logic   [63:0]            boot_addr_i,
  `ifdef EXTERNAL_HPM_EVENT_NUM
  input logic [`EXTERNAL_HPM_EVENT_NUM-1: 0]  external_hpm_i,
  `endif
@@ -187,6 +188,7 @@ top_tile #(
  `ifdef PITON_CINCORANCH
  .boot_main_id_i(boot_main_id_i),
  `endif  // Custom for CincoRanch
+ .boot_addr_i(boot_addr_i),
 `ifdef EXTERNAL_HPM_EVENT_NUM
  .external_hpm_i(external_hpm_i),
  `endif
