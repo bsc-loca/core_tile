@@ -105,7 +105,7 @@ set_property include_dirs $include_paths $fileset_obj
 puts "\[Sargantana\] Configuring global includes"
 
 # Mark directories with global verilog defines
-set global_includes [lsearch -all -inline $files_to_add *.svh]
+set global_includes [lsearch -regexp -inline -all $files_to_add {.*\.s?v?h}]
 
 # Mark files with global verilog defines
 foreach item $global_includes {
