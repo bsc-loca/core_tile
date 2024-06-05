@@ -84,7 +84,6 @@
 // Bootrom wires
 logic   [39:0]  brom_req_address;
 logic           brom_req_valid;
-logic   [31:0]  brom_resp_data;
 
 // icache wires
 logic                     l1_request_valid;

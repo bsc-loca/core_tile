@@ -93,12 +93,5 @@ waive -rule { {W164a_a} } -du {sargantana_icache_checker} -regexp -msg {deadcode
 
 waive -rule {  {AlwaysFalseTrueCond-ML} } -file {top_drac.sv} -comment {"Condition depends on external configuration"}
 
-waive -rule {  {W287b} } -file {sargantana_itag_memory_sram.sv} -comment {"iCache doesn't use rtap"}
-waive -rule {  {W287b} } -file {sargantana_icache_way.sv} -comment {"iCache doesn't use rtap"}
-
-waive -rule {  {STARC05-1.1.1.3} } -file {sp_ram.v} -comment {"Waive errors in external memory library"}
-waive -rule {  {STARC05-1.1.1.3} } -file {sp_ram_model.v} -comment {"Waive errors in external memory library"}
-waive -rule {  {STARC05-1.1.1.3} } -file {sp_ram_asic.v} -comment {"Waive errors in external memory library"}
-waive -rule {  {UseSVAlways-ML} } -file {sp_ram.v} -comment {"Waive errors in external memory library"}
-waive -rule {  {UseSVAlways-ML} } -file {sp_ram_model.v} -comment {"Waive errors in external memory library"}
-waive -rule {  {AlwaysFalseTrueCond-ML} } -file {sp_ram.v} -comment {"Waive errors in external memory library"}
+waive -rule { {AlwaysFalseTrueCond-ML} } -file {def_pkg.sv} -regexp -msg {FLEN} -comment {"Allow always false/true conditions that depend on parameters"}
+waive -rule { {AlwaysFalseTrueCond-ML} } -file {drac_pkg.sv} -regexp -msg {PHY_VIRT_MAX_ADDR_SIZE} -comment {"Allow always false/true conditions that depend on parameters"}
