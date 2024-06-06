@@ -1,4 +1,8 @@
-image: registry.gitlab.bsc.es/hwdesign/containerhub/questa_riscv:latest
+include:
+  - project: 'hwdesign/ci/generic_ci'
+    ref: $GENERIC_CI_BRANCH
+    file:
+      - jobs_template.yml
 
 ## This workflow avoids duplicate pipelines when there is an open merge request (commit_branch + merge_request) 
 ## so only the open merge request will be executed and not the commit_branch. PIPELINE_BRANCH will be used to refer to
@@ -6,45 +10,50 @@ image: registry.gitlab.bsc.es/hwdesign/containerhub/questa_riscv:latest
 ## If a rule matches, when: always is the default, and when: never is the default if nothing matches
 workflow:
   rules:
-    - if: ($CI_PIPELINE_SOURCE == "pipeline") # Triggered pipelines
-      when: always
-    - if: ($CI_PIPELINE_SOURCE == "merge_request_event") # Merge requests 
-      variables: 
-        PIPELINE_BRANCH: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME 
-    - if: ($CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE != "schedule") # Fix detached merge request pipelines
-      when: never 
-    - if: ($CI_COMMIT_BRANCH) # All branches
-      variables: 
-        PIPELINE_BRANCH: $CI_COMMIT_BRANCH
+    - !reference [.rules, global_std]
 
-variables:
-  GIT_STRATEGY: clone
-  GIT_SOURCES_ATTEMPTS: 4
-  GIT_SUBMODULE_STRATEGY: recursive
-  GIT_CLEAN_FLAGS: -ffdx
-  GIT_DEPTH: 1
-  GIT_SUBMODULE_DEPTH: 1
-  RISCV_GCC: /opt/riscv-gnu-toolchain/rvv-1.0.0/bin/riscv64-unknown-elf-gcc 
-  RISCV_OBJDUMP: /opt/riscv-gnu-toolchain/rvv-1.0.0/bin/riscv64-unknown-elf-objcopy 
-  SARGANTANA_OUT_DIR: /nfs/synthesis/CI-SARGANTANA
-
-.default_rules:
-  rules:
-    - if: ($CI_PIPELINE_SOURCE == "pipeline" && $JOB_ALLOW_TRIGGER != "true")
-      when: never
+.rules_default:
     - if: ($do_synthesis && ($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web"))
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "pipeline"'
+      when: never
+    - if: (($CI_PIPELINE_SOURCE == "schedule" || 
+          $CI_PIPELINE_SOURCE == "web" || 
+          $CI_PIPELINE_SOURCE == "pipeline") && $REGRESS_TYPE)
       when: never
     - when: always
 
-.synthesis_rules:
-  - if: ($do_synthesis && ($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web"))
+.rules_merge_request:
+    - !reference [.rules, only_merge]
 
-.random_regression_rules:
-  - if: ($CI_PIPELINE_SOURCE == "schedule" && $do_synthesis == null)
+.rules_uvm_smoke:
+    - if: '$CI_PIPELINE_SOURCE == "pipeline"'
+      when: always
+    - !reference [.rules_uvm_scheduled]
+    - !reference [.rules_merge_request]
+    - !reference [.rules_default]
+
+.rules_uvm_scheduled:
+  - if: (($CI_PIPELINE_SOURCE == "schedule" || 
+          $CI_PIPELINE_SOURCE == "web" || 
+          $CI_PIPELINE_SOURCE == "pipeline") && $REGRESS_TYPE &&
+         ($testname == null || 
+          $testname == "base_rvv" && $TESTS_NAMES =~ "/\[base_rvv\]/"))
     when: always
+    variables:
+      N_TESTS: $GENERATED_TESTS_RVV
+  - if: (($CI_PIPELINE_SOURCE == "schedule" || 
+          $CI_PIPELINE_SOURCE == "web" || 
+          $CI_PIPELINE_SOURCE == "pipeline") && $REGRESS_TYPE &&
+         ($testname == null || 
+          $testname == "base_scalar" && $TESTS_NAMES =~ "/\[base_scalar\]/" ||
+          $testname == "riscv_total_random_test" && $TESTS_NAMES =~ "/\[riscv_total_random_test\]/"))
+    when: always
+    variables:
+      N_TESTS: $GENERATED_TESTS_SCALAR
 
-.rule_only_merge:
-  - if: ($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /Draft:/) # Merge requests, not draft 
+.rules_synthesis:
+  - if: ($do_synthesis && ($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web"))
 
 stages:
   - linting
@@ -52,157 +61,95 @@ stages:
   - simulation
   - synthesis
   - fpga
-
-before_script:
-  - echo $CI_PIPELINE_SOURCE
-  - echo $CI_COMMIT_BRANCH
-  - echo $CI_OPEN_MERGE_REQUESTS
-  - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.bsc.es/".insteadOf "https://gitlab.bsc.es/"
-  - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.bsc.es/".insteadOf "git@gitlab-internal.bsc.es:"
-  # Setup licenses
-  - export MGLS_LICENSE_FILE=1717@epi03.bsc.es
-  - export LM_LICENSE_FILE=1717@epi03.bsc.es
-  - source /modules.sh
-  - module load verilator
-  - module load rvv/1.0.0
-  - module load gcc
-
-default:
-  tags:
-    - dv
+  - coverage
+  - upload
 
 lint-verilator:
+  extends: .verilator
   stage: linting
   rules:
-    - !reference [.default_rules, rules]
+    - !reference [.rules_default]
   script:
     - verilator --version
     - make lint-verilator
   allow_failure: true
 
 lint-spyglass:
+  extends: .spyglass
   stage: linting
   rules:
-    - !reference [.default_rules, rules]
-  image: registry.gitlab.bsc.es/hwdesign/containerhub/spyglass:latest
+    - !reference [.rules_default]
   variables:
     # Needed for proper exit code detection 
     # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/28658
     FF_USE_NEW_BASH_EVAL_STRATEGY: 1 
-  before_script:
-    - echo $CI_PIPELINE_SOURCE
-    - echo $CI_COMMIT_BRANCH
-    - echo $CI_OPEN_MERGE_REQUESTS
-    # Setup licenses
-    - export SNPS_LICENSE_FILE=27020@epi01.bsc.es
-    - export SNPSLMD_LICENSE_FILE=27020@epi01.bsc.es
-    - export LM_LICENSE_FILE=$LM_LICENSE_FILE:$SNPS_LICENSE_FILE:$SNPSLMD_LICENSE_FILE
   script:
     - ./scripts/lint_spyglass.sh
   allow_failure:
     exit_codes: 11 # Only allow failure in case there are warnings but no errors
 
 lint-dc-elab:
-  image: registry.gitlab.bsc.es/hwdesign/containerhub/rocky_base:latest
+  extends: .dc_shell
   stage: linting
   rules:
-    !reference [.rule_only_merge]
-  tags:
-    - bm
+    !reference [.rules_merge_request]
   timeout: 1 hrs
-  before_script:
-    - echo $CI_PIPELINE_SOURCE
-    - echo $CI_COMMIT_BRANCH
-    - echo $CI_OPEN_MERGE_REQUESTS
-    # Setup licenses
-    - export SNPSLMD_QUEUE=true
-    - export SNPS_LICENSE_FILE=27020@epi01.bsc.es
-    - export SNPSLMD_LICENSE_FILE=27020@epi01.bsc.es
-    - export LM_LICENSE_FILE=$LM_LICENSE_FILE:$SNPS_LICENSE_FILE:$SNPSLMD_LICENSE_FILE
-    # Git configurations
-    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.bsc.es/".insteadOf "https://gitlab.bsc.es/"
-    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.bsc.es/".insteadOf "git@gitlab-internal.bsc.es:"
-    # Setup synopys tools
-    - source /eda/synopsys/synopsys.sh
+  variables:
+    RUNNER_SCRIPT_TIMEOUT: 50m
+    LOG_DC_SHELL: dc_elab.$CI_PIPELINE_ID.log 
   script:
-    - make dc_elab > dc_elab.$CI_PIPELINE_ID.log
-    - |  
-      TXT_RED="\e[5;41m" && TXT_GREEN="\e[5;42m" && TXT_CLEAR="\e[0;0;0m"
-      if grep -q Error: dc_elab.$CI_PIPELINE_ID.log; then
-        echo -e "\n"
-        grep Error: dc_elab.$CI_PIPELINE_ID.log
-        echo -e "\n \nRTL elaboration: ${TXT_RED} FAILED ${TXT_CLEAR}\n \n "
-        exit 1
-      else
-        echo -e "\n \nRTL elaboration: ${TXT_GREEN} PASSED ${TXT_CLEAR}\n \n "
-      fi
+    - make dc_elab > ${LOG_DC_SHELL}
+    - !reference [.scripts, dc_elab_check_errors]
   artifacts:
-    expire_in: 1 week
-    when: always
     paths:
-        - dc_elab.$CI_PIPELINE_ID.log
+        - ${LOG_DC_SHELL}
 
 lint-vc-static:
-  before_script:
-    - export SNPS_LICENSE_FILE=27020@epi01.bsc.es
-    - export SNPSLMD_LICENSE_FILE=27020@epi01.bsc.es
-    - export SNPSLMD_QUEUE=true
-    - export LM_LICENSE_FILE=$LM_LICENSE_FILE:$SNPS_LICENSE_FILE:$SNPSLMD_LICENSE_FILE
-    - source /eda/synopsys/synopsys.sh
-  image: registry.gitlab.bsc.es/hwdesign/containerhub/rocky_base:latest
+  extends: .vc_static  
   stage: linting
   rules:
-    !reference [.rule_only_merge]  
-  tags:
-    - bm
+    !reference [.rules_merge_request]
+  variables:
+    LOG_VC_STATIC: vc_static.$CI_PIPELINE_ID.log
   script:
-    - make lint-vc 2>&1 | tee  vc_static.$CI_PIPELINE_ID.log
-    - VAR=$(grep -E -m 1 "^..Total.+" vc_static.$CI_PIPELINE_ID.log)
-    - FATALS=$(echo $VAR | awk -F' ' '{ print $2 }')
-    - ERRORS=$(echo $VAR | awk -F' ' '{ print $3 }')
-    - WARNINGS=$(echo $VAR | awk -F' ' '{ print $4 }')
-    - |
-      if [ $ERRORS -ne 0 ] || [ $FATALS -ne 0 ]; then
-        echo "$ERRORS errors / $FATALS fatals found" && exit 1
-      else
-        echo "No errors found. $WARNINGS warnings"
-      fi
+    - make lint-vc 2>&1 | tee ${LOG_VC_STATIC}
+    - !reference [.scripts, vc_static_check_errors]
   artifacts:
-    expire_in: 1 week
-    when: always
     paths:
         - report_lint.txt
 
-
 build-isa-tests:
+  extends: .questa_riscv
   stage: building
   rules:
-    - !reference [.default_rules, rules]
+    - !reference [.rules_default]
   script:
     - $RISCV_GCC --version
     - make build-isa-tests
   artifacts:
     paths:
     - tb/tb_isa_tests/build
-    expire_in: 1 week
 
 build-benchmarks:
+  extends: .questa_riscv  
   stage: building
   rules:
-    - !reference [.default_rules, rules]
+    - !reference [.rules_default]
   script:
     - $RISCV_GCC --version
     - make build-benchmarks BENCHMARKS_CI=1
   artifacts:
     paths:
     - benchmarks
-    expire_in: 1 week
 
 build-simulator:
+  extends: .questa_riscv  
   stage: building
   rules:
-    - !reference [.default_rules, rules]
+    - !reference [.rules_default]
   script:
+    - module load verilator
+    - module load gcc
     - verilator --version
     - gcc --version
     - make sim
@@ -211,27 +158,33 @@ build-simulator:
     - simulator/reference/build/libdisasm.so
     - sim
     - bootrom.hex
-    expire_in: 1 week
 
-build-vcs:
-  image: registry.gitlab.bsc.es/hwdesign/containerhub/vcs-riscv:latest
+build-uvm:
+  extends: .questa_riscv
   stage: building
   rules:
-    - !reference [.default_rules, rules]
-  tags:
-    - dv
-  timeout: 1 hrs
-  before_script:
-    - echo $CI_PIPELINE_SOURCE
-    - echo $CI_COMMIT_BRANCH
-    - echo $CI_OPEN_MERGE_REQUESTS
-    # Setup licenses
-    - export MGLS_LICENSE_FILE=1717@epi03.bsc.es
-    - export SNPS_LICENSE_FILE=27020@epi01.bsc.es
-    - export SNPSLMD_LICENSE_FILE=27020@epi01.bsc.es
-    - export LM_LICENSE_FILE=$LM_LICENSE_FILE:$SNPS_LICENSE_FILE:$SNPSLMD_LICENSE_FILE:$MGLS_LICENSE_FILE
-    - source /load_modulefiles_bash.sh
+    - !reference [.rules_uvm_scheduled]
+    - !reference [.rules_uvm_smoke]
+  script:
+    - make clone_dv
+    - make clone_ci_scripts
+    - cd verif/core_uvm
+    - module load verilator
+    - verilator --version
     - module load gcc
+    - gcc --version
+    - make compile_all SARGANTANA=enable RTLDIR=../../ ${COVERAGE_ARG} INTERRUPTS=enable
+  artifacts:
+    untracked: true
+    paths:
+      - verif/core_uvm
+
+build-vcs:
+  extends: .vcs_riscv
+  stage: building
+  rules:
+    - !reference [.rules_default]
+  timeout: 1 hrs
   script:
     - make libdisasm
     - export CI_VCS=1
@@ -240,7 +193,6 @@ build-vcs:
     paths:
     - simulator/reference/build/libdisasm.so
     - build_vcs
-    expire_in: 1 week 
 
 # Only needed by 'torture'
 #build-spike:
@@ -269,9 +221,10 @@ build-vcs:
 #    - tb/tb_torture/riscv-torture/output
 
 isa-tests:
+  extends: .questa_riscv
   stage: simulation
   rules:
-    - !reference [.default_rules, rules]
+    - !reference [.rules_default]
   dependencies:
     - build-simulator
     - build-isa-tests
@@ -279,39 +232,29 @@ isa-tests:
     - ./tb/tb_isa_tests/run-tests.py ./sim tb/tb_isa_tests/build/isa
 
 benchmarks:
+  extends: .questa_riscv  
   stage: simulation
   rules:
-    - !reference [.default_rules, rules]
+    - !reference [.rules_default]
   dependencies:
     - build-simulator
     - build-benchmarks
   timeout: 4h
+  variables:
+    RUNNER_SCRIPT_TIMEOUT: 3h50m
   script:
     - ./run-benchmarks.sh
 
 vcs:
-  image: registry.gitlab.bsc.es/hwdesign/containerhub/vcs-riscv:latest
+  extends: .vcs_riscv
   stage: simulation
   rules:
-    - !reference [.default_rules, rules]
+    - !reference [.rules_default]
   timeout: 1 hrs
   dependencies:
     - build-vcs
     - build-isa-tests
     - build-simulator
-  tags:
-    - dv
-  before_script:
-    - echo $CI_PIPELINE_SOURCE
-    - echo $CI_COMMIT_BRANCH
-    - echo $CI_OPEN_MERGE_REQUESTS
-    # Setup licenses
-    - export MGLS_LICENSE_FILE=1717@epi03.bsc.es
-    - export SNPS_LICENSE_FILE=27020@epi01.bsc.es
-    - export SNPSLMD_LICENSE_FILE=27020@epi01.bsc.es
-    - export LM_LICENSE_FILE=$LM_LICENSE_FILE:$SNPS_LICENSE_FILE:$SNPSLMD_LICENSE_FILE:$MGLS_LICENSE_FILE
-    - source /load_modulefiles_bash.sh
-    - module load gcc
   script:
     - cp bootrom.hex build_vcs/bootrom.hex
     - ./build_vcs/simv +vcs+lic+wait +load=./tb/tb_isa_tests/build/isa/rv64ui-p-add
@@ -341,73 +284,56 @@ vcs:
 #    paths:
 #    - tb/tb_torture/signatures
 
-random_regression:
+uvm-random-regression:
+  extends: .questa_riscv
   stage: simulation
   parallel:
     matrix:
       - testname: [riscv_total_random_test, base_scalar, base_rvv]
   rules:
-    - !reference [ .random_regression_rules ]
+    - !reference [ .rules_uvm_scheduled ]
   timeout: 8h
   variables:
     RUNNER_SCRIPT_TIMEOUT: 7h30m
   script:
-    - make clone_dv
     - cd verif/core_uvm
     - mkdir -p tests/build/generated_tests
-    - ./generate_random_tests.sh 20 ${testname}
-    - make compile_all SARGANTANA=enable RTLDIR=$(realpath ../../) COVERAGE=enable INTERRUPTS=enable
-    - python3 -u run.py -r riscv-dv_regression.yaml --coverage --coverage-report-html --interrupts
+    - ./generate_random_tests.sh ${N_TESTS} ${testname}
+    - python3 -u run.py -r riscv-dv_regression.yaml ${COVERAGE} --interrupts || result=$(echo $?)
+    - mv ./regress/results/sargantana_random_riscvdv_tests ./regress/results/sargantana_random_riscvdv_${testname}
+    - if [ ! -z $result ];then exit ${result}; fi
   artifacts:
     untracked: true
-    when: always
     paths:
         - verif/core_uvm/sim/build/comp_transcript
-        - verif/core_uvm/regress/results/sargantana_random_riscvdv_tests/*
+        - verif/core_uvm/regress/results/sargantana_random_riscvdv_${testname}/*
         - verif/core_uvm/generated_tests_*/*
         - verif/core_uvm/tests/build/generated_tests/*
 
-uvm_regression:
+uvm-regression:
+  extends: .questa_riscv
   stage: simulation
   parallel:
     matrix:
       - regression_type: [isa_tests, rvv_tests]
-  variables:
-    JOB_ALLOW_TRIGGER: "true"
   rules:
-    - !reference [.default_rules, rules]
-  timeout: 8h
+    - !reference [.rules_uvm_smoke]
   script:
-    - make clone_uvm
     - cd verif/core_uvm
-    - make compile_all SARGANTANA=enable RTLDIR=$(realpath ../../)
-    - python3 -u run.py -r ${regression_type}_sargantana.yaml
+    - python3 -u run.py -r ${regression_type}_sargantana.yaml ${COVERAGE} ${IGNORE_EXCLUSION}
   artifacts:
     untracked: true
-    when: always
     paths:
         - verif/core_uvm/sim/build/comp_transcript
-        - verif/core_uvm/regress/results/sargantana_*_check/*
+        - verif/core_uvm/regress/results
 
-dc_synthesis:
-  image: registry.gitlab.bsc.es/hwdesign/containerhub/rocky_base:latest
+dc-synthesis:
+  extends: .dc_shell
   stage: synthesis
-  tags: 
-    - bm
-  timeout: 8h
   rules:
-    - !reference [.synthesis_rules]
-  before_script:
-    # add ci token to git url
-    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.bsc.es/".insteadOf "https://gitlab.bsc.es/"
-    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.bsc.es/".insteadOf "git@gitlab-internal.bsc.es:"
-    # setup licenses
-    - export SNPSLMD_QUEUE=true
-    - export SNPS_LICENSE_FILE=27020@epi01.bsc.es
-    - export SNPSLMD_LICENSE_FILE=27020@epi01.bsc.es
-    - export LM_LICENSE_FILE=$LM_LICENSE_FILE:$SNPS_LICENSE_FILE:$SNPSLMD_LICENSE_FILE
-    # setup tools
-    - source /eda/synopsys/synopsys.sh
+    - !reference [.rules_synthesis]
+  variables:
+    SARGANTANA_OUT_DIR: /nfs/synthesis/CI-SARGANTANA
   script:
     - make dc_syn 2>&1 | tee ./dc_syn.$CI_PIPELINE_ID.log 
     - mkdir -p $SARGANTANA_OUT_DIR/$CI_COMMIT_REF_NAME/$CI_COMMIT_SHORT_SHA
@@ -418,12 +344,11 @@ dc_synthesis:
   artifacts:
     paths:
       - dc_syn.$CI_PIPELINE_ID.log
-    when: always
 
 fpga:
   stage: fpga
   rules:
-    - !reference [.default_rules, rules]
+    - !reference [.rules_merge_request]
   variables:
     COMMIT_SHA: $CI_COMMIT_SHA
     COMMIT_REF: $CI_COMMIT_REF_NAME
@@ -431,5 +356,39 @@ fpga:
     project: hwdesign/fpga/integration-lab/fpga-shell
     branch: ft/ci_for_sargantana
     strategy: depend
+
+publish-badges:
+  stage: upload
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - !reference [.rules_uvm_scheduled]
+    - !reference [.rules_uvm_smoke]
+  variables:
+    JOB_STATUS: >-
+      ${uvm_regression_isa_tests_status}
+      ${uvm_regression_rvv_tests_status}
+      ${uvm_random_regression_riscv_total_random_test_status}
+      ${uvm_random_regression_base_scalar_status}
+      ${uvm_random_regression_base_rvv_status}
+
+  trigger:
+    project: hwdesign/ci/generic_ci 
+    branch: $GENERIC_CI_BRANCH
+
+coverage-report:
+  extends: .coverage-report
+  stage: coverage
+  variables:
+    JOB_ALLOW_TRIGGER: "true"  
+    LIST_UCDB: >-
+      verif/core_uvm/regress/results/sargantana_isa_check/merged.ucdb
+      verif/core_uvm/regress/results/sargantana_rvv_check/merged.ucdb
+      verif/core_uvm/regress/results/sargantana_random_riscvdv_riscv_total_random_test/merged.ucdb
+      verif/core_uvm/regress/results/sargantana_random_riscvdv_base_scalar/merged.ucdb
+      verif/core_uvm/regress/results/sargantana_random_riscvdv_base_rvv/merged.ucdb
+    ARGS_OVERALL_COVERAGE: -f ./verif/core_uvm/regress/results/html_report/files/z1.js -d /top_tb/ka_th
+    CI_SCRIPTS_PATH: verif/core_uvm/ci_scripts
+    RESULTS_PATH: verif/core_uvm/regress/results
+    PUBLISH_PATH: /nfs/verification/sargantana-dv
+  rules:
+    - !reference [.rules_uvm_scheduled]
+    - !reference [.rules_uvm_smoke]

@@ -19,6 +19,11 @@ SRAM_WRAPPER =$(SRAM_WRAPPER_DIR)/piton/design/common/rtl/asic_sram_1p.v
 RISCV_DV_DIR = $(CORE_UVM_DIR)/riscv-dv
 RISCV_DV_REPO = git@gitlab-internal.bsc.es:hwdesign/verification/riscv-dv.git
 RISCV_DV_BRANCH ?= master
+
+CI_SCRIPTS_REPO = git@gitlab-internal.bsc.es:hwdesign/ci/ci_scripts.git
+CI_SCRIPTS_DIR = $(CORE_UVM_DIR)/ci_scripts
+CI_SCRIPTS_BRANCH ?= main
+
 export HPDCACHE_DIR = $(PROJECT_DIR)/rtl/dcache
 
 # *** Simulators ***
@@ -99,3 +104,8 @@ clone_riscv_dv:
 	mkdir -p ${RISCV_DV_DIR}
 	git clone ${SHALLOW_CLONE} ${RISCV_DV_REPO} ${RISCV_DV_DIR} -b ${RISCV_DV_BRANCH}
 	${RISCV_DV_DIR}/clone_targets.sh ${RISCV_DV_DIR}
+
+clone_ci_scripts:
+	mkdir -p ${DV_DIR}
+	mkdir -p ${CI_SCRIPTS_DIR}
+	git clone ${SHALLOW_CLONE} ${CI_SCRIPTS_REPO} ${CI_SCRIPTS_DIR} -b ${CI_SCRIPTS_BRANCH}
