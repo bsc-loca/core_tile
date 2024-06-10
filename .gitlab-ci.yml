@@ -15,6 +15,8 @@ workflow:
 .rules_default:
     - if: ($do_synthesis && ($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web"))
       when: never
+    - if: (($CI_PIPELINE_SOURCE == 'web' || $CI_PIPELINE_SOURCE == 'schedule') && $OPERATION == "boot")
+      when: never
     - if: '$CI_PIPELINE_SOURCE == "pipeline"'
       when: never
     - if: (($CI_PIPELINE_SOURCE == "schedule" || 
@@ -54,6 +56,11 @@ workflow:
 
 .rules_synthesis:
   - if: ($do_synthesis && ($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web"))
+
+.rules_fpga:
+    - if:  $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: (($CI_PIPELINE_SOURCE == 'web' || $CI_PIPELINE_SOURCE == 'schedule') && $OPERATION == "boot")
 
 stages:
   - linting
@@ -295,6 +302,7 @@ uvm-random-regression:
   timeout: 8h
   variables:
     RUNNER_SCRIPT_TIMEOUT: 7h30m
+    BADGE_GEN: "true"    
   script:
     - cd verif/core_uvm
     - mkdir -p tests/build/generated_tests
@@ -318,6 +326,8 @@ uvm-regression:
       - regression_type: [isa_tests, rvv_tests]
   rules:
     - !reference [.rules_uvm_smoke]
+  variables:
+    BADGE_GEN: "true"
   script:
     - cd verif/core_uvm
     - python3 -u run.py -r ${regression_type}_sargantana.yaml ${COVERAGE} ${IGNORE_EXCLUSION}
@@ -349,6 +359,7 @@ fpga:
   stage: fpga
   rules:
     - !reference [.rules_merge_request]
+    - !reference [.rules_fpga]
   variables:
     COMMIT_SHA: $CI_COMMIT_SHA
     COMMIT_REF: $CI_COMMIT_REF_NAME
