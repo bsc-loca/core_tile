@@ -100,8 +100,7 @@ module axi_uart_behav (
     end
 
     always_ff @(posedge clk_i) begin
-        if (should_transmit) 
-        $display(" uart data received : %s", reg_q[0]);
+        if (should_transmit) $write("%s", reg_q[0]);
     end
 
     /*always_ff @(posedge clk_i) begin
