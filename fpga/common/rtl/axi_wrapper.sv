@@ -98,7 +98,6 @@ module axi_wrapper (
         .soft_rstn_i(rstn_i),
         .debug_halt_i(0),
         .reset_addr_i(40'h0000000100),
-        .boot_addr_i(64'h140),
 
         // Bootrom ports
         .brom_req_address_o(brom_req_address),

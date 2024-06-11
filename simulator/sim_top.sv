@@ -91,7 +91,6 @@ module sim_top;
         .debug_halt_i(0),
         .reset_addr_i({{{PHY_VIRT_MAX_ADDR_SIZE-16}{1'b0}}, 16'h0100}),
         .core_id_i(64'b0),
-        .boot_addr_i(64'h140),
 
         // Bootrom ports
         .brom_req_address_o(brom_req_address),
