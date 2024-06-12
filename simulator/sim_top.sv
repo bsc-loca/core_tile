@@ -94,11 +94,14 @@ module sim_top;
     debug_contr_out_t debug_contr_core_to_dm;
     debug_reg_out_t   debug_reg_core_to_dm;
 
+    logic dut_rstn, debug_reset;
+
+    assign dut_rstn = ~(~tb_rstn | debug_reset);
 
     top_tile DUT(
         .clk_i(tb_clk),
-        .rstn_i(tb_rstn),
-        .soft_rstn_i(tb_rstn),
+        .rstn_i(dut_rstn),
+        .soft_rstn_i(dut_rstn),
         .reset_addr_i({{{PHY_VIRT_MAX_ADDR_SIZE-16}{1'b0}}, 16'h0100}),
         .core_id_i(64'b0),
 
@@ -162,7 +165,7 @@ module sim_top;
 
         // Unused ports
         
-        .debug_contr_i(dm_to_core),
+        .debug_contr_i(debug_contr_dm_to_core),
         .debug_reg_i(debug_reg_dm_to_core),
         .debug_contr_o(debug_contr_core_to_dm),
         .debug_reg_o(debug_reg_core_to_dm),
@@ -399,13 +402,16 @@ module sim_top;
         .resume_request_o(debug_contr_dm_to_core.resume_req),
         .halt_request_o(debug_contr_dm_to_core.halt_req),
         .halt_on_reset_o(debug_contr_dm_to_core.halt_on_reset),
-        .hart_reset_o(),
+        .progbuf_run_req_o(debug_contr_dm_to_core.progbuf_req),
+        .hart_reset_o(debug_reset),
 
         .resume_ack_i(debug_contr_core_to_dm.resume_ack),
         .halted_i(debug_contr_core_to_dm.halted),
         .running_i(debug_contr_core_to_dm.running),
         .havereset_i(0),
         .unavail_i(debug_contr_core_to_dm.unavail),
+        .progbuf_run_ack_i(debug_contr_core_to_dm.progbuf_ack),
+        .parked_i(debug_contr_core_to_dm.parked),
 
         .rnm_read_en_o(debug_reg_dm_to_core.rnm_read_en),       // Request reading the rename table
         .rnm_read_reg_o(debug_reg_dm_to_core.rnm_read_reg),     // Logical register for which the mapping is read
