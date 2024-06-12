@@ -96,7 +96,6 @@ module axi_wrapper (
         .clk_i(clk_i),
         .rstn_i(rstn_i),
         .soft_rstn_i(rstn_i),
-        .debug_halt_i(0),
         .reset_addr_i(40'h0000000100),
 
         // Bootrom ports
@@ -157,6 +156,12 @@ module axi_wrapper (
         .mem_resp_uc_read_ready_o(mem_resp_uc_read_ready),
         .mem_resp_uc_read_valid_i(mem_resp_uc_read_valid),
         .mem_resp_uc_read_i(mem_resp_uc_read),
+
+        // Debug module
+        .debug_contr_i('0),
+        .debug_reg_i(¡0),
+        .debug_contr_o(),
+        .debug_reg_o(),
 
         .time_irq_i(time_irq_i),
         .irq_i(1'b0),

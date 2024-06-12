@@ -39,20 +39,10 @@ module top_tile
 
 //------------------------------------------------------------------------------------
 // DEBUG RING SIGNALS INPUT
-// debug_halt_i is istall_test 
 //------------------------------------------------------------------------------------    
-    input  logic                debug_halt_i, // Halt core / debug mode
-    input debug_intel_in_t      debug_intel_i,
-
-    input  addr_t               debug_pc_addr_i,  // Address to set in the PC of the fetch stage
-    input  logic                debug_pc_valid_i, // Write the address debug_pc_addr_i into the PC of the fetch stage
-    
-    input  logic                debug_reg_read_valid_i,   // Read the physical register address corresponding to the register indicated in debug_reg_read_addr_i
-    input  logic [4:0]          debug_reg_read_addr_i,    // Address of the architectural register to be translated to the physical register address
-    input  logic                debug_preg_write_valid_i, // Enable the write of debug_preg_write_data_i into the physical register indicated by debug_preg_addr_i
-    input  bus64_t              debug_preg_write_data_i,  // Data to write into the physical register indicated by debug_preg_read_valid_i
-    input  logic [5:0]	        debug_preg_addr_i,        // Address of the physical register which will be read or written into
-    input  logic                debug_preg_read_valid_i,  // Enable the read of the contents of the physical register indicated by debug_preg_addr_i
+    input debug_contr_in_t      debug_contr_i,
+    input debug_reg_in_t        debug_reg_i,
+    input addr_t                debug_program_buff_addr_i,
 
 //------------------------------------------------------------------------------------
 // I-CANCHE INPUT INTERFACE
@@ -132,23 +122,11 @@ module top_tile
 // DEBUGGING MODULE SIGNALS
 //-----------------------------------------------------------------------------------
 
-    output addr_t               debug_fetch_pc_o,         // PC of the instr. at fetch stage
-    output addr_t               debug_decode_pc_o,        // PC of the instr. at decode stage
-    output addr_t               debug_register_read_pc_o, // PC of the instr. at register read stage
-    output addr_t               debug_execute_pc_o,       // PC of the instr. at execute stage
-    output addr_t               debug_writeback_pc_o,     // PC of the instr. at writeback stage
+    output debug_reg_out_t      debug_reg_o,
+    output debug_contr_out_t    debug_contr_o,
 
-    output logic                debug_writeback_pc_valid_o, // Indicates if the instr. at writeback stage is valid
-    output logic  [4:0]         debug_writeback_addr_o,     // Address of the destination register of the instr. at writeback
-    output logic                debug_writeback_we_o,       // Indicates if the instr. at writeback stage writes to the regfile
-    output bus64_t              debug_mem_addr_o,           // Address of the latest access to memory
-
-    output logic		        debug_backend_empty_o, // Indicates if the backend is empty (i.e. no instruction in the graduation list)
-    output logic  [5:0]		    debug_preg_addr_o,     // Physical register address corresponding to the register indicated by debug_reg_read_addr_i
-    output bus64_t              debug_preg_data_o,     // Data contained in the register indicated by debug_preg_addr_i
 
     output visa_signals_t       visa_o,
-    output debug_intel_out_t    debug_intel_o,
 
 
 //-----------------------------------------------------------------------------
@@ -268,18 +246,6 @@ top_drac #(
     `ifdef EXTERNAL_HPM_EVENT_NUM
      .external_hpm_i(external_hpm_i),
      `endif
- 
-
-    // Debug ring
-    .debug_halt_i(debug_halt_i),
-    .debug_pc_addr_i(debug_pc_addr_i),
-    .debug_pc_valid_i(debug_pc_valid_i),
-    .debug_reg_read_valid_i(debug_reg_read_valid_i),
-    .debug_reg_read_addr_i(debug_reg_read_addr_i),
-    .debug_preg_write_valid_i(debug_preg_write_valid_i),
-    .debug_preg_write_data_i(debug_preg_write_data_i),
-    .debug_preg_addr_i(debug_preg_addr_i),
-    .debug_preg_read_valid_i(debug_preg_read_valid_i),
 
     // iCache Interface
     .req_icache_ready_i(req_icache_ready),
@@ -298,22 +264,12 @@ top_drac #(
     .dtlb_comm_i(dtlb_core_comm),
 
     // Debug Module
-    .debug_fetch_pc_o(debug_fetch_pc_o),
-    .debug_decode_pc_o(debug_decode_pc_o),
-    .debug_register_read_pc_o(debug_register_read_pc_o),
-    .debug_execute_pc_o(debug_execute_pc_o),
-    .debug_writeback_pc_o(debug_writeback_pc_o),
-    .debug_writeback_pc_valid_o(debug_writeback_pc_valid_o),
-    .debug_writeback_addr_o(debug_writeback_addr_o),
-    .debug_writeback_we_o(debug_writeback_we_o),
-    .debug_mem_addr_o(debug_mem_addr_o),
-    .debug_backend_empty_o(debug_backend_empty_o),
-    .debug_preg_addr_o(debug_preg_addr_o),
-    .debug_preg_data_o(debug_preg_data_o),
-
     .visa_o(visa_o),
-    .debug_intel_i(debug_intel_i),
-    .debug_intel_o(debug_intel_o),
+    .debug_contr_i(debug_contr_i),
+    .debug_reg_i(debug_reg_i),
+
+    .debug_contr_o(debug_contr_o),
+    .debug_reg_o(debug_reg_o),
 
     // PMU Interface
     .pmu_interface_i(pmu_interface),

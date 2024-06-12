@@ -46,36 +46,11 @@
  input logic soft_irq_i,
 
  // Debug ring interface
+    input debug_contr_in_t      debug_contr_i,
+    input  debug_reg_in_t       debug_reg_i,
 
-    input  logic                debug_halt_i,
-    input debug_intel_in_t      debug_intel_i,
-
-
-    input  addr_t               debug_pc_addr_i,
-    input  logic                debug_pc_valid_i,
-    
-    input  logic                debug_reg_read_valid_i,
-    input  logic [4:0]          debug_reg_read_addr_i,
-    input  logic                debug_preg_write_valid_i,
-    input  bus64_t              debug_preg_write_data_i,
-    input  logic [5:0]	        debug_preg_addr_i,
-    input  logic                debug_preg_read_valid_i,
-
-    output addr_t               debug_fetch_pc_o,
-    output addr_t               debug_decode_pc_o,
-    output addr_t               debug_register_read_pc_o,
-    output addr_t               debug_execute_pc_o,
-    output addr_t               debug_writeback_pc_o,
-
-    output logic                debug_writeback_pc_valid_o,
-    output logic  [4:0]         debug_writeback_addr_o,
-    output logic                debug_writeback_we_o,
-    output bus64_t              debug_mem_addr_o,
-
-    output logic		        debug_backend_empty_o,
-    output logic  [5:0]		    debug_preg_addr_o,
-    output bus64_t              debug_preg_data_o,
-    output debug_intel_out_t    debug_intel_o,
+    output debug_contr_out_t    debug_contr_o,
+    output debug_reg_out_t      debug_reg_o,
 
     output visa_signals_t       visa_o
 );
@@ -260,34 +235,11 @@ top_tile #(
  .soft_irq_i(soft_irq_i),
  .time_i(time_i),
 
- .debug_halt_i(debug_halt_i),
- .debug_intel_i(debug_intel_i),
- .debug_intel_o(debug_intel_o),
+ .debug_contr_i(debug_contr_i),
+ .debug_reg_i(debug_reg_i),
 
- .debug_pc_addr_i(debug_pc_addr_i),
- .debug_pc_valid_i(debug_pc_valid_i),
-
- .debug_reg_read_valid_i(debug_reg_read_valid_i),
- .debug_reg_read_addr_i(debug_reg_read_addr_i),
- .debug_preg_write_valid_i(debug_preg_write_valid_i),
- .debug_preg_write_data_i(debug_preg_write_data_i),
- .debug_preg_addr_i(debug_preg_addr_i),
- .debug_preg_read_valid_i(debug_preg_read_valid_i),
-
- .debug_fetch_pc_o(debug_fetch_pc_o),
- .debug_decode_pc_o(debug_decode_pc_o),
- .debug_register_read_pc_o(debug_register_read_pc_o),
- .debug_execute_pc_o(debug_execute_pc_o),
- .debug_writeback_pc_o(debug_writeback_pc_o),
- .debug_writeback_pc_valid_o(debug_writeback_pc_valid_o),
- 
- .debug_writeback_addr_o(debug_writeback_addr_o),
- .debug_writeback_we_o(debug_writeback_we_o),
- .debug_mem_addr_o(debug_mem_addr_o),
-
- .debug_backend_empty_o(debug_backend_empty_o),
- .debug_preg_addr_o(debug_preg_addr_o),
- .debug_preg_data_o(debug_preg_data_o),
+ .debug_contr_o(debug_contr_o),
+ .debug_reg_o(debug_reg_o),
 
  .visa_o(visa_o),
 

@@ -87,27 +87,18 @@ module sim_top;
     // Debug Module Interface
 
     // DM -> Core
-    debug_intel_in_t dm_to_core;
-
-    logic       debug_reg_read_valid;   // Read the physical register address corresponding to the register indicated in debug_reg_read_addr_i
-    logic [4:0] debug_reg_read_addr;    // Address of the architectural register to be translated to the physical register address
-
-    logic       debug_preg_read_valid;  // Enable the read of the contents of the physical register indicated by debug_preg_addr_i
-    logic [5:0] debug_preg_addr_rename; // Address of the physical register which will be read or written into
-    logic       debug_preg_write_valid; // Enable the write of debug_preg_write_data_i into the physical register indicated by debug_preg_addr_i
-    bus64_t     debug_preg_write_data;  // Data to write into the physical register indicated by debug_preg_read_valid_i
+    debug_contr_in_t debug_contr_dm_to_core;
+    debug_reg_in_t   debug_reg_dm_to_core;
 
     // Core -> DM
-    debug_intel_out_t core_to_dm;
+    debug_contr_out_t debug_contr_core_to_dm;
+    debug_reg_out_t   debug_reg_core_to_dm;
 
-    logic  [5:0] debug_preg_addr;     // Physical register address corresponding to the register indicated by debug_reg_read_addr_i
-    bus64_t      debug_preg_data;     // Data contained in the register indicated by debug_preg_addr_i
 
     top_tile DUT(
         .clk_i(tb_clk),
         .rstn_i(tb_rstn),
         .soft_rstn_i(tb_rstn),
-        .debug_halt_i(0),
         .reset_addr_i({{{PHY_VIRT_MAX_ADDR_SIZE-16}{1'b0}}, 16'h0100}),
         .core_id_i(64'b0),
 
@@ -169,32 +160,12 @@ module sim_top;
         .mem_resp_uc_read_valid_i(mem_resp_uc_read_valid),
         .mem_resp_uc_read_i(mem_resp_uc_read),
 
-        // Debug Module Interface
-        .debug_intel_i(dm_to_core),
-        .debug_intel_o(core_to_dm),
-
-        .debug_reg_read_valid_i(debug_reg_read_valid),
-        .debug_reg_read_addr_i(debug_reg_read_addr),
-        .debug_preg_write_valid_i(debug_preg_write_valid),
-        .debug_preg_write_data_i(debug_preg_write_data),
-        .debug_preg_addr_i(debug_preg_addr),
-        .debug_preg_read_valid_i(debug_preg_read_valid),
-        .debug_preg_addr_o(debug_preg_addr_rename),
-        .debug_preg_data_o(debug_preg_data),
-
         // Unused ports
-        .debug_pc_addr_i(0),
-        .debug_pc_valid_i(0),
-        .debug_fetch_pc_o(),
-        .debug_decode_pc_o(),
-        .debug_register_read_pc_o(),
-        .debug_execute_pc_o(),
-        .debug_writeback_pc_o(),
-        .debug_writeback_pc_valid_o(),
-        .debug_writeback_addr_o(),
-        .debug_writeback_we_o(),
-        .debug_mem_addr_o(),
-        .debug_backend_empty_o(),
+        
+        .debug_contr_i(dm_to_core),
+        .debug_reg_i(debug_reg_dm_to_core),
+        .debug_contr_o(debug_contr_core_to_dm),
+        .debug_reg_o(debug_reg_core_to_dm),
 
         .time_i(64'd0),
         .irq_i(1'b0),
@@ -425,27 +396,27 @@ module sim_top;
         .resp_data_o(resp_data),
         .resp_op_o(resp_op),
 
-        .resume_request_o(dm_to_core.resume_req),
-        .halt_request_o(dm_to_core.halt_req),
-        .halt_on_reset_o(),
+        .resume_request_o(debug_contr_dm_to_core.resume_req),
+        .halt_request_o(debug_contr_dm_to_core.halt_req),
+        .halt_on_reset_o(debug_contr_dm_to_core.halt_on_reset),
         .hart_reset_o(),
 
-        .resume_ack_i(core_to_dm.resume_ack),
-        .halted_i(core_to_dm.halted),
-        .running_i(~core_to_dm.halted),
+        .resume_ack_i(debug_contr_core_to_dm.resume_ack),
+        .halted_i(debug_contr_core_to_dm.halted),
+        .running_i(debug_contr_core_to_dm.running),
         .havereset_i(0),
-        .unavail_i(0),
+        .unavail_i(debug_contr_core_to_dm.unavail),
 
-        .rnm_read_en_o(debug_reg_read_valid),     // Request reading the rename table
-        .rnm_read_reg_o(debug_reg_read_addr),     // Logical register for which the mapping is read
-        .rnm_read_resp_i(debug_preg_addr_rename), // Physical register mapped to the requested logical register
+        .rnm_read_en_o(debug_reg_dm_to_core.rnm_read_en),       // Request reading the rename table
+        .rnm_read_reg_o(debug_reg_dm_to_core.rnm_read_reg),     // Logical register for which the mapping is read
+        .rnm_read_resp_i(debug_reg_core_to_dm.rnm_read_resp),   // Physical register mapped to the requested logical register
 
-        .rf_en_o(debug_preg_read_valid),          // Read enable for the register file
-        .rf_preg_o(debug_preg_addr),              // Target physical register in the register file
-        .rf_rdata_i(debug_preg_data),             // Data read from the register file
+        .rf_en_o(debug_reg_dm_to_core.rf_en),                   // Read enable for the register file
+        .rf_preg_o(debug_reg_dm_to_core.rf_preg),               // Target physical register in the register file
+        .rf_rdata_i(debug_reg_core_to_dm.rf_rdata),             // Data read from the register file
 
-        .rf_we_o(debug_preg_write_valid),         // Write enable for the register file
-        .rf_wdata_o(debug_preg_write_data),       // Data to write to the register file
+        .rf_we_o(debug_reg_dm_to_core.rf_we),                   // Write enable for the register file
+        .rf_wdata_o(debug_reg_dm_to_core.rf_wdata),             // Data to write to the register file
         //! @end
 
 
