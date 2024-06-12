@@ -208,7 +208,7 @@ void Memory32::write_block(uint32_t addr, uint32_t size, const uint8_t* buf) {
 
 bool Memory32::read(const uint32_t addr, uint32_t &data) {
     assert((addr & 0x3) == 0);
-    if (addr_max != 0 && addr >= addr_max || !mem.count(addr)) {
+    if (((addr_max != 0) && (addr >= addr_max)) || !mem.count(addr)) {
         if (debug_read) printf("WARN: Memory read outside of range: 0x%8x\n", addr);
         data = 0;
         return false;

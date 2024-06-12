@@ -138,8 +138,8 @@ void konataSignature::dump_file(unsigned long long if1_valid,
     signedPC = signedPC << 24;
     signedPC = signedPC >> 24;
 
-    if(!(if1_valid && !if1_stall || if2_valid && !if2_stall || id_valid && !id_stall ||
-         exe_valid && !exe_stall || ir_valid  && !ir_stall || rr_valid  && !rr_stall || wb1_valid || wb2_valid || wb3_valid || wb4_valid || wb1_fp_valid || wb2_fp_valid || wb1_simd_valid || wb2_simd_valid ||
+    if(!((if1_valid && !if1_stall) || (if2_valid && !if2_stall) || (id_valid && !id_stall) ||
+         (exe_valid && !exe_stall) || (ir_valid  && !ir_stall) || (rr_valid  && !rr_stall) || wb1_valid || wb2_valid || wb3_valid || wb4_valid || wb1_fp_valid || wb2_fp_valid || wb1_simd_valid || wb2_simd_valid ||
          if1_flush || if2_flush || id_flush || 
          ir_flush || rr_flush || exe_flush)){
         cycles++;
