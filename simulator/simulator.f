@@ -12,5 +12,8 @@
 // Load behavioral models
 -F models/filelist.f
 
+// Load Debug Module + JTAG
+-F bsc-dm/filelist.f
+
 // Load testbench
 sim_top.sv

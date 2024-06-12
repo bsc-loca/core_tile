@@ -84,6 +84,25 @@ module sim_top;
     logic                          mem_resp_uc_write_valid;
     hpdcache_mem_resp_w_t          mem_resp_uc_write;
 
+    // Debug Module Interface
+
+    // DM -> Core
+    debug_intel_in_t dm_to_core;
+
+    logic       debug_reg_read_valid;   // Read the physical register address corresponding to the register indicated in debug_reg_read_addr_i
+    logic [4:0] debug_reg_read_addr;    // Address of the architectural register to be translated to the physical register address
+
+    logic       debug_preg_read_valid;  // Enable the read of the contents of the physical register indicated by debug_preg_addr_i
+    logic [5:0] debug_preg_addr_rename; // Address of the physical register which will be read or written into
+    logic       debug_preg_write_valid; // Enable the write of debug_preg_write_data_i into the physical register indicated by debug_preg_addr_i
+    bus64_t     debug_preg_write_data;  // Data to write into the physical register indicated by debug_preg_read_valid_i
+
+    // Core -> DM
+    debug_intel_out_t core_to_dm;
+
+    logic  [5:0] debug_preg_addr;     // Physical register address corresponding to the register indicated by debug_reg_read_addr_i
+    bus64_t      debug_preg_data;     // Data contained in the register indicated by debug_preg_addr_i
+
     top_tile DUT(
         .clk_i(tb_clk),
         .rstn_i(tb_rstn),
@@ -150,15 +169,22 @@ module sim_top;
         .mem_resp_uc_read_valid_i(mem_resp_uc_read_valid),
         .mem_resp_uc_read_i(mem_resp_uc_read),
 
+        // Debug Module Interface
+        .debug_intel_i(dm_to_core),
+        .debug_intel_o(core_to_dm),
+
+        .debug_reg_read_valid_i(debug_reg_read_valid),
+        .debug_reg_read_addr_i(debug_reg_read_addr),
+        .debug_preg_write_valid_i(debug_preg_write_valid),
+        .debug_preg_write_data_i(debug_preg_write_data),
+        .debug_preg_addr_i(debug_preg_addr),
+        .debug_preg_read_valid_i(debug_preg_read_valid),
+        .debug_preg_addr_o(debug_preg_addr_rename),
+        .debug_preg_data_o(debug_preg_data),
+
         // Unused ports
         .debug_pc_addr_i(0),
         .debug_pc_valid_i(0),
-        .debug_reg_read_valid_i(0),
-        .debug_reg_read_addr_i(0),
-        .debug_preg_write_valid_i(0),
-        .debug_preg_write_data_i(0),
-        .debug_preg_addr_i(0),
-        .debug_preg_read_valid_i(0),
         .debug_fetch_pc_o(),
         .debug_decode_pc_o(),
         .debug_register_read_pc_o(),
@@ -169,10 +195,6 @@ module sim_top;
         .debug_writeback_we_o(),
         .debug_mem_addr_o(),
         .debug_backend_empty_o(),
-        .debug_preg_addr_o(),
-        .debug_preg_data_o(),
-        .debug_intel_i('0),
-        .debug_intel_o(),
 
         .time_i(64'd0),
         .irq_i(1'b0),
@@ -180,6 +202,8 @@ module sim_top;
         .time_irq_i(1'b0),
         .io_core_pmu_l2_hit_i()
     );
+
+    // *** Bootrom ***
 
     bootrom_behav brom(
         .clk(tb_clk),
@@ -190,6 +214,8 @@ module sim_top;
         .brom_resp_data_o(brom_resp_data),
         .brom_resp_valid_o(brom_resp_valid)
     );
+
+    // *** L2 / Main Memory ***
 
     l2_behav #(
         .DATA_CACHE_LINE_SIZE(drac_pkg::DCACHE_BUS_WIDTH),
@@ -278,6 +304,162 @@ module sim_top;
         .dc_uc_rd_ready_i(mem_resp_uc_read_ready)
     );
 
+    // Debug Module / JTAG
+
+    logic tck, tms, tdi, tdo, trstn, tdo_driven, jtag_enable;
+
+    SimJTAG #(
+        .TICK_DELAY(0)
+    ) JTAG_DPI (
+        .clock(tb_clk),
+        .reset(~tb_rstn),
+
+        .enable(jtag_enable),
+        .init_done(1),
+
+        .jtag_TCK(tck),
+        .jtag_TMS(tms),
+        .jtag_TDI(tdi),
+        .jtag_TRSTn(trstn),
+
+        .jtag_TDO_data(tdo),
+        .jtag_TDO_driven(tdo_driven),
+
+        .exit()
+    );
+
+    logic                                       req_valid;
+    logic                                       req_ready;
+    logic [riscv_dm_pkg::DMI_ADDR_WIDTH-1:0]    req_addr;
+    logic [riscv_dm_pkg::DMI_DATA_WIDTH-1:0]    req_data;
+    logic [riscv_dm_pkg::DMI_OP_WIDTH-1:0]      req_op;
+    logic                                       req_valid_cdc;
+    logic                                       req_ready_cdc;
+    logic [riscv_dm_pkg::DMI_ADDR_WIDTH-1:0]    req_addr_cdc;
+    logic [riscv_dm_pkg::DMI_DATA_WIDTH-1:0]    req_data_cdc;
+    logic [riscv_dm_pkg::DMI_OP_WIDTH-1:0]      req_op_cdc;
+
+    logic                                       resp_valid;
+    logic                                       resp_ready;
+    logic [riscv_dm_pkg::DMI_DATA_WIDTH-1:0]    resp_data;
+    logic [riscv_dm_pkg::DMI_OP_WIDTH-1:0]      resp_op;
+    logic                                       resp_valid_cdc;
+    logic                                       resp_ready_cdc;
+    logic [riscv_dm_pkg::DMI_DATA_WIDTH-1:0]    resp_data_cdc;
+    logic [riscv_dm_pkg::DMI_OP_WIDTH-1:0]      resp_op_cdc;
+
+    riscv_dtm dtm(
+        .tms_i(tms),
+        .tck_i(tck),
+        .trst_i(~trstn),
+        .tdi_i(tdi),
+        .tdo_o(tdo),
+        .tdo_driven_o(tdo_driven),
+
+        .req_valid_o(req_valid),
+        .req_ready_i(req_ready),
+        .req_addr_o(req_addr),
+        .req_data_o(req_data),
+        .req_op_o(req_op),
+
+        .resp_valid_i(resp_valid_cdc),
+        .resp_ready_o(resp_ready_cdc),
+        .resp_data_i(resp_data_cdc),
+        .resp_op_i(resp_op_cdc)
+    );
+
+    cdc_fifo_gray_clearable #(
+        .WIDTH(riscv_dm_pkg::DMI_ADDR_WIDTH+riscv_dm_pkg::DMI_DATA_WIDTH+riscv_dm_pkg::DMI_OP_WIDTH)
+    ) req_cdc_fifo (
+        .src_rst_ni(trstn),
+        .src_clk_i(tck),
+        .src_clear_i(0),
+        .src_clear_pending_o(),
+        .src_data_i({req_addr, req_data, req_op}),
+        .src_valid_i(req_valid),
+        .src_ready_o(req_ready),
+
+        .dst_rst_ni(tb_rstn),
+        .dst_clk_i(tb_clk),
+        .dst_clear_i(0),
+        .dst_clear_pending_o(),
+        .dst_data_o({req_addr_cdc, req_data_cdc, req_op_cdc}),
+        .dst_valid_o(req_valid_cdc),
+        .dst_ready_i(req_ready_cdc)
+    );
+
+    cdc_fifo_gray_clearable #(
+        .WIDTH(riscv_dm_pkg::DMI_DATA_WIDTH+riscv_dm_pkg::DMI_OP_WIDTH)
+    ) resp_cdc_fifo (
+        .src_rst_ni(tb_rstn),
+        .src_clk_i(tb_clk),
+        .src_clear_i(0),
+        .src_clear_pending_o(),
+        .src_data_i({resp_data, resp_op}),
+        .src_valid_i(resp_valid),
+        .src_ready_o(resp_ready),
+
+        .dst_rst_ni(trstn),
+        .dst_clk_i(tck),
+        .dst_clear_i(0),
+        .dst_clear_pending_o(),
+        .dst_data_o({resp_data_cdc, resp_op_cdc}),
+        .dst_valid_o(resp_valid_cdc),
+        .dst_ready_i(resp_ready_cdc)
+    );
+
+    logic halt_request, resume_request, halted, resumeack;
+
+    riscv_dm dm(
+        .clk_i(tb_clk),
+        .rstn_i(tb_rstn),
+
+        .req_valid_i(req_valid_cdc),
+        .req_ready_o(req_ready_cdc),
+        .req_addr_i(req_addr_cdc),
+        .req_data_i(req_data_cdc),
+        .req_op_i(req_op_cdc),
+
+        .resp_valid_o(resp_valid),
+        .resp_ready_i(resp_ready),
+        .resp_data_o(resp_data),
+        .resp_op_o(resp_op),
+
+        .resume_request_o(dm_to_core.resume_req),
+        .halt_request_o(dm_to_core.halt_req),
+        .halt_on_reset_o(),
+        .hart_reset_o(),
+
+        .resume_ack_i(core_to_dm.resume_ack),
+        .halted_i(core_to_dm.halted),
+        .running_i(~core_to_dm.halted),
+        .havereset_i(0),
+        .unavail_i(0),
+
+        .rnm_read_en_o(debug_reg_read_valid),     // Request reading the rename table
+        .rnm_read_reg_o(debug_reg_read_addr),     // Logical register for which the mapping is read
+        .rnm_read_resp_i(debug_preg_addr_rename), // Physical register mapped to the requested logical register
+
+        .rf_en_o(debug_preg_read_valid),          // Read enable for the register file
+        .rf_preg_o(debug_preg_addr),              // Target physical register in the register file
+        .rf_rdata_i(debug_preg_data),             // Data read from the register file
+
+        .rf_we_o(debug_preg_write_valid),         // Write enable for the register file
+        .rf_wdata_o(debug_preg_write_data),       // Data to write to the register file
+        //! @end
+
+
+        // SRI interface for program buffer
+        //! @virtualbus sri @dir in
+        .sri_addr_i('0),     //! register interface address
+        .sri_en_i('0),       //! register interface enable
+        .sri_wdata_i('0),    //! register interface data to write
+        .sri_we_i('0),       //! register interface write enable
+        .sri_be_i('0),       //! register interface byte enable
+        .sri_rdata_o(),    //! register interface read data
+        .sri_error_o()     //! register interface error
+    );
+
     // *** Testbench monitors ***
 
     logic [63:0] cycles, max_cycles, start_cycles;
@@ -309,6 +491,14 @@ module sim_top;
         if (max_cycles > 0 && cycles == max_cycles) begin
             $error("Test timeout");
             $finish;
+        end
+    end
+
+    initial begin
+        if ($test$plusargs("jtag")) begin
+            jtag_enable = 1'b1;
+        end else begin
+            jtag_enable = 1'b0;
         end
     end
 

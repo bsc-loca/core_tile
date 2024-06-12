@@ -30,3 +30,6 @@
 [submodule "rtl/dcache"]
 	path = rtl/dcache
 	url = ../l1_d-caches/hpdcache.git
+[submodule "simulator/bsc-dm"]
+	path = simulator/bsc-dm
+	url = ../../bsc-dm.git
