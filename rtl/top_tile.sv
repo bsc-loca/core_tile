@@ -42,7 +42,6 @@ module top_tile
 //------------------------------------------------------------------------------------    
     input debug_contr_in_t      debug_contr_i,
     input debug_reg_in_t        debug_reg_i,
-    input addr_t                debug_program_buff_addr_i,
 
 //------------------------------------------------------------------------------------
 // I-CANCHE INPUT INTERFACE
