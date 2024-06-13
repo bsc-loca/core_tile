@@ -66,7 +66,9 @@ nc_state_t state_nc, next_state_nc;
 //------------------------------------------
 // Stage 1 
 //------------------------------------------
-assign addr_is_nc = is_inside_IO_sections(DRAC_CFG, {{{64-drac_pkg::PHY_ADDR_SIZE}{1'b0}},datapath_req_i.vaddr}) | range_check(DRAC_CFG.InitBROMBase, DRAC_CFG.InitBROMEnd, {{{64-PHY_ADDR_SIZE}{1'b0}},datapath_req_i.vaddr});
+assign addr_is_nc = is_inside_IO_sections(DRAC_CFG, {{{64-drac_pkg::PHY_ADDR_SIZE}{1'b0}},datapath_req_i.vaddr})
+                  | range_check(DRAC_CFG.InitBROMBase, DRAC_CFG.InitBROMEnd, {{{64-PHY_ADDR_SIZE}{1'b0}},datapath_req_i.vaddr})
+                  | range_check(DRAC_CFG.DebugProgramBufferBase, DRAC_CFG.DebugProgramBufferEnd, {{{64-PHY_ADDR_SIZE}{1'b0}},datapath_req_i.vaddr});
 
 // request to the instruccion cache with a cachable address.
 assign req_icache_valid = (addr_is_nc & (~en_translation_i)) ? 1'b0 : datapath_req_i.valid ;

@@ -6,7 +6,7 @@ module bootrom_behav
     input  logic [23:0] brom_req_address_i,
     input  logic brom_req_valid_i,
     output logic brom_ready_o,
-    output logic [127:0] brom_resp_data_o,
+    output logic [63:0] brom_resp_data_o,
     output logic brom_resp_valid_o
     );
 
@@ -73,8 +73,8 @@ module bootrom_behav
 
     always_comb begin
         case(brom_req_address_d[3])
-            1'b0: brom_resp_data_o = {64'h0, brom_resp_data_block[63:0]};
-            1'b1: brom_resp_data_o = {64'h0, brom_resp_data_block[127:64]};
+            1'b0: brom_resp_data_o = brom_resp_data_block[63:0];
+            1'b1: brom_resp_data_o = brom_resp_data_block[127:64];
             default: brom_resp_data_o = 32'h0;
         endcase
     end

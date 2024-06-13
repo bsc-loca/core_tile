@@ -16,13 +16,39 @@ module sim_top;
 
     // *** DUT ***
 
+    localparam drac_pkg::drac_cfg_t DRAC_CFG = drac_pkg::DracDefaultConfig;
 
     // Bootrom wires
-    logic [23:0] brom_req_address;
+    logic [39:0] brom_req_address;
     logic brom_req_valid;
     logic brom_ready;
-    logic [127:0] brom_resp_data;
+    logic [63:0] brom_resp_data;
     logic brom_resp_valid;
+
+    // Debug Module Program Buffer
+    logic [39:0] prog_buf_req_address;
+    logic prog_buf_req_valid;
+    logic prog_buf_ready;
+    logic [63:0] prog_buf_resp_data;
+    logic prog_buf_resp_valid;
+
+    // Uncacheable Fetch
+    logic [39:0] uc_fetch_req_address;
+    logic uc_fetch_req_valid;
+    logic uc_fetch_ready;
+    logic [63:0] uc_fetch_resp_data;
+    logic uc_fetch_resp_valid;
+    logic [1:0] uc_fetch_mux_sel; // 00 -> unconnected, 01 -> brom, 10 -> prog_buf
+
+    always_comb begin
+        if (range_check(DRAC_CFG.InitBROMBase, DRAC_CFG.InitBROMEnd, {{{64-PHY_ADDR_SIZE}{1'b0}}, uc_fetch_req_address})) begin
+            uc_fetch_mux_sel = 2'b01;
+        end else if (range_check(DRAC_CFG.DebugProgramBufferBase, DRAC_CFG.DebugProgramBufferEnd, {{{64-PHY_ADDR_SIZE}{1'b0}}, uc_fetch_req_address})) begin
+            uc_fetch_mux_sel = 2'b10;
+        end else begin
+            uc_fetch_mux_sel = 2'b00;
+        end
+    end
 
     // icache wires
     logic icache_l1_request_valid;
@@ -31,14 +57,42 @@ module sim_top;
     logic [sargantana_icache_pkg::FETCH_WIDHT-1:0] icache_l2_response_data;
 
     logic dut_icache_req_valid;
-    logic dut_icache_resp_valid;
     logic [drac_pkg::PHY_ADDR_SIZE-1:0] dut_icache_request_paddr;
     logic [sargantana_icache_pkg::FETCH_WIDHT-1:0] dut_icache_response_data;
 
-    assign dut_icache_response_data = brom_resp_valid ? brom_resp_data : icache_l2_response_data;
-    assign dut_icache_response_valid = brom_resp_valid | icache_l2_response_valid;
+    // uncacheable fetch mux
+    always_comb begin
+        case(uc_fetch_mux_sel)
+            2'b01: begin // Bootrom
+                uc_fetch_resp_valid = brom_resp_valid;
+                uc_fetch_resp_data = brom_resp_data;
+                uc_fetch_ready = brom_ready;
+            end
+            2'b10: begin // Program Buffer
+                uc_fetch_resp_valid = prog_buf_resp_valid;
+                uc_fetch_resp_data = prog_buf_resp_data;
+                uc_fetch_ready = prog_buf_ready;
+            end
+            default: begin // Unconnected
+                uc_fetch_resp_valid = 1'b0;
+                uc_fetch_resp_data = '0;
+                uc_fetch_ready = '0;
+            end
+        endcase
+    end
+
+    assign brom_req_address = uc_fetch_req_address;
+    assign brom_req_valid = uc_fetch_req_valid && uc_fetch_mux_sel == 2'b01;
+
+    assign prog_buf_req_address = uc_fetch_req_address - DRAC_CFG.DebugProgramBufferBase;
+    assign prog_buf_req_valid = uc_fetch_req_valid && uc_fetch_mux_sel == 2'b10;
+    assign prog_buf_resp_valid = 1'b1; // Program buffer resp. is always valid
+
     assign icache_l1_request_paddr = dut_icache_request_paddr;
     assign icache_l1_request_valid = dut_icache_req_valid;
+
+    assign dut_icache_response_data = uc_fetch_resp_valid ? uc_fetch_resp_data : icache_l2_response_data;
+    assign dut_icache_response_valid = uc_fetch_resp_valid | icache_l2_response_valid;
 
     //      Miss read interface
     logic                          mem_req_miss_read_ready;
@@ -98,7 +152,7 @@ module sim_top;
 
     assign dut_rstn = ~(~tb_rstn | debug_reset);
 
-    top_tile DUT(
+    top_tile #(.DracCfg(DRAC_CFG)) DUT (
         .clk_i(tb_clk),
         .rstn_i(dut_rstn),
         .soft_rstn_i(dut_rstn),
@@ -106,8 +160,8 @@ module sim_top;
         .core_id_i(64'b0),
 
         // Bootrom ports
-        .brom_req_address_o(brom_req_address),
-        .brom_req_valid_o(brom_req_valid),
+        .brom_req_address_o(uc_fetch_req_address),
+        .brom_req_valid_o(uc_fetch_req_valid),
 
         // icache ports
         .io_mem_acquire_valid(dut_icache_req_valid),               
@@ -428,13 +482,13 @@ module sim_top;
 
         // SRI interface for program buffer
         //! @virtualbus sri @dir in
-        .sri_addr_i('0),     //! register interface address
-        .sri_en_i('0),       //! register interface enable
-        .sri_wdata_i('0),    //! register interface data to write
-        .sri_we_i('0),       //! register interface write enable
-        .sri_be_i('0),       //! register interface byte enable
-        .sri_rdata_o(),    //! register interface read data
-        .sri_error_o()     //! register interface error
+        .sri_addr_i(prog_buf_req_address),     //! register interface address
+        .sri_en_i(prog_buf_req_valid),         //! register interface enable
+        .sri_wdata_i('0),                      //! register interface data to write
+        .sri_we_i('0),                         //! register interface write enable
+        .sri_be_i('0),                         //! register interface byte enable
+        .sri_rdata_o(prog_buf_resp_data),      //! register interface read data
+        .sri_error_o()                         //! register interface error
     );
 
     // *** Testbench monitors ***
