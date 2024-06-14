@@ -31,6 +31,7 @@ module sim_top;
     logic prog_buf_ready;
     logic [63:0] prog_buf_resp_data;
     logic prog_buf_resp_valid;
+    logic prog_buf_resp_valid_q;
 
     // Uncacheable Fetch
     logic [39:0] uc_fetch_req_address;
@@ -86,7 +87,15 @@ module sim_top;
 
     assign prog_buf_req_address = uc_fetch_req_address - DRAC_CFG.DebugProgramBufferBase;
     assign prog_buf_req_valid = uc_fetch_req_valid && uc_fetch_mux_sel == 2'b10;
-    assign prog_buf_resp_valid = 1'b1; // Program buffer resp. is always valid
+    assign prog_buf_resp_valid = prog_buf_resp_valid_q; // Program buffer resp. is always valid
+
+    always_ff @(posedge tb_clk, negedge dut_rstn) begin
+        if (~dut_rstn) begin
+            prog_buf_resp_valid_q <= 1'b0;
+        end else begin
+            prog_buf_resp_valid_q <= uc_fetch_req_valid && uc_fetch_mux_sel == 2'b10;
+        end
+    end
 
     assign icache_l1_request_paddr = dut_icache_request_paddr;
     assign icache_l1_request_valid = dut_icache_req_valid;
