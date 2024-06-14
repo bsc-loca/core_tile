@@ -4,6 +4,8 @@ module sim_top;
 
     logic tb_clk, tb_rstn;
 
+    logic dut_rstn, debug_reset;
+
     // *** Clock & Reset drivers ***
 
     initial begin
@@ -156,8 +158,6 @@ module sim_top;
     // Core -> DM
     debug_contr_out_t debug_contr_core_to_dm;
     debug_reg_out_t   debug_reg_core_to_dm;
-
-    logic dut_rstn, debug_reset;
 
     assign dut_rstn = ~(~tb_rstn | debug_reset);
 
