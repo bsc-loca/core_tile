@@ -46,10 +46,21 @@ module dcache_interface
     output logic                dmem_is_load_o
 );
 
+bus64_t aligned_addr;
+
+always_comb begin
+    case (req_cpu_dcache_i.mem_size)
+        4'b1000: aligned_addr = req_cpu_dcache_i.data_rs1 & 64'hFFFFFFFFFFFFFFF0;
+        4'b1001: aligned_addr = req_cpu_dcache_i.data_rs1 & 64'hFFFFFFFFFFFFFFE0;
+        4'b1010: aligned_addr = req_cpu_dcache_i.data_rs1 & 64'hFFFFFFFFFFFFFFC0;
+        default: aligned_addr = req_cpu_dcache_i.data_rs1;
+    endcase
+end
+
 logic io_address_space;
 
 // The address is in the INPUT/OUTPUT space
-assign io_address_space = (is_inside_IO_sections(DracCfg, req_cpu_dcache_i.data_rs1));
+assign io_address_space = (is_inside_IO_sections(DracCfg, aligned_addr));
 
 //-------------------------------------------------------------
 // dCache Interface
@@ -102,7 +113,7 @@ generate
                 // and shifts it to align it to the request address and the size's align
                 assign aligned_data[gv_size] =
                     req_cpu_dcache_i.data_rs2[(8 << gv_size)-1:0]
-                        << {req_cpu_dcache_i.data_rs1[DCACHE_MAXELEM_LOG-1:gv_size], {{3+gv_size}{1'b0}}};
+                        << {aligned_addr[DCACHE_MAXELEM_LOG-1:gv_size], {{3+gv_size}{1'b0}}};
             end
         end else begin 
             // Else, if the requested size is larger than the maximum that the core can generate...
@@ -128,7 +139,7 @@ generate
                 assign aligned_be[gv_size] = {{HPDCACHE_REQ_DATA_BYTES}{1'b1}};
             end else begin
                 assign aligned_be[gv_size] =
-                    {{1 << gv_size}{1'b1}} << {req_cpu_dcache_i.data_rs1[DCACHE_MAXELEM_LOG-1:gv_size], {{gv_size}{1'b0}}};
+                    {{1 << gv_size}{1'b1}} << {aligned_addr[DCACHE_MAXELEM_LOG-1:gv_size], {{gv_size}{1'b0}}};
             end
         end else begin 
             // If the requested size is larger than the maximum that the core
@@ -141,8 +152,8 @@ endgenerate
 
 assign req_dcache_o.be = aligned_be[{req_cpu_dcache_i.mem_size[3], req_cpu_dcache_i.mem_size[1:0]}];
 
-assign req_dcache_o.addr_offset = req_cpu_dcache_i.data_rs1[(HPDCACHE_OFFSET_WIDTH+HPDCACHE_SET_WIDTH)-1:0],
-       req_dcache_o.addr_tag = req_cpu_dcache_i.data_rs1[HPDCACHE_PA_WIDTH-1:(HPDCACHE_OFFSET_WIDTH+HPDCACHE_SET_WIDTH)];
+assign req_dcache_o.addr_offset = aligned_addr[(HPDCACHE_OFFSET_WIDTH+HPDCACHE_SET_WIDTH)-1:0],
+       req_dcache_o.addr_tag = aligned_addr[HPDCACHE_PA_WIDTH-1:(HPDCACHE_OFFSET_WIDTH+HPDCACHE_SET_WIDTH)];
 // Request to HPDC. Pass only 2 bits as the sign extension process (see specs for LBU, LHU, LWU) is done in the mem_unit 
 // HPDC does NOT extend the sign.
 assign req_dcache_o.size = {req_cpu_dcache_i.mem_size[3], req_cpu_dcache_i.mem_size[1:0]}; // TODO: Core supports bigger memory sizes than HPDC!
