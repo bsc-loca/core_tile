@@ -31,7 +31,7 @@ module sim_top;
     logic [39:0] prog_buf_req_address;
     logic prog_buf_req_valid;
     logic prog_buf_ready;
-    logic [63:0] prog_buf_resp_data;
+    logic [63:0] prog_buf_resp_data, prog_buf_resp_data_q;
     logic prog_buf_resp_valid;
     logic prog_buf_resp_valid_q;
 
@@ -73,7 +73,7 @@ module sim_top;
             end
             2'b10: begin // Program Buffer
                 uc_fetch_resp_valid = prog_buf_resp_valid;
-                uc_fetch_resp_data = prog_buf_resp_data;
+                uc_fetch_resp_data = prog_buf_resp_data_q;
                 uc_fetch_ready = prog_buf_ready;
             end
             default: begin // Unconnected
@@ -94,8 +94,10 @@ module sim_top;
     always_ff @(posedge tb_clk, negedge dut_rstn) begin
         if (~dut_rstn) begin
             prog_buf_resp_valid_q <= 1'b0;
+            prog_buf_resp_data_q <= '0;
         end else begin
             prog_buf_resp_valid_q <= uc_fetch_req_valid && uc_fetch_mux_sel == 2'b10;
+            prog_buf_resp_data_q <= prog_buf_resp_data;
         end
     end
 
