@@ -19,6 +19,9 @@
     // BROM address
     parameter logic [64-1:0]             InitBROMBase          = 64'h00C0000000,
     parameter logic [64-1:0]             InitBROMEnd           = 64'hFFFFFFFFFF,
+    // DebugModule address
+    parameter logic [64-1:0]             InitDMBase            = 64'h00C0000000,
+    parameter logic [64-1:0]             InitDMEnd             = 64'hFFFFFFFFFF,
     // HPDC Write coalescing
     parameter logic                      WriteCoalescingEn     =  0,
     parameter int unsigned               WriteCoalescingTh     =  0
@@ -146,7 +149,9 @@ localparam drac_cfg_t DracOpenPitonCfg = '{
     InitMappedEnd:   InitMappedEnd, // Memory end 0 address after reset
 
     InitBROMBase: InitBROMBase,
-    InitBROMEnd: InitBROMEnd
+    InitBROMEnd: InitBROMEnd,
+    DebugProgramBufferBase: InitDMBase,
+    DebugProgramBufferEnd: InitDMEnd
 };
 
 top_tile #(
