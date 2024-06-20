@@ -158,10 +158,28 @@ module axi_wrapper (
         .mem_resp_uc_read_i(mem_resp_uc_read),
 
         // Debug module
-        .debug_contr_i('0),
-        .debug_reg_i(¡0),
-        .debug_contr_o(),
-        .debug_reg_o(),
+        .debug_contr_halt_req_i('0),
+        .debug_contr_resume_req_i('0),
+        .debug_contr_progbuf_req_i('0),
+        .debug_contr_halt_on_reset_i('0),
+
+        .debug_reg_rnm_read_en_i('0),
+        .debug_reg_rnm_read_reg_i('0),
+        .debug_reg_rf_en_i('0),
+        .debug_reg_rf_preg_i('0),
+        .debug_reg_rf_we_i('0),
+        .debug_reg_rf_wdata_i('0),
+
+        .debug_contr_halt_ack_o(),
+        .debug_contr_halted_o(),
+        .debug_contr_resume_ack_o(),
+        .debug_contr_running_o(),
+        .debug_contr_progbuf_ack_o(),
+        .debug_contr_parked_o(),
+        .debug_contr_unavail_o(),
+
+        .debug_reg_rnm_read_resp_o(),
+        .debug_reg_rf_rdata_o(),
 
         .time_irq_i(time_irq_i),
         .irq_i(1'b0),
