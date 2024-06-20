@@ -1,5 +1,7 @@
 
-module sim_top;
+module sim_top #(
+    parameter NUM_HARTS = 1
+);
     import sargantana_hpdc_pkg::*, drac_pkg::*;
 
     logic tb_clk, tb_rstn;
@@ -154,12 +156,29 @@ module sim_top;
     // Debug Module Interface
 
     // DM -> Core
-    debug_contr_in_t debug_contr_dm_to_core;
-    debug_reg_in_t   debug_reg_dm_to_core;
+    logic    [NUM_HARTS-1:0] debug_contr_halt_req;
+    logic    [NUM_HARTS-1:0] debug_contr_resume_req;
+    logic    [NUM_HARTS-1:0] debug_contr_progbuf_req;
+    logic    [NUM_HARTS-1:0] debug_contr_halt_on_reset;
+
+    logic    [NUM_HARTS-1:0] debug_reg_rnm_read_en;
+    reg_t    [NUM_HARTS-1:0] debug_reg_rnm_read_reg;
+    logic    [NUM_HARTS-1:0] debug_reg_rf_en;
+    phreg_t  [NUM_HARTS-1:0] debug_reg_rf_preg;
+    logic    [NUM_HARTS-1:0] debug_reg_rf_we;
+    bus64_t  [NUM_HARTS-1:0] debug_reg_rf_wdata;
 
     // Core -> DM
-    debug_contr_out_t debug_contr_core_to_dm;
-    debug_reg_out_t   debug_reg_core_to_dm;
+    logic    [NUM_HARTS-1:0] debug_contr_halt_ack;
+    logic    [NUM_HARTS-1:0] debug_contr_halted;
+    logic    [NUM_HARTS-1:0] debug_contr_resume_ack;
+    logic    [NUM_HARTS-1:0] debug_contr_running;
+    logic    [NUM_HARTS-1:0] debug_contr_progbuf_ack;
+    logic    [NUM_HARTS-1:0] debug_contr_parked;
+    logic    [NUM_HARTS-1:0] debug_contr_unavail;
+
+    phreg_t  [NUM_HARTS-1:0] debug_reg_rnm_read_resp;
+    bus64_t  [NUM_HARTS-1:0] debug_reg_rf_rdata;
 
     assign dut_rstn = ~(~tb_rstn | debug_reset);
 
@@ -230,10 +249,28 @@ module sim_top;
 
         // Unused ports
         
-        .debug_contr_i(debug_contr_dm_to_core),
-        .debug_reg_i(debug_reg_dm_to_core),
-        .debug_contr_o(debug_contr_core_to_dm),
-        .debug_reg_o(debug_reg_core_to_dm),
+        .debug_contr_halt_req_i(debug_contr_halt_req[0]),
+        .debug_contr_resume_req_i(debug_contr_resume_req[0]),
+        .debug_contr_progbuf_req_i(debug_contr_progbuf_req[0]),
+        .debug_contr_halt_on_reset_i(debug_contr_halt_on_reset[0]),
+
+        .debug_reg_rnm_read_en_i(debug_reg_rnm_read_en[0]),
+        .debug_reg_rnm_read_reg_i(debug_reg_rnm_read_reg[0]),
+        .debug_reg_rf_en_i(debug_reg_rf_en[0]),
+        .debug_reg_rf_preg_i(debug_reg_rf_preg[0]),
+        .debug_reg_rf_we_i(debug_reg_rf_we[0]),
+        .debug_reg_rf_wdata_i(debug_reg_rf_wdata[0]),
+
+        .debug_contr_halt_ack_o(debug_contr_halt_ack[0]),
+        .debug_contr_halted_o(debug_contr_halted[0]),
+        .debug_contr_resume_ack_o(debug_contr_resume_ack[0]),
+        .debug_contr_running_o(debug_contr_running[0]),
+        .debug_contr_progbuf_ack_o(debug_contr_progbuf_ack[0]),
+        .debug_contr_parked_o(debug_contr_parked[0]),
+        .debug_contr_unavail_o(debug_contr_unavail[0]),
+
+        .debug_reg_rnm_read_resp_o(debug_reg_rnm_read_resp[0]),
+        .debug_reg_rf_rdata_o(debug_reg_rf_rdata[0]),
 
         .time_i(64'd0),
         .irq_i(1'b0),
@@ -449,7 +486,9 @@ module sim_top;
 
     logic halt_request, resume_request, halted, resumeack;
 
-    riscv_dm dm(
+    riscv_dm #(
+        .NUM_HARTS(NUM_HARTS)
+    ) dm (
         .clk_i(tb_clk),
         .rstn_i(tb_rstn),
 
@@ -464,30 +503,30 @@ module sim_top;
         .resp_data_o(resp_data),
         .resp_op_o(resp_op),
 
-        .resume_request_o(debug_contr_dm_to_core.resume_req),
-        .halt_request_o(debug_contr_dm_to_core.halt_req),
-        .halt_on_reset_o(debug_contr_dm_to_core.halt_on_reset),
-        .progbuf_run_req_o(debug_contr_dm_to_core.progbuf_req),
+        .resume_request_o(debug_contr_resume_req),
+        .halt_request_o(debug_contr_halt_req),
+        .halt_on_reset_o(debug_contr_halt_on_reset),
+        .progbuf_run_req_o(debug_contr_progbuf_req),
         .hart_reset_o(debug_reset),
 
-        .resume_ack_i(debug_contr_core_to_dm.resume_ack),
-        .halted_i(debug_contr_core_to_dm.halted),
-        .running_i(debug_contr_core_to_dm.running),
+        .resume_ack_i(debug_contr_resume_ack),
+        .halted_i(debug_contr_halted),
+        .running_i(debug_contr_running),
         .havereset_i(0),
-        .unavail_i(debug_contr_core_to_dm.unavail),
-        .progbuf_run_ack_i(debug_contr_core_to_dm.progbuf_ack),
-        .parked_i(debug_contr_core_to_dm.parked),
+        .unavail_i(debug_contr_unavail),
+        .progbuf_run_ack_i(debug_contr_progbuf_ack),
+        .parked_i(debug_contr_parked),
 
-        .rnm_read_en_o(debug_reg_dm_to_core.rnm_read_en),       // Request reading the rename table
-        .rnm_read_reg_o(debug_reg_dm_to_core.rnm_read_reg),     // Logical register for which the mapping is read
-        .rnm_read_resp_i(debug_reg_core_to_dm.rnm_read_resp),   // Physical register mapped to the requested logical register
+        .rnm_read_en_o(debug_reg_rnm_read_en),       // Request reading the rename table
+        .rnm_read_reg_o(debug_reg_rnm_read_reg),     // Logical register for which the mapping is read
+        .rnm_read_resp_i(debug_reg_rnm_read_resp),   // Physical register mapped to the requested logical register
 
-        .rf_en_o(debug_reg_dm_to_core.rf_en),                   // Read enable for the register file
-        .rf_preg_o(debug_reg_dm_to_core.rf_preg),               // Target physical register in the register file
-        .rf_rdata_i(debug_reg_core_to_dm.rf_rdata),             // Data read from the register file
+        .rf_en_o(debug_reg_rf_en),                   // Read enable for the register file
+        .rf_preg_o(debug_reg_rf_preg),               // Target physical register in the register file
+        .rf_rdata_i(debug_reg_rf_rdata),             // Data read from the register file
 
-        .rf_we_o(debug_reg_dm_to_core.rf_we),                   // Write enable for the register file
-        .rf_wdata_o(debug_reg_dm_to_core.rf_wdata),             // Data to write to the register file
+        .rf_we_o(debug_reg_rf_we),                   // Write enable for the register file
+        .rf_wdata_o(debug_reg_rf_wdata),             // Data to write to the register file
         //! @end
 
 

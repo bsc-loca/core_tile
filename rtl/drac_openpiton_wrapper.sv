@@ -48,14 +48,31 @@
  input logic irq_i,
  input logic soft_irq_i,
 
- // Debug ring interface
-    input debug_contr_in_t      debug_contr_i,
-    input  debug_reg_in_t       debug_reg_i,
+ // Debug interface
+ input logic    debug_contr_halt_req_i,
+ input logic    debug_contr_resume_req_i,
+ input logic    debug_contr_progbuf_req_i,
+ input logic    debug_contr_halt_on_reset_i,
 
-    output debug_contr_out_t    debug_contr_o,
-    output debug_reg_out_t      debug_reg_o,
+ input logic    debug_reg_rnm_read_en_i,
+ input reg_t    debug_reg_rnm_read_reg_i,
+ input logic    debug_reg_rf_en_i,
+ input phreg_t  debug_reg_rf_preg_i,
+ input logic    debug_reg_rf_we_i,
+ input bus64_t  debug_reg_rf_wdata_i,
 
-    output visa_signals_t       visa_o
+ output logic   debug_contr_halt_ack_o,
+ output logic   debug_contr_halted_o,
+ output logic   debug_contr_resume_ack_o,
+ output logic   debug_contr_running_o,
+ output logic   debug_contr_progbuf_ack_o,
+ output logic   debug_contr_parked_o,
+ output logic   debug_contr_unavail_o,
+
+ output phreg_t debug_reg_rnm_read_resp_o,
+ output bus64_t debug_reg_rf_rdata_o,
+
+ output visa_signals_t       visa_o
 );
 
 // Bootrom wires
@@ -240,11 +257,29 @@ top_tile #(
  .soft_irq_i(soft_irq_i),
  .time_i(time_i),
 
- .debug_contr_i(debug_contr_i),
- .debug_reg_i(debug_reg_i),
+ // Debug donnections
+ .debug_contr_halt_req_i(debug_contr_halt_req_i),
+ .debug_contr_resume_req_i(debug_contr_resume_req_i),
+ .debug_contr_progbuf_req_i(debug_contr_progbuf_req_i),
+ .debug_contr_halt_on_reset_i(debug_contr_halt_on_reset_i),
 
- .debug_contr_o(debug_contr_o),
- .debug_reg_o(debug_reg_o),
+ .debug_reg_rnm_read_en_i(debug_reg_rnm_read_en_i),
+ .debug_reg_rnm_read_reg_i(debug_reg_rnm_read_reg_i),
+ .debug_reg_rf_en_i(debug_reg_rf_en_i),
+ .debug_reg_rf_preg_i(debug_reg_rf_preg_i),
+ .debug_reg_rf_we_i(debug_reg_rf_we_i),
+ .debug_reg_rf_wdata_i(debug_reg_rf_wdata_i),
+
+ .debug_contr_halt_ack_o(debug_contr_halt_ack_o),
+ .debug_contr_halted_o(debug_contr_halted_o),
+ .debug_contr_resume_ack_o(debug_contr_resume_ack_o),
+ .debug_contr_running_o(debug_contr_running_o),
+ .debug_contr_progbuf_ack_o(debug_contr_progbuf_ack_o),
+ .debug_contr_parked_o(debug_contr_parked_o),
+ .debug_contr_unavail_o(debug_contr_unavail_o),
+
+ .debug_reg_rnm_read_resp_o(debug_reg_rnm_read_resp_o),
+ .debug_reg_rf_rdata_o(debug_reg_rf_rdata_o),
 
  .visa_o(visa_o),
 

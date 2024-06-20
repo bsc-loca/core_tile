@@ -40,8 +40,17 @@ module top_tile
 //------------------------------------------------------------------------------------
 // DEBUG RING SIGNALS INPUT
 //------------------------------------------------------------------------------------    
-    input debug_contr_in_t      debug_contr_i,
-    input debug_reg_in_t        debug_reg_i,
+    input logic    debug_contr_halt_req_i,
+    input logic    debug_contr_resume_req_i,
+    input logic    debug_contr_progbuf_req_i,
+    input logic    debug_contr_halt_on_reset_i,
+
+    input logic    debug_reg_rnm_read_en_i,
+    input reg_t    debug_reg_rnm_read_reg_i,
+    input logic    debug_reg_rf_en_i,
+    input phreg_t  debug_reg_rf_preg_i,
+    input logic    debug_reg_rf_we_i,
+    input bus64_t  debug_reg_rf_wdata_i,
 
 //------------------------------------------------------------------------------------
 // I-CANCHE INPUT INTERFACE
@@ -121,9 +130,16 @@ module top_tile
 // DEBUGGING MODULE SIGNALS
 //-----------------------------------------------------------------------------------
 
-    output debug_reg_out_t      debug_reg_o,
-    output debug_contr_out_t    debug_contr_o,
+    output logic   debug_contr_halt_ack_o,
+    output logic   debug_contr_halted_o,
+    output logic   debug_contr_resume_ack_o,
+    output logic   debug_contr_running_o,
+    output logic   debug_contr_progbuf_ack_o,
+    output logic   debug_contr_parked_o,
+    output logic   debug_contr_unavail_o,
 
+    output phreg_t debug_reg_rnm_read_resp_o,
+    output bus64_t debug_reg_rf_rdata_o,
 
     output visa_signals_t       visa_o,
 
@@ -202,6 +218,11 @@ assign pmu_interface.icache_req = lagarto_ireq.valid;
 assign pmu_interface.icache_kill = lagarto_ireq.kill;
 assign pmu_interface.icache_busy = !icache_resp.ready;
 
+// Debug wires
+debug_contr_in_t                debug_contr_in;
+debug_reg_in_t                  debug_reg_in;
+debug_contr_out_t               debug_contr_out;
+debug_reg_out_t                 debug_reg_out;
 
 // *** Memory Management Unit ***
 
@@ -264,11 +285,11 @@ top_drac #(
 
     // Debug Module
     .visa_o(visa_o),
-    .debug_contr_i(debug_contr_i),
-    .debug_reg_i(debug_reg_i),
+    .debug_contr_i(debug_contr_in),
+    .debug_reg_i(debug_reg_in),
 
-    .debug_contr_o(debug_contr_o),
-    .debug_reg_o(debug_reg_o),
+    .debug_contr_o(debug_contr_out),
+    .debug_reg_o(debug_reg_out),
 
     // PMU Interface
     .pmu_interface_i(pmu_interface),
@@ -292,6 +313,30 @@ top_drac #(
     .soft_irq_i(soft_irq_i),
     .time_i(time_i)     // time passed since the core is reset
 );
+
+// Debug donnections
+assign debug_contr_in.halt_req      = debug_contr_halt_req_i;
+assign debug_contr_in.resume_req    = debug_contr_resume_req_i;
+assign debug_contr_in.progbuf_req   = debug_contr_progbuf_req_i;
+assign debug_contr_in.halt_on_reset = debug_contr_halt_on_reset_i;
+
+assign debug_reg_in.rnm_read_en     = debug_reg_rnm_read_en_i;
+assign debug_reg_in.rnm_read_reg    = debug_reg_rnm_read_reg_i;
+assign debug_reg_in.rf_en           = debug_reg_rf_en_i;
+assign debug_reg_in.rf_preg         = debug_reg_rf_preg_i;
+assign debug_reg_in.rf_we           = debug_reg_rf_we_i;
+assign debug_reg_in.rf_wdata        = debug_reg_rf_wdata_i;
+
+assign debug_contr_halt_ack_o       = debug_contr_out.halt_ack;
+assign debug_contr_halted_o         = debug_contr_out.halted;
+assign debug_contr_resume_ack_o     = debug_contr_out.resume_ack;
+assign debug_contr_running_o        = debug_contr_out.running;
+assign debug_contr_progbuf_ack_o    = debug_contr_out.progbuf_ack;
+assign debug_contr_parked_o         = debug_contr_out.parked;
+assign debug_contr_unavail_o        = debug_contr_out.unavail;
+
+assign debug_reg_rnm_read_resp_o    = debug_reg_out.rnm_read_resp;
+assign debug_reg_rf_rdata_o         = debug_reg_out.rf_rdata;
 
 // *** iCache ***
 
