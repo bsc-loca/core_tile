@@ -1,5 +1,6 @@
 // Standalone Config
 -F ../../standalone_config.f
+-F ../../simulator/bsc-dm/filelist.f
 
 // HPDC Memories
 ../../rtl/dcache/rtl/src/common/macros/behav/hpdcache_sram_1rw.sv

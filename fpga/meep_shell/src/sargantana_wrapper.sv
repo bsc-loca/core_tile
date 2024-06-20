@@ -252,7 +252,15 @@ module sargantana_wrapper(
         .axi_o(core2xbar_bus[0]),
 
         .time_irq_i(time_irq),
-        .time_i(time_value)
+        .time_i(time_value),
+
+        .tck(1'b0),
+        .tms(1'b0),
+        .tdi(1'b0),
+        .trstn(1'b0),
+
+        .tdo(),
+        .tdo_driven()
     );
 
     // *** Memory Connection ***
