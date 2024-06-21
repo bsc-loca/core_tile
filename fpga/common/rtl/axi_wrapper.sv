@@ -13,9 +13,6 @@
 import fpga_pkg::*, hpdcache_pkg::*;
 
 module axi_wrapper 
-#(
-    parameter NUM_HARTS = 1
-)
 (
     input logic clk_i,
     input logic rstn_i,
@@ -32,11 +29,11 @@ module axi_wrapper
     input logic trstn,
 
     output  logic tdo,
-    output  logic tdo_driven,
+    output  logic tdo_driven
 );
 
     localparam drac_pkg::drac_cfg_t DRAC_CFG = drac_pkg::DracDefaultConfig;
-
+    localparam NUM_HARTS = 1;
 
     // Bootrom wires
     logic [23:0] brom_req_address;
@@ -62,9 +59,9 @@ module axi_wrapper
     logic [1:0] uc_fetch_mux_sel; // 00 -> unconnected, 01 -> brom, 10 -> prog_buf
 
     always_comb begin
-        if (range_check(DRAC_CFG.InitBROMBase, DRAC_CFG.InitBROMEnd, {{{64-PHY_ADDR_SIZE}{1'b0}}, uc_fetch_req_address})) begin
+        if (range_check(DRAC_CFG.InitBROMBase, DRAC_CFG.InitBROMEnd, {{{64-drac_pkg::PHY_ADDR_SIZE}{1'b0}}, uc_fetch_req_address})) begin
             uc_fetch_mux_sel = 2'b01;
-        end else if (range_check(DRAC_CFG.DebugProgramBufferBase, DRAC_CFG.DebugProgramBufferEnd, {{{64-PHY_ADDR_SIZE}{1'b0}}, uc_fetch_req_address})) begin
+        end else if (range_check(DRAC_CFG.DebugProgramBufferBase, DRAC_CFG.DebugProgramBufferEnd, {{{64-drac_pkg::PHY_ADDR_SIZE}{1'b0}}, uc_fetch_req_address})) begin
             uc_fetch_mux_sel = 2'b10;
         end else begin
             uc_fetch_mux_sel = 2'b00;
@@ -186,11 +183,11 @@ module axi_wrapper
     logic    [NUM_HARTS-1:0] debug_contr_halt_on_reset;
 
     logic    [NUM_HARTS-1:0] debug_reg_rnm_read_en;
-    reg_t    [NUM_HARTS-1:0] debug_reg_rnm_read_reg;
+    drac_pkg::reg_t    [NUM_HARTS-1:0] debug_reg_rnm_read_reg;
     logic    [NUM_HARTS-1:0] debug_reg_rf_en;
-    phreg_t  [NUM_HARTS-1:0] debug_reg_rf_preg;
+    drac_pkg::phreg_t  [NUM_HARTS-1:0] debug_reg_rf_preg;
     logic    [NUM_HARTS-1:0] debug_reg_rf_we;
-    bus64_t  [NUM_HARTS-1:0] debug_reg_rf_wdata;
+    drac_pkg::bus64_t  [NUM_HARTS-1:0] debug_reg_rf_wdata;
 
     // Core -> DM
     logic    [NUM_HARTS-1:0] debug_contr_halt_ack;
@@ -201,8 +198,8 @@ module axi_wrapper
     logic    [NUM_HARTS-1:0] debug_contr_parked;
     logic    [NUM_HARTS-1:0] debug_contr_unavail;
 
-    phreg_t  [NUM_HARTS-1:0] debug_reg_rnm_read_resp;
-    bus64_t  [NUM_HARTS-1:0] debug_reg_rf_rdata;
+    drac_pkg::phreg_t  [NUM_HARTS-1:0] debug_reg_rnm_read_resp;
+    drac_pkg::bus64_t  [NUM_HARTS-1:0] debug_reg_rf_rdata;
 
     assign sargantana_rstn = ~(~rstn_i | debug_reset);
 
@@ -439,7 +436,8 @@ module axi_wrapper
     logic [riscv_dm_pkg::DMI_DATA_WIDTH-1:0]    resp_data_cdc;
     logic [riscv_dm_pkg::DMI_OP_WIDTH-1:0]      resp_op_cdc;
 
-    riscv_dtm dtm(
+    // Uncomment when the JTAG is ready
+    /*riscv_dtm dtm(
         .tms_i(tms),
         .tck_i(tck),
         .trst_i(~trstn),
@@ -497,7 +495,13 @@ module axi_wrapper
         .dst_data_o({resp_data_cdc, resp_op_cdc}),
         .dst_valid_o(resp_valid_cdc),
         .dst_ready_i(resp_ready_cdc)
-    );
+    );*/
+
+    assign req_valid_cdc = '0;
+    assign resp_ready_cdc = '0;
+    assign req_addr_cdc = '0;
+    assign req_data_cdc = '0;
+    assign req_op_cdc = '0;
 
     logic halt_request, resume_request, halted, resumeack;
 
