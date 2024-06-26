@@ -307,7 +307,7 @@ uvm-random-regression:
     - cd verif/core_uvm
     - mkdir -p tests/build/generated_tests
     - ./generate_random_tests.sh ${N_TESTS} ${testname}
-    - python3 -u run.py -r riscv-dv_regression.yaml ${COVERAGE} --interrupts || result=$(echo $?)
+    - python3 -u run.py -r riscv-dv_regression.yaml ${COVERAGE} || result=$(echo $?)
     - mv ./regress/results/sargantana_random_riscvdv_tests ./regress/results/sargantana_random_riscvdv_${testname}
     - if [ ! -z $result ];then exit ${result}; fi
   artifacts:
