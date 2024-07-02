@@ -86,7 +86,7 @@ always_comb begin
         AMO_MAXW,AMO_MAXD:   req_dcache_o.op = HPDCACHE_REQ_AMO_MAX;
         AMO_MINWU,AMO_MINDU: req_dcache_o.op = HPDCACHE_REQ_AMO_MINU;
         AMO_MAXWU,AMO_MAXDU: req_dcache_o.op = HPDCACHE_REQ_AMO_MAXU;
-        LD,LW,LWU,LH,LHU,LB,LBU,VLE,VLM,VL1R,FLD,FLW: req_dcache_o.op = HPDCACHE_REQ_LOAD;
+        LD,LW,LWU,LH,LHU,LB,LBU,VLE,VLM,VL1R,VLEFF,VLSE,VLXE,FLD,FLW: req_dcache_o.op = HPDCACHE_REQ_LOAD;
         SD,SW,SH,SB,VSE,VSM,VS1R,FSW,FSD: req_dcache_o.op = HPDCACHE_REQ_STORE;
         default: req_dcache_o.op = HPDCACHE_REQ_LOAD;
     endcase
