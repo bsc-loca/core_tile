@@ -191,7 +191,7 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter import drac_pkg::*;import wt_c
          icache_miss_req_wdata.mem_req_size      = ICACHE_MEM_REQ_CL_SIZE,
          icache_miss_req_wdata.mem_req_id        = '0,
          icache_miss_req_wdata.mem_req_command   = hpdcache_pkg::HPDCACHE_MEM_READ,
-         icache_miss_req_wdata.mem_req_atomic    = hpdcache_pkg::hpdcache_mem_atomic_e'(0),
+         icache_miss_req_wdata.mem_req_atomic    = hpdcache_pkg::HPDCACHE_MEM_ATOMIC_ADD, // Field is ignored since command is HPDCACHE_MEM_READ
          icache_miss_req_wdata.mem_req_cacheable = ~brom_req_valid_i;
   //    }}}
 
@@ -201,12 +201,9 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter import drac_pkg::*;import wt_c
   logic                                icache_miss_resp_w, icache_miss_resp_wok;
   hpdcache_mem_resp_t                  icache_miss_resp_wdata;
 
-  logic                                icache_miss_resp_data_w, icache_miss_resp_data_wok;
-  logic                                icache_miss_resp_data_r;
   icache_resp_data_t                   icache_miss_resp_data_rdata;
 
-  logic                                icache_miss_resp_meta_w, icache_miss_resp_meta_wok;
-  logic                                icache_miss_resp_meta_r, icache_miss_resp_meta_rok;
+  logic                                icache_miss_resp_meta_rok;
   hpdcache_req_addr_t                  icache_miss_resp_inval_address;
 
   //Translate the request from HPDC format to sargantana's format
@@ -236,7 +233,6 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter import drac_pkg::*;import wt_c
   hpdcache_mem_req_t               mem_req_arb;
 
   // Data
-  logic                            mem_req_data_ready  [NumPorts-2:0];
   logic                            mem_req_data_valid  [NumPorts-2:0];
   hpdcache_mem_req_w_t             mem_req_data        [NumPorts-2:0];
   hpdcache_mem_req_w_t             mem_req_data_arb;
@@ -355,7 +351,7 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter import drac_pkg::*;import wt_c
   hpdcache_l15_resp_demux #(
     .N                  (NumPorts),
     .resp_t             (hpdcache_mem_resp_t),
-    .resp_id_t          (hpdcache_mem_id_t),
+    //.resp_id_t          (hpdcache_mem_id_t),
     .req_portid_t       (req_portid_t)
   ) i_l15_resp_demux (
     .clk_i,
@@ -442,6 +438,7 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter import drac_pkg::*;import wt_c
        .DcacheUncReadPort        (DcacheUncReadPort),
        .DcacheUncWritePort       (DcacheUncWritePort),
        .DcacheAmoPort            (DcacheAmoPort),
+       .SwapEndianess            (SwapEndianess),
        .WriteByteMaskEnabled     (WriteCoalescingEn),
        .IcacheMemDataWidth       (IcacheMemDataWidth),
        .IcacheAddrWidth          (IcacheAddrWidth),

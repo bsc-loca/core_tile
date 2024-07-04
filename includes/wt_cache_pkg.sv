@@ -151,12 +151,16 @@ typedef struct packed {
     return out;
   endfunction
 
+  function [5:0] trunc_sum_6bits(input [6:0] val_in);
+    trunc_sum_6bits = val_in[5:0];
+  endfunction
+
   function automatic logic [5:0] popcnt64 (
     input logic [63:0] in
   );
     logic [5:0] cnt= 0;
     foreach (in[k]) begin
-      cnt += 6'(in[k]);
+      cnt = trunc_sum_6bits(cnt + 6'(in[k]));
     end
     return cnt;
   endfunction : popcnt64
@@ -169,8 +173,8 @@ typedef struct packed {
     be = '0;
     unique case(size)
       2'b00:   be[offset]       = '1; // byte
-      2'b01:   be[offset +:2 ]  = '1; // hword
-      2'b10:   be[offset +:4 ]  = '1; // word
+      2'b01:   be[{offset[2:1], 1'b0} +:2 ]  = '1; // hword
+      2'b10:   be[{offset[2], 2'b00} +:4 ]  = '1; // word
       default: be               = '1; // dword
     endcase // size
     return be;
@@ -184,7 +188,7 @@ typedef struct packed {
     be = '0;
     unique case(size)
       2'b00:   be[offset]       = '1; // byte
-      2'b01:   be[offset +:2 ]  = '1; // hword
+      2'b01:   be[{offset[1], 1'b0} +:2 ]  = '1; // hword
       default: be               = '1; // word
     endcase // size
     return be;
@@ -214,7 +218,7 @@ typedef struct packed {
     logic [31:0] out;
     unique case(size)
       2'b00:   for(int k=0; k<4; k++) out[k*8  +: 8]    = data[offset*8 +: 8];  // byte
-      2'b01:   for(int k=0; k<2; k++) out[k*16 +: 16]   = data[offset*8 +: 16]; // hword
+      2'b01:   for(int k=0; k<2; k++) out[k*16 +: 16]   = data[{offset[1], 1'b0}*8 +: 16]; // hword
       default: out   = data; // word
     endcase // size
     return out;

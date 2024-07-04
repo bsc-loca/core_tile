@@ -136,10 +136,14 @@ hpdcache_mem_resp_w_t           mem_resp_uc_write;
 logic                           mem_inval_valid;
 hpdcache_pkg::hpdcache_nline_t  mem_inval;
 
+function [15:0] trunc_sum_16bits(input [16:0] val_in);
+  trunc_sum_16bits = val_in[15:0];
+endfunction
+
 logic [15:0] wake_up_cnt_d, wake_up_cnt_q;
 logic rst_n;
 
-assign wake_up_cnt_d = (wake_up_cnt_q[$high(wake_up_cnt_q)]) ? wake_up_cnt_q : wake_up_cnt_q + 1;
+assign wake_up_cnt_d = (wake_up_cnt_q[$high(wake_up_cnt_q)]) ? wake_up_cnt_q : trunc_sum_16bits(wake_up_cnt_q + 1);
 
 always_ff @(posedge clk_i or negedge reset_l) begin : p_regs
  if(~reset_l) begin
