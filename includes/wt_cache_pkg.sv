@@ -151,7 +151,7 @@ typedef struct packed {
     return out;
   endfunction
 
-  function [5:0] trunc_sum_6bits(input [6:0] val_in);
+  function automatic logic[5:0] trunc_sum_6bits(input [6:0] val_in);
     trunc_sum_6bits = val_in[5:0];
   endfunction
 
