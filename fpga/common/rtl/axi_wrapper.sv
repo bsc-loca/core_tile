@@ -197,6 +197,7 @@ module axi_wrapper
     logic    [NUM_HARTS-1:0] debug_contr_progbuf_ack;
     logic    [NUM_HARTS-1:0] debug_contr_parked;
     logic    [NUM_HARTS-1:0] debug_contr_unavail;
+    logic    [NUM_HARTS-1:0] debug_contr_progbuf_xcpt;
 
     drac_pkg::phreg_t  [NUM_HARTS-1:0] debug_reg_rnm_read_resp;
     drac_pkg::bus64_t  [NUM_HARTS-1:0] debug_reg_rf_rdata;
@@ -288,6 +289,7 @@ module axi_wrapper
         .debug_contr_progbuf_ack_o(debug_contr_progbuf_ack[0]),
         .debug_contr_parked_o(debug_contr_parked[0]),
         .debug_contr_unavail_o(debug_contr_unavail[0]),
+        .debug_contr_progbuf_xcpt_o(debug_contr_progbuf_xcpt[0]),
 
         .debug_reg_rnm_read_resp_o(debug_reg_rnm_read_resp[0]),
         .debug_reg_rf_rdata_o(debug_reg_rf_rdata[0]),
@@ -535,6 +537,7 @@ module axi_wrapper
         .unavail_i(debug_contr_unavail),
         .progbuf_run_ack_i(debug_contr_progbuf_ack),
         .parked_i(debug_contr_parked),
+        .progbuf_xcpt_i(debug_contr_progbuf_xcpt),
 
         .rnm_read_en_o(debug_reg_rnm_read_en),       // Request reading the rename table
         .rnm_read_reg_o(debug_reg_rnm_read_reg),     // Logical register for which the mapping is read
