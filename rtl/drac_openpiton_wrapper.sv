@@ -68,6 +68,7 @@
  output logic   debug_contr_progbuf_ack_o,
  output logic   debug_contr_parked_o,
  output logic   debug_contr_unavail_o,
+ output logic   debug_contr_progbuf_xcpt_o,
 
  output phreg_t debug_reg_rnm_read_resp_o,
  output bus64_t debug_reg_rf_rdata_o,
@@ -281,6 +282,7 @@ top_tile #(
  .debug_contr_progbuf_ack_o(debug_contr_progbuf_ack_o),
  .debug_contr_parked_o(debug_contr_parked_o),
  .debug_contr_unavail_o(debug_contr_unavail_o),
+ .debug_contr_progbuf_xcpt_o(debug_contr_progbuf_xcpt_o),
 
  .debug_reg_rnm_read_resp_o(debug_reg_rnm_read_resp_o),
  .debug_reg_rf_rdata_o(debug_reg_rf_rdata_o),
