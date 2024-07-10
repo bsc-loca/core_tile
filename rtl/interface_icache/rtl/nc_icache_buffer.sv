@@ -105,9 +105,9 @@ always_comb begin
         end
         wait_nc: begin //10
             req_nc_valid_o = 1'b0                                   ;  
-            next_state_nc  = nc_kill_q ? kill_nc : l2_grant_valid_i ? idle_nc : wait_nc   ;  
+            next_state_nc  = l2_grant_valid_i ? idle_nc : nc_kill_q ? kill_nc : wait_nc   ;  
             waiting        = 1'b1                                   ;  
-            nc_rsp_valid_d = l2_grant_valid_i                       ;
+            nc_rsp_valid_d = !nc_kill_q && l2_grant_valid_i         ;
         end
         kill_nc: begin //11
             req_nc_valid_o = 1'b0                                   ;  
