@@ -138,6 +138,7 @@ module top_tile
     output logic   debug_contr_parked_o,
     output logic   debug_contr_unavail_o,
     output logic   debug_contr_progbuf_xcpt_o,
+    output logic   debug_contr_havereset_o,
 
     output phreg_t debug_reg_rnm_read_resp_o,
     output bus64_t debug_reg_rf_rdata_o,
@@ -336,6 +337,7 @@ assign debug_contr_progbuf_ack_o    = debug_contr_out.progbuf_ack;
 assign debug_contr_parked_o         = debug_contr_out.parked;
 assign debug_contr_unavail_o        = debug_contr_out.unavail;
 assign debug_contr_progbuf_xcpt_o   = debug_contr_out.progbuf_xcpt;
+assign debug_contr_havereset_o      = debug_contr_out.havereset;
 
 assign debug_reg_rnm_read_resp_o    = debug_reg_out.rnm_read_resp;
 assign debug_reg_rf_rdata_o         = debug_reg_out.rf_rdata;
