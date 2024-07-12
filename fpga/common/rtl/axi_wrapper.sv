@@ -535,7 +535,6 @@ module axi_wrapper
         .resume_ack_i(debug_contr_resume_ack),
         .halted_i(debug_contr_halted),
         .running_i(debug_contr_running),
-        .havereset_i(0),
         .unavail_i(debug_contr_unavail),
         .progbuf_run_ack_i(debug_contr_progbuf_ack),
         .parked_i(debug_contr_parked),
