@@ -29,6 +29,7 @@
 ) (
  input   logic                   clk_i,
  input   logic                   reset_l,     // This is an openpiton-specific name, do not change (hier. paths in TB use this)
+ input   logic                   soft_rstn_i, // This is a soft reset used by the DM
  output  logic                   spc_grst_l,  // This is an openpiton-specific name, do not change (hier. paths in TB use this)
  input   logic [63:0]            hart_id_i,
  `ifdef PITON_CINCORANCH
@@ -184,7 +185,7 @@ top_tile #(
 ) core_inst (
  .clk_i(clk_i),
  .rstn_i(rst_n),
- .soft_rstn_i(rst_n),
+ .soft_rstn_i(soft_rstn_i),
  .core_id_i(hart_id_i),
  `ifdef PITON_CINCORANCH
  .boot_main_id_i(boot_main_id_i),

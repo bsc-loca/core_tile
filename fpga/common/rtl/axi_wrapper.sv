@@ -203,12 +203,12 @@ module axi_wrapper
     drac_pkg::phreg_t  [NUM_HARTS-1:0] debug_reg_rnm_read_resp;
     drac_pkg::bus64_t  [NUM_HARTS-1:0] debug_reg_rf_rdata;
 
-    assign sargantana_rstn = ~(~rstn_i | debug_reset);
+    assign sargantana_rstn = rstn_i;
 
     top_tile core_inst (
         .clk_i(clk_i),
         .rstn_i(sargantana_rstn),
-        .soft_rstn_i(sargantana_rstn),
+        .soft_rstn_i(~debug_reset),
         .reset_addr_i(40'h0000000100),
 
         // Bootrom ports

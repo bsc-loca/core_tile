@@ -182,12 +182,12 @@ module sim_top #(
     phreg_t  [NUM_HARTS-1:0] debug_reg_rnm_read_resp;
     bus64_t  [NUM_HARTS-1:0] debug_reg_rf_rdata;
 
-    assign dut_rstn = ~(~tb_rstn | debug_reset);
+    assign dut_rstn = tb_rstn;
 
     top_tile #(.DracCfg(DRAC_CFG)) DUT (
         .clk_i(tb_clk),
         .rstn_i(dut_rstn),
-        .soft_rstn_i(dut_rstn),
+        .soft_rstn_i(~debug_reset),
         .reset_addr_i({{{PHY_VIRT_MAX_ADDR_SIZE-16}{1'b0}}, 16'h0100}),
         .core_id_i(64'b0),
 
