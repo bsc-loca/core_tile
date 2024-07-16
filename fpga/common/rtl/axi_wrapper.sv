@@ -441,7 +441,7 @@ module axi_wrapper
     logic [riscv_dm_pkg::DMI_OP_WIDTH-1:0]      resp_op_cdc;
 
     // Uncomment when the JTAG is ready
-    /*riscv_dtm dtm(
+    riscv_dtm dtm(
         .tms_i(tms),
         .tck_i(tck),
         .trst_i(~trstn),
@@ -499,13 +499,13 @@ module axi_wrapper
         .dst_data_o({resp_data_cdc, resp_op_cdc}),
         .dst_valid_o(resp_valid_cdc),
         .dst_ready_i(resp_ready_cdc)
-    );*/
+    );
 
-    assign req_valid_cdc = '0;
-    assign resp_ready_cdc = '0;
-    assign req_addr_cdc = '0;
-    assign req_data_cdc = '0;
-    assign req_op_cdc = '0;
+    // assign req_valid_cdc = '0;
+    // assign resp_ready_cdc = '0;
+    // assign req_addr_cdc = '0;
+    // assign req_data_cdc = '0;
+    // assign req_op_cdc = '0;
 
     logic halt_request, resume_request, halted, resumeack;
 

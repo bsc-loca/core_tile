@@ -2,6 +2,11 @@ module sargantana_wrapper(
     input            clk_i,
     input            rstn_i,
 
+    input  dbg_jtag_tck,
+    input  dbg_jtag_tdi,
+    output dbg_jtag_tdo,
+    input  dbg_jtag_tms,
+
     // AXI Write Address Channel Signals
     output   [`MEM_ID_WIDTH     -1:0]    m_axi_mem_awid,
     output   [`MEM_ADDR_WIDTH   -1:0]    m_axi_mem_awaddr,

@@ -1,5 +1,5 @@
 EANAME=sargantana
-PCIE,yes,pcie_axi,,PCIE_CLK,pcie_clk,pcie_rstn,dma,0,,02
+PCIE,yes,pcie_axi,,PCIE_CLK,pcie_clk,pcie_rstn,dma,0,dbg_jtag,02
 DDR4,no,mem_axi
 HBM,yes,m_axi_mem,AXI4-512,CLK0,0x0,mem_calib_complete,00
 AURORA,no,eth_axi,AXI4LITE-64,CLK0,dma,eth_irq,qsfp1,hbm,13
