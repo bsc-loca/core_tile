@@ -97,6 +97,10 @@ module sargantana_wrapper(
     logic reset;
     assign reset = reset_sync_q[1];
 
+    logic trstn_sync[1:0];
+    always_ff @(posedge dbg_jtag_tck) trstn_sync <= {trstn_sync[0], rstn_i};
+    wire trstn = trstn_sync[1];
+
     // *** AXI Crossbar ***
 
     localparam axi_pkg::xbar_cfg_t xbar_cfg = '{
@@ -262,7 +266,7 @@ module sargantana_wrapper(
         .tck(dbg_jtag_tck),
         .tms(dbg_jtag_tms),
         .tdi(dbg_jtag_tdi),
-        .trstn(reset),
+        .trstn(trstn),
 
         .tdo(dbg_jtag_tdo),
         .tdo_driven()
