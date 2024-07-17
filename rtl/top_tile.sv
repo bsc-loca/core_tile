@@ -213,6 +213,7 @@ ifill_req_o_t  ifill_req    ;
 logic          iflush       ;
 logic          req_icache_ready_cached;
 logic          req_icache_ready;
+logic          nc_grant_valid;
 
 //--PMU
 pmu_interface_t pmu_interface;
@@ -360,13 +361,15 @@ assign io_mem_acquire_bits_addr_block      = ifill_req.paddr        ;
 resp_icache_cpu_t resp_icache_interface_datapath_cached ;
 req_cpu_icache_t  req_datapath_icache_interface_cached  ;
 
+assign nc_grant_valid = io_mem_grant_valid && !io_mem_grant_inval;
+
 nc_icache_buffer #(
     .DRAC_CFG(DracCfg)
 )  nc_icache_bf (    
     .clk_i              ( clk_i                                   ) , 
     .rstn_i             ( rstn_i                                  ) ,
     .en_translation_i   ( en_translation                          ) ,
-    .l2_grant_valid_i   ( io_mem_grant_valid                      ) ,
+    .l2_grant_valid_i   ( nc_grant_valid                          ) ,
     .datapath_req_i     ( req_datapath_icache_interface           ) ,
     .icache_resp_i      ( resp_icache_interface_datapath_cached   ) ,        
     .l2_resp_data_i     ( io_mem_grant_bits_data[63:0]            ) ,
