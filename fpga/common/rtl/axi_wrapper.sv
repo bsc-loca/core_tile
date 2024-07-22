@@ -448,6 +448,7 @@ module axi_wrapper
         .tdi_i(tdi),
         .tdo_o(tdo),
         .tdo_driven_o(tdo_driven),
+        .idcode_i(32'h149511c3),
 
         .req_valid_o(req_valid),
         .req_ready_i(req_ready),
