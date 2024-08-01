@@ -307,7 +307,7 @@ uvm-random-regression:
     - cd verif/core_uvm
     - mkdir -p tests/build/generated_tests
     - ./generate_random_tests.sh ${N_TESTS} ${testname}
-    - python3 -u run.py -r riscv-dv_regression.yaml ${COVERAGE} --interrupts || result=$(echo $?)
+    - python3 -u run.py -r riscv-dv_regression.yaml ${COVERAGE} --interrupts ${TIMEOUT_RANDOM} || result=$(echo $?)
     - mv ./regress/results/sargantana_random_riscvdv_tests ./regress/results/sargantana_random_riscvdv_${testname}
     - if [ ! -z $result ];then exit ${result}; fi
   artifacts:
@@ -323,14 +323,14 @@ uvm-regression:
   stage: simulation
   parallel:
     matrix:
-      - regression_type: [isa_tests, rvv_tests]
+      - regression_type: [isa_tests, rvv_tests, selected_tests]
   rules:
     - !reference [.rules_uvm_smoke]
   variables:
     BADGE_GEN: "true"
   script:
     - cd verif/core_uvm
-    - python3 -u run.py -r ${regression_type}_sargantana.yaml ${COVERAGE} ${IGNORE_EXCLUSION}
+    - python3 -u run.py -r ${regression_type}_sargantana.yaml ${COVERAGE} ${IGNORE_EXCLUSION} ${TIMEOUT_REGRESSION}
   artifacts:
     untracked: true
     paths:
