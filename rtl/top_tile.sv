@@ -21,6 +21,10 @@ module top_tile
     parameter logic          WriteCoalescingEn     =  0,
     parameter wbuf_timecnt_t WriteCoalescingTh     =  0
 )(
+    `ifdef INTEL_PHYSICAL_MEM_CTRL
+    input wire [27:0] hduspsr_mem_ctrl,
+    input wire [27:0] uhdusplr_mem_ctrl,
+    `endif
 //------------------------------------------------------------------------------------
 // ORIGINAL INPUTS OF LAGARTO 
 //------------------------------------------------------------------------------------
@@ -420,6 +424,9 @@ sargantana_top_icache # (
     .IDX_BITS_SIZE      (12), // TODO: Where does this come from?
     .FETCH_WIDHT        (ICACHELINE_SIZE)
 ) icache (
+    `ifdef INTEL_PHYSICAL_MEM_CTRL
+    .hduspsr_mem_ctrl           (hduspsr_mem_ctrl),
+    `endif
     .clk_i                      (clk_i),
     .rstn_i                     (rstn_i),
     .flush_i                    (iflush),
@@ -506,6 +513,9 @@ hpdcache #(
     .hpdcache_mem_resp_r_t  (hpdcache_mem_resp_r_t),
     .hpdcache_mem_resp_w_t  (hpdcache_mem_resp_w_t)
 ) dcache (
+    `ifdef INTEL_PHYSICAL_MEM_CTRL
+    .uhdusplr_mem_ctrl (uhdusplr_mem_ctrl),
+    `endif
     .clk_i(clk_i),
     .rst_ni(rstn_i),
 

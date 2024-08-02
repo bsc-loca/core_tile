@@ -27,6 +27,10 @@
     parameter int unsigned               WriteCoalescingTh     =  0
 
 ) (
+ `ifdef INTEL_PHYSICAL_MEM_CTRL
+ input wire [27:0] hduspsr_mem_ctrl,
+ input wire [27:0] uhdusplr_mem_ctrl,
+ `endif
  input   logic                   clk_i,
  input   logic                   reset_l,     // This is an openpiton-specific name, do not change (hier. paths in TB use this)
  input   logic                   soft_rstn_i, // This is a soft reset used by the DM
@@ -183,6 +187,10 @@ top_tile #(
   .WriteCoalescingEn(WriteCoalescingEn),
   .WriteCoalescingTh(WriteCoalescingTh)
 ) core_inst (
+ `ifdef INTEL_PHYSICAL_MEM_CTRL
+ .hduspsr_mem_ctrl   (hduspsr_mem_ctrl),
+ .uhdusplr_mem_ctrl  (uhdusplr_mem_ctrl),
+ `endif
  .clk_i(clk_i),
  .rstn_i(rst_n),
  .soft_rstn_i(soft_rstn_i),
