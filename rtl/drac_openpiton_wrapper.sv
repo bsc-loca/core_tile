@@ -44,7 +44,9 @@
  input logic [`EXTERNAL_HPM_EVENT_NUM-1: 0]  external_hpm_i,
  `endif
  
- 
+ `ifdef INTEL_FSCAN_CTECH
+ input logic                             fscan_rstbypen,//AK
+ `endif
  output  logic [$size(l15_req_t)-1:0]  l15_req_o,
  input   logic [$size(l15_rtrn_t)-1:0] l15_rtrn_i,
 
@@ -165,7 +167,13 @@ always_ff @(posedge clk_i) begin
 end
 
 // reset gate this
+`ifdef INTEL_FSCAN_CTECH
+wire drac_openpiton_mux_rst_n;
+assign drac_openpiton_mux_rst_n = wake_up_cnt_q[$high(wake_up_cnt_q)] & reset_l;
+ctech_lib_mux_2to1 drac_openpiton_wrapper_reset_mux (.d1(reset_l),.d2(drac_openpiton_mux_rst_n),.s(fscan_rstbypen),.o(rst_n));
+`else
 assign rst_n = wake_up_cnt_q[$high(wake_up_cnt_q)] & reset_l;
+`endif // INTEL_FSCAN_CTECH
 
 localparam drac_cfg_t DracOpenPitonCfg = '{
     NIOSections: NIOSections, // number of IO space sections
@@ -194,6 +202,9 @@ top_tile #(
  .clk_i(clk_i),
  .rstn_i(rst_n),
  .soft_rstn_i(soft_rstn_i),
+ `ifdef INTEL_FSCAN_CTECH
+ .fscan_rstbypen(fscan_rstbypen),//AK
+ `endif // INTEL_FSCAN_CTECH
  .core_id_i(hart_id_i),
  `ifdef PITON_CINCORANCH
  .boot_main_id_i(boot_main_id_i),

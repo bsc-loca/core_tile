@@ -31,6 +31,9 @@ module top_tile
     input logic                 clk_i,
     input logic                 rstn_i,
     input logic                 soft_rstn_i,
+    `ifdef INTEL_FSCAN_CTECH
+    input logic                 fscan_rstbypen,//AK
+    `endif // INTEL_FSCAN_CTECH
     input addr_t                reset_addr_i,
     input logic [63:0]          core_id_i,
     `ifdef PITON_CINCORANCH
@@ -264,6 +267,9 @@ top_drac #(
 ) sargantana_inst (
     .clk_i(clk_i),
     .rstn_i(rstn_i),
+    `ifdef INTEL_FSCAN_CTECH
+    .fscan_rstbypen(fscan_rstbypen),//AK
+    `endif // INTEL_FSCAN_CTECH
     .soft_rstn_i(soft_rstn_i),
     .reset_addr_i(reset_addr_i),
     .core_id_i(core_id_i),
