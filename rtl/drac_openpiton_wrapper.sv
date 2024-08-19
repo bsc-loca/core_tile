@@ -52,7 +52,7 @@
 
  input logic time_irq_i,
  input logic [63:0] time_i,
- input logic irq_i,
+ input logic [1:0]  irq_i,
  input logic soft_irq_i,
 
  // Debug interface
