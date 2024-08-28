@@ -1,4 +1,7 @@
 ##########################
+### To execute this tcl script from root folder: 
+### fc_shell -f scripts/FC_elaboration_script_ARM7FF.tcl
+##########################
 ## SETUP for DESIGN/RTL ##
 ##########################
 # Obtain root path
@@ -19,7 +22,7 @@ set std_cell_lef_path /technos/ARM7FF/standardCells
 set macros_path /technos/ARM7FF/customMacros/cincoranch_macros
 
 set search_path ""
-lappend search_path $std_cell_lef_path/sch300mcpp64_base_svt_c11/r14p0/lef/
+	lappend search_path $std_cell_lef_path/sch300mcpp64_base_svt_c11/r14p0/lef/
 	lappend search_path $std_cell_lef_path/sch300mcpp64_base_lvt_c11/r14p0/lef/
 	lappend search_path $std_cell_lef_path/sch300mcpp64_base_ulvt_c11/r14p0/lef/
 	lappend search_path $std_cell_lef_path/sch300mcpp64_base_svt_c8/r14p0/lef/

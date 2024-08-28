@@ -96,6 +96,9 @@ dc_clean: $(DC_DIR)
 	make -C $< clean-dc $(DC_VARS)
 	rm -rf $<
 
+fc_elab:
+	fc_shell -f scripts/FC_elaboration_script_ARM7FF.tcl
+
 sram_wrapper_clean: $(SRAM_WRAPPER_DIR)
 	rm -rf $<
 	git checkout $(PROJECT_DIR)/dc_filelist.f
