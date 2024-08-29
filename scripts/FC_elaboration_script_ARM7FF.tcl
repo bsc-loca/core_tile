@@ -193,3 +193,5 @@ elaborate ${DESIGN}
 
 set_top_module ${DESIGN}
 
+exit
+
