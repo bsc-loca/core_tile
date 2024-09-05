@@ -10,7 +10,7 @@ set root_folder [file normalize [file join $script_dir ".."]]
 
 set DESIGN top_tile 
 set RTL_path $root_folder/rtl 
-set RTL_filelist $root_folder/dc_filelist.f
+set RTL_filelist $root_folder/parsed_filelist.f
 
 ###########################
 ## SETUP for TECHNO/LIBS ##
@@ -47,7 +47,6 @@ set search_path ""
 	lappend search_path "$RTL_path/core/sargantana/rtl/datapath/rtl/exe_stage/rtl/mixgemm_uengine/src/sim"
 	lappend search_path "$RTL_path/core/sargantana/rtl/datapath/rtl/exe_stage/rtl/mixgemm_uengine/src/pkg"
 	lappend search_path "$RTL_path/core/sargantana/rtl/datapath/rtl/exe_stage/rtl/mixgemm_uengine/src/rtl"
-	lappend search_path "$RTL_path/core/sargantana/rtl/datapath/rtl/exe_stage/rtl/mixgemm_uengine/src/rtl/deprecated"
 	lappend search_path "$RTL_path/core/sargantana/rtl/datapath/rtl/interface_csr/rtl"
 	lappend search_path "$RTL_path/core/sargantana/rtl/datapath/rtl"
 	lappend search_path "$RTL_path/core/sargantana/rtl/datapath/rtl/if_stage_1/rtl"
@@ -59,12 +58,16 @@ set search_path ""
 	lappend search_path "$RTL_path/core/sargantana/rtl/control_unit/rtl"
 	lappend search_path "$RTL_path/icache/includes"
 	lappend search_path "$RTL_path/icache/rtl"
+	lappend search_path "$RTL_path/icache/rtl/memory_library/rtl"
+	lappend search_path "$RTL_path/icache/rtl/memory_library/include"
 	lappend search_path "$RTL_path/mmu/includes"
 	lappend search_path "$RTL_path/mmu/rtl"
 	lappend search_path "$RTL_path/mmu/rtl/tlb"
 	lappend search_path "$RTL_path/mmu/rtl/common"
 	lappend search_path "$RTL_path/mmu/rtl/ptw"
 	lappend search_path "$RTL_path/dcache/rtl/src"
+	lappend search_path "$RTL_path/dcache/rtl/memory_library/rtl"
+	lappend search_path "$RTL_path/dcache/rtl/memory_library/include"
 	lappend search_path "$RTL_path/common_cells/formal"
 	lappend search_path "$RTL_path/common_cells/src"
 	lappend search_path "$RTL_path/interface_dcache/rtl"
@@ -187,7 +190,7 @@ set_app_options -name hdlin.elaborate.preserve_sequential -value "all"
 ###########################
 ## ANALYZE and ELABORATE ##
 ###########################
-analyze -format sverilog -vcs " -f $RTL_filelist +define+HPDCACHE_DIR=$root_folder/rtl/dcache"
+analyze -format sverilog -vcs " -f $RTL_filelist"
 
 elaborate ${DESIGN}
 
