@@ -23,7 +23,8 @@
  *  Description  : Sargantana adapter module to connect the HPDC and L1I$ to the native interface of the OpenPiton L1.5 cache.
  *  History      :
  */
-module cinco_ranch_hpdcache_subsystem_l15_adapter import drac_pkg::*;import wt_cache_pkg::*;import hpdcache_pkg::*;
+module cinco_ranch_hpdcache_subsystem_l15_adapter
+       import wt_cache_pkg::*; import hpdcache_pkg::*;
 //  Parameters
 //  {{{
 #(
