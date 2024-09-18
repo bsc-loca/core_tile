@@ -14,10 +14,6 @@ module axi_tohost_behav (
 
     logic [63:0] tohost_addr;
 
-    always_ff @(negedge rstn_i) begin
-        memory_symbol_addr("tohost", tohost_addr);
-    end
-
     // Tohost Valid bits
 
     logic last_write_addr_valid, last_write_valid, int_valid;
@@ -94,6 +90,7 @@ module axi_tohost_behav (
         end else begin
             if (last_write_valid && last_write_addr_valid) begin
                 int_valid <= 1'b1;
+                memory_symbol_addr("tohost", tohost_addr);
             end else begin
                 int_valid <= 1'b0;
             end
