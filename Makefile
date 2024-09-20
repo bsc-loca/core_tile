@@ -41,6 +41,7 @@ include benchmarks.mk
 include tb/tb_torture/torture.mk
 
 # *** MEEP FPGA simulator ***
+# Note that ISA tests start with the reset low and raise it after a few cycles, keep this in mind if you plan to code reset interactions
 include fpga/meep_shell/simulator/simulator.mk
 
 sim-meep: $(MEEP_SIMULATOR)

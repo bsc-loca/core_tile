@@ -17,7 +17,7 @@ disassembler_t *disassembler;
 isa_parser_t *isa;
 
 // Global Variables
-uint64_t last_pc=0, cycles=1;
+uint64_t last_pc=0, cycles=1, last_if1_id=1, last_if2_id=1;
 
 // System Verilog DPI
 void konata_dump (unsigned long long if1_valid,
@@ -146,14 +146,18 @@ void konataSignature::dump_file(unsigned long long if1_valid,
     }else{
         signatureFile << "C\t" << std::dec << cycles << "\n";
         if (if1_valid && !if1_stall && !if1_flush){
-            signatureFile << "I\t" << std::dec << if1_id << "\t" << std::dec << if1_id << "\t" << 0 << "\n";
-            signatureFile << "S\t" << std::dec << if1_id << "\t" << std::dec << 0 << "\tF1" << "\n";
+            if (last_if1_id != if1_id) {
+                signatureFile << "I\t" << std::dec << if1_id << "\t" << std::dec << if1_id << "\t" << 0 << "\n";
+                signatureFile << "S\t" << std::dec << if1_id << "\t" << std::dec << 0 << "\tF1" << "\n";
+            }
         }
         if(if2_flush){
             signatureFile << "R\t" << std::dec << if2_id << "\t" << std::dec << if2_id << "\t" << 1 << "\n";
         }else if(if2_valid && !if2_stall){
-            signatureFile << "E\t" << std::dec << if2_id << "\t" << std::dec << 0 << "\tF1" << "\n";
-            signatureFile << "S\t" << std::dec << if2_id << "\t" << std::dec << 0 << "\tF2" << "\n";
+            if (last_if2_id != if2_id) {
+                signatureFile << "E\t" << std::dec << if2_id << "\t" << std::dec << 0 << "\tF1" << "\n";
+                signatureFile << "S\t" << std::dec << if2_id << "\t" << std::dec << 0 << "\tF2" << "\n";
+            }
         }
         if(id_flush){
             signatureFile << "R\t" << std::dec << id_id << "\t" << std::dec << id_id << "\t" << 1 << "\n";
@@ -235,5 +239,6 @@ void konataSignature::dump_file(unsigned long long if1_valid,
         cycles = 1;
         signatureFile.flush();
     }
-
+    last_if1_id = if1_id;
+    if (if2_valid) last_if2_id = if2_id;
 }
