@@ -127,8 +127,12 @@ generate
             if (((1 << gv_size) * 8) == HPDCACHE_REQ_DATA_WIDTH) begin
                 assign aligned_be[gv_size] = {{HPDCACHE_REQ_DATA_BYTES}{1'b1}};
             end else begin
-                assign aligned_be[gv_size] =
+                if (gv_size == 0) begin
+                    assign aligned_be[gv_size] = {{1 << gv_size}{1'b1}} << {req_cpu_dcache_i.data_rs1[DCACHE_MAXELEM_LOG-1:gv_size]};
+                end else begin
+                    assign aligned_be[gv_size] =
                     {{1 << gv_size}{1'b1}} << {req_cpu_dcache_i.data_rs1[DCACHE_MAXELEM_LOG-1:gv_size], {{gv_size}{1'b0}}};
+                end
             end
         end else begin 
             // If the requested size is larger than the maximum that the core
