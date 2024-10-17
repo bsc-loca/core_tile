@@ -10,11 +10,56 @@ from glob import glob
 SIMULATOR = sys.argv[1]
 ISA_DIR = sys.argv[2]
 TEST_TIMEOUT = 100000
-IMPLEMENTED_EXTENSIONS = ['i', 'm', 'f', 'd', 'a', 'zba']
+IMPLEMENTED_EXTENSIONS = ['i', 'm', 'f', 'd', 'a', 'zba', 'zbb']
 
 TESTS_TO_SKIP = {
     "rv64ui-p-ma_data": "Core doesn't support misaligned load/stores",
     "rv64ui-v-ma_data": "Core doesn't support misaligned load/stores",
+    "rv64uzbb-p-clz": "Instruction not implemented",
+    "rv64uzbb-p-clzw": "Instruction not implemented",
+    "rv64uzbb-p-ctz": "Instruction not implemented",
+    "rv64uzbb-p-ctzw": "Instruction not implemented",
+    "rv64uzbb-p-cpop": "Instruction not implemented",
+    "rv64uzbb-p-cpopw": "Instruction not implemented",
+    "rv64uzbb-p-minu": "Instruction not implemented",
+    "rv64uzbb-p-min": "Instruction not implemented",
+    "rv64uzbb-p-maxu": "Instruction not implemented",
+    "rv64uzbb-p-max": "Instruction not implemented",
+    "rv64uzbb-p-sext_b": "Instruction not implemented",
+    "rv64uzbb-p-sext_h": "Instruction not implemented",
+    "rv64uzbb-p-zext_h": "Instruction not implemented",
+    "rv64uzbb-p-rol": "Instruction not implemented",
+    "rv64uzbb-p-rolw": "Instruction not implemented",
+    "rv64uzbb-p-ror": "Instruction not implemented",
+    "rv64uzbb-p-rori": "Instruction not implemented",
+    "rv64uzbb-p-roriw": "Instruction not implemented",
+    "rv64uzbb-p-rorw": "Instruction not implemented",
+    "rv64uzbb-p-orc_b": "Instruction not implemented",
+    "rv64uzbb-p-rev8": "Instruction not implemented",
+    "rv64uzbb-v-clz": "Instruction not implemented",
+    "rv64uzbb-v-clzw": "Instruction not implemented",
+    "rv64uzbb-v-ctz": "Instruction not implemented",
+    "rv64uzbb-v-ctzw": "Instruction not implemented",
+    "rv64uzbb-v-cpop": "Instruction not implemented",
+    "rv64uzbb-v-cpopw": "Instruction not implemented",
+    "rv64uzbb-v-minu": "Instruction not implemented",
+    "rv64uzbb-v-min": "Instruction not implemented",
+    "rv64uzbb-v-maxu": "Instruction not implemented",
+    "rv64uzbb-v-max": "Instruction not implemented",
+    "rv64uzbb-v-sext_b": "Instruction not implemented",
+    "rv64uzbb-v-sext_h": "Instruction not implemented",
+    "rv64uzbb-v-zext_h": "Instruction not implemented",
+    "rv64uzbb-v-rol": "Instruction not implemented",
+    "rv64uzbb-v-rolw": "Instruction not implemented",
+    "rv64uzbb-v-ror": "Instruction not implemented",
+    "rv64uzbb-v-rori": "Instruction not implemented",
+    "rv64uzbb-v-roriw": "Instruction not implemented",
+    "rv64uzbb-v-rorw": "Instruction not implemented",
+    "rv64uzbb-v-orc_b": "Instruction not implemented",
+    "rv64uzbb-v-rev8": "Instruction not implemented",
+    "rv64uzbb-v-xnor": "Instruction not implemented",
+    "rv64uzbb-v-andn": "Instruction not implemented",
+    "rv64uzbb-v-orn": "Instruction not implemented",
 }
 
 def format_padded(text):
