@@ -21,16 +21,12 @@ TESTS_TO_SKIP = {
     "rv64uzbb-p-ctzw": "Instruction not implemented",
     "rv64uzbb-p-cpop": "Instruction not implemented",
     "rv64uzbb-p-cpopw": "Instruction not implemented",
-    "rv64uzbb-p-orc_b": "Instruction not implemented",
-    "rv64uzbb-p-rev8": "Instruction not implemented",
     "rv64uzbb-v-clz": "Instruction not implemented",
     "rv64uzbb-v-clzw": "Instruction not implemented",
     "rv64uzbb-v-ctz": "Instruction not implemented",
     "rv64uzbb-v-ctzw": "Instruction not implemented",
     "rv64uzbb-v-cpop": "Instruction not implemented",
     "rv64uzbb-v-cpopw": "Instruction not implemented",
-    "rv64uzbb-v-orc_b": "Instruction not implemented",
-    "rv64uzbb-v-rev8": "Instruction not implemented",
 }
 
 def format_padded(text):
