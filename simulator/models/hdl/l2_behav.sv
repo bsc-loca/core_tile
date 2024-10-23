@@ -1,10 +1,32 @@
-import drac_pkg::*, hpdcache_pkg::*, sargantana_hpdc_pkg::*;
+/*
+* L2 / Main Memory Behavioral Model
+* Author: Arnau Bigas (arnau.bigas@bsc.es)
+*
+* Description:
+*
+* This module models de behavior of the rest of the memory hierarchy and is
+* designed to be connected to the BSC Tiles composed of the cores and the L1
+* caches (the BSC's instruction_cache and CEA's HPDCache). It is composed of
+* 3 channels:
+*   1. icache refills
+*   2. dCache reads
+*   3. dCache writes
+*
+* For its inner workings, it uses a C++ DPI which loads an elf program, and
+* provides a 512 bit interface to access the memory. Currently this behavioral
+* model only works when the memory bus width of both the iCache and the HPDCache
+* is equal to these 512 bits.
+*
+* This behavioural model only depends on the hpdcache_pkg.
+*/
 
+`define DPI_DATA_SIZE 512
+`define DPI_BYTE_ENABLE_SIZE (`DPI_DATA_SIZE/8)
 
 import "DPI-C" function void memory_init (input string path);
-import "DPI-C" function void memory_read (input bit [31:0] addr, output bit [512-1:0] data);
-import "DPI-C" function void memory_write (input bit [31:0] addr, input bit [(512/8)-1:0] byte_enable, input bit [512-1:0] data);
-import "DPI-C" function void memory_amo (input bit [31:0] addr, input bit [3:0] size, input bit [3:0] amo_op, input bit [512-1:0] data, output bit [512-1:0] result);
+import "DPI-C" function void memory_read (input bit [31:0] addr, output bit [`DPI_DATA_SIZE-1:0] data);
+import "DPI-C" function void memory_write (input bit [31:0] addr, input bit [`DPI_BYTE_ENABLE_SIZE-1:0] byte_enable, input bit [`DPI_DATA_SIZE-1:0] data);
+import "DPI-C" function void memory_amo (input bit [31:0] addr, input bit [3:0] size, input bit [3:0] amo_op, input bit [`DPI_DATA_SIZE-1:0] data, output bit [`DPI_DATA_SIZE-1:0] result);
 import "DPI-C" function void memory_symbol_addr(input string symbol, output bit [63:0] addr);
 
 import "DPI-C" function int  tohost(input bit [63:0] data);
@@ -138,7 +160,7 @@ module mem_channel #(
     logic [DATA_WIDTH-1:0] next_data;
     logic next_atomic;
     always_ff @(posedge clk_i) begin
-        logic [511:0] readed_data; // From DPI
+        logic [`DPI_DATA_SIZE-1:0] readed_data; // From DPI
         if(~rstn_i) begin
             next_tag <= 0;
             next_data <= 0;
@@ -159,7 +181,7 @@ module mem_channel #(
                     end
                     2'b10: begin // Atomic
                         memory_amo(head.addr, head.size, head.atomic_op, head.data, readed_data);
-                        next_atomic <= head.atomic_op != 4'b1101; //STEX are treated differently
+                        next_atomic <= 1'b1;
                         next_data <= readed_data;
                     end
                     2'b11: begin // Used for tohost, put dummy data
@@ -182,6 +204,9 @@ module mem_channel #(
     assign rsp_data_o = next_data;
     assign rsp_is_atomic_o = next_atomic;
 
+    // Only supported configuration is when cacheline width == DPI width
+    initial assert (DATA_WIDTH == `DPI_DATA_SIZE);
+
 endmodule
 
 module l2_behav #(
@@ -189,7 +214,15 @@ module l2_behav #(
     parameter INST_CACHE_LINE_SIZE = DATA_CACHE_LINE_SIZE,
     parameter ADDR_SIZE = 32,
     parameter INST_DELAY = 20,
-    parameter DATA_DELAY = 20
+    parameter DATA_DELAY = 20,
+    parameter SIZE_WIDTH = 4,
+    parameter ID_WIDTH = 8,
+
+    localparam type addr_t = logic [ADDR_SIZE-1:0],
+    localparam type data_t = logic [DATA_CACHE_LINE_SIZE-1:0],
+    localparam type be_t   = logic [(DATA_CACHE_LINE_SIZE/8)-1:0],
+    localparam type size_t = logic [SIZE_WIDTH-1:0],
+    localparam type id_t   = logic [ID_WIDTH-1:0]
 
 ) (
     input logic                     clk_i,
@@ -197,88 +230,51 @@ module l2_behav #(
 
     // *** iCache Interface ***
 
-    input logic  [ADDR_SIZE-1:0]    ic_addr_i,
+    input logic [ADDR_SIZE-1:0]     ic_addr_i,
     input logic                     ic_valid_i,
-    output logic [INST_CACHE_LINE_SIZE-1:0]    ic_line_o, // TODO: Change it to 512 bits, modifying iCache FSM
+    output logic [INST_CACHE_LINE_SIZE-1:0]    ic_line_o,
     output logic                    ic_ready_o,
     output logic                    ic_valid_o,
     output logic [1:0]              ic_seq_num_o,
 
     // *** dCache Interface ***
 
-    // Miss reads
+    // Read
 
-    input addr_t                    dc_mr_addr_i,
-    input logic                     dc_mr_valid_i,
-    input logic                     dc_mr_ready_i,
-    input logic [7:0]               dc_mr_tag_i,
-    input logic [3:0]               dc_mr_word_size_i,
-    output logic [DATA_CACHE_LINE_SIZE-1:0]    dc_mr_data_o,
-    output logic                    dc_mr_ready_o,
-    output logic                    dc_mr_valid_o,
-    output logic [7:0]              dc_mr_tag_o,
-    output logic                    dc_mr_last_o,
+    output logic  dc_read_req_ready_o,
+    input logic   dc_read_req_valid_i,
+    input addr_t  dc_read_req_addr_i,
+    input id_t    dc_read_req_tag_i,
+    input size_t  dc_read_req_word_size_i,
+    input hpdcache_pkg::hpdcache_mem_command_e dc_read_req_cmd_i,  
+    input hpdcache_pkg::hpdcache_mem_atomic_e dc_read_req_atomic_i,  
 
-    // Writeback
+    input logic   dc_read_resp_ready_i,
+    output logic  dc_read_resp_valid_o,
+    output data_t dc_read_resp_data_o,
+    output id_t   dc_read_resp_tag_o,
+    output logic  dc_read_resp_last_o,
 
-    output logic                 dc_wb_req_ready_o,
-    input logic                  dc_wb_req_valid_i,
-    input hpdcache_mem_addr_t    dc_wb_req_addr_i,
-    input hpdcache_mem_len_t     dc_wb_req_len_i,
-    input hpdcache_mem_size_t    dc_wb_req_size_i,
-    input hpdcache_mem_id_t      dc_wb_req_id_i,
+    // Write
+    output logic  dc_write_req_ready_o,
+    input logic   dc_write_req_valid_i,
+    input addr_t  dc_write_req_addr_i,
+    input size_t  dc_write_req_size_i,
+    input id_t    dc_write_req_id_i,
+    input hpdcache_pkg::hpdcache_mem_command_e dc_write_req_cmd_i,
+    input hpdcache_pkg::hpdcache_mem_atomic_e dc_write_req_atomic_i,
 
-    output logic                 dc_wb_req_data_ready_o,
-    input logic                  dc_wb_req_data_valid_i,
-    input hpdcache_mem_data_t    dc_wb_req_data_i,
-    input hpdcache_mem_be_t      dc_wb_req_be_i,
-    input logic                  dc_wb_req_last_i,
+    output logic dc_write_req_data_ready_o,
+    input logic  dc_write_req_data_valid_i,
+    input data_t dc_write_req_data_i,
+    input be_t   dc_write_req_be_i,
+    input logic  dc_write_req_last_i,
 
-    input logic                  dc_wb_resp_ready_i,
-    output logic                 dc_wb_resp_valid_o,
-    output hpdcache_mem_error_e  dc_wb_resp_error_o,
-    output hpdcache_mem_id_t     dc_wb_resp_id_o,
-
-    // Uncacheable writeback
-
-    output logic                 dc_uc_wr_req_ready_o,
-    input logic                  dc_uc_wr_req_valid_i,
-    input hpdcache_mem_addr_t    dc_uc_wr_req_addr_i,
-    input hpdcache_mem_len_t     dc_uc_wr_req_len_i,
-    input hpdcache_mem_size_t    dc_uc_wr_req_size_i,
-    input hpdcache_mem_id_t      dc_uc_wr_req_id_i,
-    input hpdcache_mem_command_e dc_uc_wr_req_command_i,
-    input hpdcache_mem_atomic_e  dc_uc_wr_req_atomic_i,
-
-    output logic                 dc_uc_wr_req_data_ready_o,
-    input logic                  dc_uc_wr_req_data_valid_i,
-    input hpdcache_mem_data_t    dc_uc_wr_req_data_i,
-    input hpdcache_mem_be_t      dc_uc_wr_req_be_i,
-    input logic                  dc_uc_wr_req_last_i,
-
-    input logic                  dc_uc_wr_resp_ready_i,
-    output logic                 dc_uc_wr_resp_valid_o,
-    output logic                 dc_uc_wr_resp_is_atomic_o,
-    output hpdcache_mem_error_e  dc_uc_wr_resp_error_o,
-    output hpdcache_mem_id_t     dc_uc_wr_resp_id_o,
-
-    // Uncacheable read
-
-    output logic                 dc_uc_rd_req_ready_o,
-    input logic                  dc_uc_rd_req_valid_i,
-    input hpdcache_mem_addr_t    dc_uc_rd_req_addr_i,
-    input hpdcache_mem_len_t     dc_uc_rd_req_len_i,
-    input hpdcache_mem_size_t    dc_uc_rd_req_size_i,
-    input hpdcache_mem_id_t      dc_uc_rd_req_id_i,
-    input hpdcache_mem_command_e dc_uc_rd_req_command_i,
-    input hpdcache_mem_atomic_e  dc_uc_rd_req_atomic_i,
-
-    output logic                   dc_uc_rd_valid_o,
-    output hpdcache_mem_error_e    dc_uc_rd_error_o,
-    output hpdcache_mem_id_t       dc_uc_rd_id_o,
-    output hpdcache_mem_data_t     dc_uc_rd_data_o,
-    output logic                   dc_uc_rd_last_o,
-    input logic                    dc_uc_rd_ready_i
+    input logic  dc_write_resp_ready_i,
+    output logic dc_write_resp_valid_o,
+    output hpdcache_pkg::hpdcache_mem_error_e  dc_write_resp_error_o,
+    output id_t  dc_write_resp_id_o,
+    output logic dc_write_resp_is_atomic_o
 );
 
     logic [63:0] tohost_addr;
@@ -306,8 +302,10 @@ module l2_behav #(
     assign ic_next_counter = (ic_counter > 0) ? ic_counter-1 : 0;
     assign ic_seq_num_o = 2'b11 - ic_counter[1:0];
 
-    // Register holding the full 512 bits from the DPI
-    logic [511:0] ic_line;
+    // Register holding the full bits from the DPI
+    logic [`DPI_DATA_SIZE-1:0] ic_line;
+
+    initial assert (INST_CACHE_LINE_SIZE == `DPI_DATA_SIZE);
 
     // ic_counter procedure
     always_ff @(posedge clk_i, negedge rstn_i) begin : proc_ic_counter
@@ -341,98 +339,108 @@ module l2_behav #(
         else            ic_line_o = 0      ;
     end
 
-    // *** dCache miss-read channel ***
+    // *** dCache read channel ***
 
-    mem_channel #(.DATA_WIDTH(DATA_CACHE_LINE_SIZE)) mr_channel (
+    logic  read_channel_rsp_valid;
+    logic  read_channel_rsp_ready;
+    data_t read_channel_rsp_data;
+    id_t   read_channel_rsp_id;
+
+    mem_channel #(
+        .DATA_WIDTH(DATA_CACHE_LINE_SIZE),
+        .ADDR_WIDTH(ADDR_SIZE)
+    ) read_channel (
         .clk_i,
         .rstn_i,
 
-        .req_ready_o(dc_mr_ready_o),
-        .req_valid_i(dc_mr_valid_i),
-        .req_addr_i(dc_mr_addr_i),
-        .req_size_i(dc_mr_word_size_i),
-        .req_id_i(dc_mr_tag_i),
-        .req_data_i(0),         // Read-only channel
-        .req_be_i(0),           // Read-only channel
-        .req_command_i(2'b00),  // Read-only channel
-        .req_atomic_i(0),       // No atomics
+        .req_ready_o(dc_read_req_ready_o),
+        .req_valid_i(dc_read_req_valid_i),
+        .req_addr_i(dc_read_req_addr_i),
+        .req_size_i(dc_read_req_word_size_i),
+        .req_id_i(dc_read_req_tag_i),
+        .req_data_i(0), // Read-only channel
+        .req_be_i(0),   // Read-only channel
+        .req_command_i(dc_read_req_cmd_i),
+        .req_atomic_i(dc_read_req_atomic_i),
 
-        .rsp_valid_o(dc_mr_valid_o),
-        .rsp_id_o(dc_mr_tag_o),
-        .rsp_data_o(dc_mr_data_o),
-        .rsp_is_atomic_o(), // No atomics
-        .rsp_ready_i(dc_mr_ready_i)
+        .rsp_valid_o(read_channel_rsp_valid),
+        .rsp_id_o(read_channel_rsp_id),
+        .rsp_data_o(read_channel_rsp_data),
+        .rsp_is_atomic_o(), // Read channel doesn't have atomic responses
+        .rsp_ready_i(read_channel_rsp_ready)
     );
 
-    assign dc_mr_last_o = dc_mr_valid_o;
+    assign dc_read_resp_last_o = dc_read_resp_valid_o;
 
     // *** dCache writeback channel ***
 
-    mem_channel #(.DATA_WIDTH(DATA_CACHE_LINE_SIZE)) wb_channel (
+    logic  write_channel_rsp_valid;
+    logic  write_channel_rsp_ready;
+    data_t write_channel_rsp_data; // Only used in responses to atomic requests
+    id_t   write_channel_rsp_id;
+
+    mem_channel #(
+        .DATA_WIDTH(DATA_CACHE_LINE_SIZE),
+        .ADDR_WIDTH(ADDR_SIZE)
+    ) write_channel (
         .clk_i,
         .rstn_i,
 
-        .req_ready_o(dc_wb_req_ready_o),
-        .req_valid_i(dc_wb_req_valid_i & dc_wb_req_data_valid_i),
-        .req_addr_i(dc_wb_req_addr_i),
-        .req_size_i(dc_wb_req_size_i),
-        .req_id_i(dc_wb_req_id_i),
-        .req_data_i(dc_wb_req_data_i),
-        .req_be_i(dc_wb_req_be_i),
-        .req_command_i(2'b01), // Write-only channel
-        .req_atomic_i(0),      // No atomics
+        .req_ready_o(dc_write_req_ready_o),
+        .req_valid_i(dc_write_req_valid_i & dc_write_req_data_valid_i),
+        .req_addr_i(dc_write_req_addr_i),
+        .req_size_i(dc_write_req_size_i),
+        .req_id_i(dc_write_req_id_i),
+        .req_data_i(dc_write_req_data_i),
+        .req_be_i(dc_write_req_be_i),
+        .req_command_i(dc_write_req_cmd_i),
+        .req_atomic_i(dc_write_req_atomic_i),
 
-        .rsp_valid_o(dc_wb_resp_valid_o),
-        .rsp_id_o(dc_wb_resp_id_o),
-        .rsp_data_o(), // No data response
-        .rsp_is_atomic_o(), // No atomics
-        .rsp_ready_i(dc_wb_resp_ready_i)
+        .rsp_valid_o(write_channel_rsp_valid),
+        .rsp_id_o(write_channel_rsp_id),
+        .rsp_data_o(write_channel_rsp_data),
+        .rsp_is_atomic_o(dc_write_resp_is_atomic_o),
+        .rsp_ready_i(write_channel_rsp_ready)
     );
 
-    assign dc_wb_req_data_ready_o = dc_wb_req_ready_o;
+    assign dc_write_req_data_ready_o = dc_write_req_ready_o;
 
-    assign dc_wb_resp_error_o = HPDCACHE_MEM_RESP_OK;
+    assign dc_write_resp_error_o = hpdcache_pkg::HPDCACHE_MEM_RESP_OK;
+    assign dc_write_resp_id_o = write_channel_rsp_id;
+    assign dc_write_resp_valid_o = write_channel_rsp_valid;
+    assign write_channel_rsp_ready = dc_write_resp_ready_i;
 
-    // *** dCache uncacheable write channel ***
+    // MUX for read channel and atomic responses
 
-    logic is_tohost;
+    always_comb begin: mux_read_atomic
+        if (write_channel_rsp_valid & dc_write_resp_is_atomic_o) begin
+            dc_read_resp_valid_o   = write_channel_rsp_valid;
+            dc_read_resp_data_o    = write_channel_rsp_data;
+            dc_read_resp_tag_o     = write_channel_rsp_id;
+            read_channel_rsp_ready = 1'b0;
+        end else begin
+            dc_read_resp_valid_o   = read_channel_rsp_valid;
+            dc_read_resp_data_o    = read_channel_rsp_data;
+            dc_read_resp_tag_o     = read_channel_rsp_id;
+            read_channel_rsp_ready = dc_read_resp_ready_i;
+        end
+    end
 
-    logic uncached_write_valid, atomic_response, uncached_write_ready;
-    logic [DATA_CACHE_LINE_SIZE-1:0] atomic_data;
-
-    mem_channel #(.DATA_WIDTH(DATA_CACHE_LINE_SIZE)) uc_write_channel (
-        .clk_i,
-        .rstn_i,
-
-        .req_ready_o(dc_uc_wr_req_ready_o),
-        .req_valid_i(dc_uc_wr_req_valid_i & dc_uc_wr_req_data_valid_i),
-        .req_addr_i(dc_uc_wr_req_addr_i),
-        .req_size_i(dc_uc_wr_req_size_i),
-        .req_id_i(dc_uc_wr_req_id_i),
-        .req_data_i(dc_uc_wr_req_data_i),
-        .req_be_i(dc_uc_wr_req_be_i),
-        .req_command_i(is_tohost ? 2'b11 : dc_uc_wr_req_command_i),
-        .req_atomic_i(dc_uc_wr_req_atomic_i),
-
-        .rsp_valid_o(uncached_write_valid),
-        .rsp_id_o(dc_uc_wr_resp_id_o),
-        .rsp_data_o(atomic_data),
-        .rsp_is_atomic_o(atomic_response),
-        .rsp_ready_i(uncached_write_ready)
-    );
-
-    assign dc_uc_wr_req_data_ready_o = dc_uc_wr_req_ready_o;
+    // When responding an atomic request, both channels must be ready.
+    atomic_resp_assert: assert property (@(posedge clk_i) disable iff (!rstn_i)
+        (~(write_channel_rsp_valid & dc_write_resp_is_atomic_o) | (dc_write_resp_ready_i & dc_read_resp_ready_i))) else
+        $error("Responding atomic request but the read or write interfaces aren't ready at the same time");
 
     // tohost logic for simulations
 
-    assign is_tohost = dc_uc_wr_req_valid_i & dc_uc_wr_req_data_valid_i && dc_uc_wr_req_addr_i == tohost_addr;
+    assign is_tohost = dc_write_req_valid_i & dc_write_req_data_valid_i && dc_write_req_addr_i == tohost_addr;
 
     always_ff @(posedge clk_i, negedge rstn_i) begin
         logic [14:0] exit_code;
         if(~rstn_i) begin
         end else if (is_tohost) begin
-            if (tohost(dc_uc_wr_req_data_i[63:0])) begin
-                exit_code = dc_uc_wr_req_data_i[15:1];
+            if (tohost(dc_write_req_data_i[63:0])) begin
+                exit_code = dc_write_req_data_i[15:1];
 
                 if (exit_code == 0) begin
                     $write("%c[1;32m", 27);
@@ -447,76 +455,6 @@ module l2_behav #(
                 end
             end
         end
-    end 
-
-    // *** dCache uncacheable read channel ***
-
-    logic uncached_read_valid, uncached_read_ready;
-    logic [DATA_CACHE_LINE_SIZE-1:0] uncached_read_data;
-    logic [7:0] uncached_read_tag;
-
-    mem_channel #(.DATA_WIDTH(DATA_CACHE_LINE_SIZE)) uc_read_channel (
-        .clk_i,
-        .rstn_i,
-
-        .req_ready_o(dc_uc_rd_req_ready_o),
-        .req_valid_i(dc_uc_rd_req_valid_i),
-        .req_addr_i(dc_uc_rd_req_addr_i),
-        .req_size_i(dc_uc_rd_req_size_i),
-        .req_id_i(dc_uc_rd_req_tag_i),
-        .req_data_i(dc_uc_rd_req_data_i),
-        .req_be_i(dc_uc_rd_req_be_i),
-        .req_command_i(dc_uc_rd_req_command_i),
-        .req_atomic_i(dc_uc_rd_req_atomic_i),
-
-        .rsp_valid_o(uncached_read_valid),
-        .rsp_id_o(uncached_read_tag),
-        .rsp_data_o(uncached_read_data),
-        .rsp_is_atomic_o(), // No atomics
-        .rsp_ready_i(uncached_read_ready)
-    );
-
-    // Mux for uncached read responses & atomic responses
-
-    always_comb begin
-        dc_uc_rd_data_o = 0;
-        dc_uc_rd_id_o = 0;
-        dc_uc_rd_last_o = 0;
-        dc_uc_rd_valid_o = 0;
-        uncached_read_ready = 0;
-
-        dc_uc_wr_resp_valid_o = 0;
-        dc_uc_wr_resp_is_atomic_o = 0;
-        uncached_write_ready = 0;
-
-        if (uncached_read_valid) begin
-            dc_uc_rd_data_o = uncached_read_data;
-            dc_uc_rd_id_o = uncached_read_tag;
-            dc_uc_rd_last_o = 1'b1;
-            dc_uc_rd_valid_o = 1'b1;
-            uncached_read_ready = dc_uc_rd_ready_i;
-        end
-        
-        if (uncached_write_valid) begin
-            if (atomic_response & ~uncached_read_valid) begin // If there is an atomic response and the uncached read channel is available
-                dc_uc_rd_data_o = atomic_data;
-                dc_uc_rd_id_o = 0; // TODO: Not sure if this is correct
-                dc_uc_rd_last_o = 1'b1;
-                dc_uc_rd_valid_o = 1'b1;
-                uncached_read_ready = 1'b0; // Do not read from the read memory channel
-
-                dc_uc_wr_resp_valid_o = 1'b1;
-                dc_uc_wr_resp_is_atomic_o = 1'b1;
-                uncached_write_ready = dc_uc_wr_resp_ready_i;
-            end else if (~atomic_response) begin // If it is just an uncached write ack
-                dc_uc_wr_resp_valid_o = 1'b1;
-                dc_uc_wr_resp_is_atomic_o = 1'b1;
-                uncached_write_ready = dc_uc_wr_resp_ready_i;
-            end
-        end
     end
-
-    assign dc_uc_wr_resp_error_o = HPDCACHE_MEM_RESP_OK;
-    assign dc_uc_rd_resp_error_o = HPDCACHE_MEM_RESP_OK;
 
 endmodule
