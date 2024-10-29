@@ -291,6 +291,14 @@ vcs:
 #    paths:
 #    - tb/tb_torture/signatures
 
+.riscv_dv_generate: &riscv_dv_generate
+  - echo $BASE_TESTS
+  - echo $N_ITERATIONS
+  - echo $N_TESTS
+  - echo $core
+  - source ci_scripts/generate_tests.sh $N_ITERATIONS "python3 -u ./riscv-dv/run.py -tn $testname -ct ./riscv-dv/BSC-targets/sargantana --isa rv64gv --mabi lp64d --gen_timeout 18000 -si questa -o ./generated_tests -i $N_TESTS -s gen,gcc_compile"
+   
+
 uvm-random-regression:
   extends: .questa_riscv
   stage: simulation
@@ -305,8 +313,7 @@ uvm-random-regression:
     BADGE_GEN: "true"    
   script:
     - cd verif/core_uvm
-    - mkdir -p tests/build/generated_tests
-    - ./generate_random_tests.sh ${N_TESTS} ${testname}
+    - *riscv_dv_generate
     - python3 -u run.py -r riscv-dv_regression.yaml ${COVERAGE} --interrupts ${TIMEOUT_RANDOM} || result=$(echo $?)
     - mv ./regress/results/sargantana_random_riscvdv_tests ./regress/results/sargantana_random_riscvdv_${testname}
     - if [ ! -z $result ];then exit ${result}; fi
@@ -317,7 +324,7 @@ uvm-random-regression:
         - verif/core_uvm/regress/results/sargantana_random_riscvdv_${testname}/*
         - verif/core_uvm/generated_tests_*/*
         - verif/core_uvm/tests/build/generated_tests/*
-
+                                                   
 uvm-regression:
   extends: .questa_riscv
   stage: simulation
