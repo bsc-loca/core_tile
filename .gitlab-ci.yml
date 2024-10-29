@@ -176,6 +176,7 @@ build-uvm:
     - make clone_dv
     - make clone_ci_scripts
     - cd verif/core_uvm
+    - make clone_selected_tests
     - module load verilator
     - verilator --version
     - module load gcc
