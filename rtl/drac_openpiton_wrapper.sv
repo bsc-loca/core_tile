@@ -6,7 +6,7 @@
  */
 
  module drac_openpiton_wrapper
- import drac_pkg::*; import hpdcache_pkg::*; import wt_cache_pkg::*; import sargantana_hpdc_pkg::*;
+ import drac_pkg::*; import hpdcache_pkg::*; import wt_cache_pkg::*;
  #(
     // IO addresses
     parameter int unsigned               NIOSections           =  1,
@@ -84,6 +84,54 @@
  output visa_signals_t       visa_o
 );
 
+// Instantiate core configuration
+
+localparam drac_cfg_t DracOpenPitonCfg = '{
+    NIOSections: NIOSections, // number of IO space sections
+    InitIOBase:  InitIOBase, // IO base 0 address after reset
+    InitIOEnd:   InitIOEnd, // IO end 0 address after reset
+
+    NMappedSections: NMappedSections, // number of Memory space sections
+    InitMappedBase:  InitMappedBase, // Memory base address after reset
+    InitMappedEnd:   InitMappedEnd, // Memory end 0 address after reset
+
+    InitBROMBase: InitBROMBase,
+    InitBROMEnd: InitBROMEnd,
+
+    DebugProgramBufferBase: InitDMBase,
+    DebugProgramBufferEnd: InitDMEnd,
+
+    // TODO: parametrize this properly
+
+    // DCache Config
+    DCacheNumSets: 128,
+    DCacheNumWays: 4,
+    DCacheLineWidth: 512,
+    DCacheMSHRSets: 32,
+    DCacheMSHRWays: 2,
+    DCacheWBUFSize: 16,
+    DCacheWTNotWB: 1,
+
+    // Memory Interface Config
+    MemAddrWidth: 40,
+    MemDataWidth: 512,
+    MemIDWidth: 8
+};
+
+// Declare types for HPDCache memory interface
+parameter type hpdcache_mem_addr_t = logic [DracOpenPitonCfg.MemAddrWidth-1:0];
+parameter type hpdcache_mem_id_t = logic [DracOpenPitonCfg.MemIDWidth-1:0];
+parameter type hpdcache_mem_data_t = logic [DracOpenPitonCfg.MemDataWidth-1:0];
+parameter type hpdcache_mem_be_t = logic [DracOpenPitonCfg.MemDataWidth/8-1:0];
+parameter type hpdcache_mem_req_t =
+    `HPDCACHE_DECL_MEM_REQ_T(hpdcache_mem_addr_t, hpdcache_mem_id_t);
+parameter type hpdcache_mem_resp_r_t =
+    `HPDCACHE_DECL_MEM_RESP_R_T(hpdcache_mem_id_t, hpdcache_mem_data_t);
+parameter type hpdcache_mem_req_w_t =
+    `HPDCACHE_DECL_MEM_REQ_W_T(hpdcache_mem_data_t, hpdcache_mem_be_t);
+parameter type hpdcache_mem_resp_w_t =
+    `HPDCACHE_DECL_MEM_RESP_W_T(hpdcache_mem_id_t);
+
 // Bootrom wires
 logic   [39:0]  brom_req_address;
 logic           brom_req_valid;
@@ -99,26 +147,26 @@ logic [39:0]              l2_inval_addr;
 assign l2_response_seqnum = '0;
 
 //      Miss read interface
-logic                           mem_req_miss_read_ready;
-logic                           mem_req_miss_read_valid;
-hpdcache_mem_req_t              mem_req_miss_read;
+logic                           mem_req_read_ready;
+logic                           mem_req_read_valid;
+hpdcache_mem_req_t              mem_req_read;
 
-logic                           mem_resp_miss_read_ready;
-logic                           mem_resp_miss_read_valid;
-hpdcache_mem_resp_r_t           mem_resp_miss_read;
+logic                           mem_resp_read_ready;
+logic                           mem_resp_read_valid;
+hpdcache_mem_resp_r_t           mem_resp_read;
 
 //      Write-buffer write interface
-logic                           mem_req_wbuf_write_ready;
-logic                           mem_req_wbuf_write_valid;
-hpdcache_mem_req_t              mem_req_wbuf_write;
+logic                           mem_req_write_ready;
+logic                           mem_req_write_valid;
+hpdcache_mem_req_t              mem_req_write;
 
-logic                           mem_req_wbuf_write_data_ready;
-logic                           mem_req_wbuf_write_data_valid;
-hpdcache_mem_req_w_t            mem_req_wbuf_write_data;
+logic                           mem_req_write_data_ready;
+logic                           mem_req_write_data_valid;
+hpdcache_mem_req_w_t            mem_req_write_data;
 
-logic                           mem_resp_wbuf_write_ready;
-logic                           mem_resp_wbuf_write_valid;
-hpdcache_mem_resp_w_t           mem_resp_wbuf_write;
+logic                           mem_resp_write_ready;
+logic                           mem_resp_write_valid;
+hpdcache_mem_resp_w_t           mem_resp_write;
 
 //      Uncached read interface
 logic                           mem_req_uc_read_ready;
@@ -143,7 +191,9 @@ logic                           mem_resp_uc_write_valid;
 hpdcache_mem_resp_w_t           mem_resp_uc_write;
 
 logic                           mem_inval_valid;
-hpdcache_pkg::hpdcache_nline_t  mem_inval;
+
+typedef logic [PHY_ADDR_SIZE-$clog2(DracOpenPitonCfg.DCacheLineWidth / 8)-1:0] hpdcache_nline_t;
+hpdcache_nline_t  mem_inval;
 
 function [15:0] trunc_sum_16bits(input [16:0] val_in);
   trunc_sum_16bits = val_in[15:0];
@@ -175,25 +225,8 @@ ctech_lib_mux_2to1 drac_openpiton_wrapper_reset_mux (.d1(reset_l),.d2(drac_openp
 assign rst_n = wake_up_cnt_q[$high(wake_up_cnt_q)] & reset_l;
 `endif // INTEL_FSCAN_CTECH
 
-localparam drac_cfg_t DracOpenPitonCfg = '{
-    NIOSections: NIOSections, // number of IO space sections
-    InitIOBase:  InitIOBase, // IO base 0 address after reset
-    InitIOEnd:   InitIOEnd, // IO end 0 address after reset
-
-    NMappedSections: NMappedSections, // number of Memory space sections
-    InitMappedBase:  InitMappedBase, // Memory base address after reset
-    InitMappedEnd:   InitMappedEnd, // Memory end 0 address after reset
-
-    InitBROMBase: InitBROMBase,
-    InitBROMEnd: InitBROMEnd,
-    DebugProgramBufferBase: InitDMBase,
-    DebugProgramBufferEnd: InitDMEnd
-};
-
 top_tile #(
-  .DracCfg(DracOpenPitonCfg),
-  .WriteCoalescingEn(WriteCoalescingEn),
-  .WriteCoalescingTh(WriteCoalescingTh)
+  .DracCfg(DracOpenPitonCfg)
 ) core_inst (
  `ifdef INTEL_PHYSICAL_MEM_CTRL
  .hduspsr_mem_ctrl   (hduspsr_mem_ctrl),
@@ -231,48 +264,26 @@ top_tile #(
  // dmem ports
 
  // dMem miss-read interface
- .mem_req_miss_read_ready_i(mem_req_miss_read_ready),
- .mem_req_miss_read_valid_o(mem_req_miss_read_valid),
- .mem_req_miss_read_o(mem_req_miss_read),
+ .mem_req_read_ready_i(mem_req_read_ready),
+ .mem_req_read_valid_o(mem_req_read_valid),
+ .mem_req_read_o(mem_req_read),
 
- .mem_resp_miss_read_ready_o(mem_resp_miss_read_ready),
- .mem_resp_miss_read_valid_i(mem_resp_miss_read_valid),
- .mem_resp_miss_read_i(mem_resp_miss_read),
+ .mem_resp_read_ready_o(mem_resp_read_ready),
+ .mem_resp_read_valid_i(mem_resp_read_valid),
+ .mem_resp_read_i(mem_resp_read),
 
  // dMem writeback interface
- .mem_req_wbuf_write_ready_i(mem_req_wbuf_write_ready),
- .mem_req_wbuf_write_valid_o(mem_req_wbuf_write_valid),
- .mem_req_wbuf_write_o(mem_req_wbuf_write),
+ .mem_req_write_ready_i(mem_req_write_ready),
+ .mem_req_write_valid_o(mem_req_write_valid),
+ .mem_req_write_o(mem_req_write),
 
- .mem_req_wbuf_write_data_ready_i(mem_req_wbuf_write_data_ready),
- .mem_req_wbuf_write_data_valid_o(mem_req_wbuf_write_data_valid),
- .mem_req_wbuf_write_data_o(mem_req_wbuf_write_data),
+ .mem_req_write_data_ready_i(mem_req_write_data_ready),
+ .mem_req_write_data_valid_o(mem_req_write_data_valid),
+ .mem_req_write_data_o(mem_req_write_data),
 
- .mem_resp_wbuf_write_ready_o(mem_resp_wbuf_write_ready),
- .mem_resp_wbuf_write_valid_i(mem_resp_wbuf_write_valid),
- .mem_resp_wbuf_write_i(mem_resp_wbuf_write),
-
- // dMem uncacheable write interface
- .mem_req_uc_write_ready_i(mem_req_uc_write_ready),
- .mem_req_uc_write_valid_o(mem_req_uc_write_valid),
- .mem_req_uc_write_o(mem_req_uc_write),
-
- .mem_req_uc_write_data_ready_i(mem_req_uc_write_data_ready),
- .mem_req_uc_write_data_valid_o(mem_req_uc_write_data_valid),
- .mem_req_uc_write_data_o(mem_req_uc_write_data),
-
- .mem_resp_uc_write_ready_o(mem_resp_uc_write_ready),
- .mem_resp_uc_write_valid_i(mem_resp_uc_write_valid),
- .mem_resp_uc_write_i(mem_resp_uc_write),
-
- // dMem uncacheable read interface
- .mem_req_uc_read_ready_i(mem_req_uc_read_ready),
- .mem_req_uc_read_valid_o(mem_req_uc_read_valid),
- .mem_req_uc_read_o(mem_req_uc_read),
-
- .mem_resp_uc_read_ready_o(mem_resp_uc_read_ready),
- .mem_resp_uc_read_valid_i(mem_resp_uc_read_valid),
- .mem_resp_uc_read_i(mem_resp_uc_read),
+ .mem_resp_write_ready_o(mem_resp_write_ready),
+ .mem_resp_write_valid_i(mem_resp_write_valid),
+ .mem_resp_write_i(mem_resp_write),
 
  // Invalidation interface
  .mem_inval_valid_i(mem_inval_valid),
@@ -315,17 +326,15 @@ top_tile #(
  .io_core_pmu_l2_hit_i(1'b0) 
 );
 
-localparam NUM_PORTS_ADAPTER = 6;
-localparam NUM_PORTS_ADAPTER_WIDTH = $clog2(NUM_PORTS_ADAPTER);
+localparam int unsigned NUM_PORTS_ADAPTER = 4; // iCache + dCache reads + dCache writes + AMOs
+localparam int unsigned NUM_PORTS_ADAPTER_WIDTH = $clog2(NUM_PORTS_ADAPTER);
 // Adapter HPDC-L1.5 Request Ports type
-// 0: Maximum priority 
-// NUM_PORTS_ADAPTER - 1 : Less priority 
-localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] ICACHE_PORT            = 0;
-localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] DCACHE_PORT            = 1;
-localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] DCACHE_WBUF_PORT       = 2;
-localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] DCACHE_UNC_READ_PORT   = 3;
-localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] DCACHE_UNC_WRITE_PORT  = 4;
-localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] DCACHE_AMO_PORT        = 5;
+// 0: Maximum priority
+// NUM_PORTS_ADAPTER - 1 : Less priority
+localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] ICACHE_PORT       = 0;
+localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] DCACHE_READ_PORT  = 1;
+localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] DCACHE_WRITE_PORT = 2;
+localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] DCACHE_AMO_PORT   = 3;
 
 typedef logic [NUM_PORTS_ADAPTER_WIDTH-1:0] req_portid_t;
 
@@ -333,14 +342,12 @@ cinco_ranch_hpdcache_subsystem_l15_adapter #(
  .SwapEndianess          (1),
  .NumPorts               (NUM_PORTS_ADAPTER),
  .IcachePort             (ICACHE_PORT),
- .DcachePort             (DCACHE_PORT),
- .DcacheWbufPort         (DCACHE_WBUF_PORT),
- .DcacheUncReadPort      (DCACHE_UNC_READ_PORT),
- .DcacheUncWritePort     (DCACHE_UNC_WRITE_PORT),
+ .DcacheReadPort         (DCACHE_READ_PORT),
+ .DcacheWritePort        (DCACHE_WRITE_PORT),
  .DcacheAmoPort          (DCACHE_AMO_PORT),
  .IcacheMemDataWidth     (512), //L1I cacheline
  .IcacheAddrWidth        (40),
- .HPDcacheMemDataWidth   (hpdcache_pkg::HPDCACHE_CL_WIDTH), //L1D cacheline
+ .HPDcacheMemDataWidth   (DracOpenPitonCfg.MemDataWidth), //L1D cacheline
  .IcacheNoCachableSize   (`MSG_DATA_SIZE_8B), // 8B
  .WriteCoalescingEn      (WriteCoalescingEn),
  .hpdcache_mem_req_t     (hpdcache_mem_req_t),
@@ -365,7 +372,7 @@ cinco_ranch_hpdcache_subsystem_l15_adapter #(
  .icache_miss_resp_data_o(l2_response_data),
  .icache_inval_valid_o(l2_inval_request),
  .icache_inval_addr_o(l2_inval_addr),
- 
+
  .brom_req_valid_i(brom_req_valid),
  .brom_req_address_i(brom_req_address),
  // }}}
@@ -373,51 +380,29 @@ cinco_ranch_hpdcache_subsystem_l15_adapter #(
  //  Interfaces from/to D$
  // {{{
  //      Miss-read interface
- .dcache_miss_ready_o(mem_req_miss_read_ready),
- .dcache_miss_valid_i(mem_req_miss_read_valid),
- .dcache_miss_i(mem_req_miss_read),
+ .dcache_read_ready_o(mem_req_read_ready),
+ .dcache_read_valid_i(mem_req_read_valid),
+ .dcache_read_i(mem_req_read),
 
- .dcache_miss_resp_ready_i(mem_resp_miss_read_ready),
- .dcache_miss_resp_valid_o(mem_resp_miss_read_valid),
- .dcache_miss_resp_o(mem_resp_miss_read),
+ .dcache_read_resp_ready_i(mem_resp_read_ready),
+ .dcache_read_resp_valid_o(mem_resp_read_valid),
+ .dcache_read_resp_o(mem_resp_read),
   // Invalidation interface
  .dcache_inval_valid_o(mem_inval_valid),
  .dcache_inval_o(mem_inval),
 
  //      Write-buffer write interface
- .dcache_wbuf_ready_o(mem_req_wbuf_write_ready),
- .dcache_wbuf_valid_i(mem_req_wbuf_write_valid),
- .dcache_wbuf_i(mem_req_wbuf_write),
+ .dcache_write_ready_o(mem_req_write_ready),
+ .dcache_write_valid_i(mem_req_write_valid),
+ .dcache_write_i(mem_req_write),
 
- .dcache_wbuf_data_ready_o(mem_req_wbuf_write_data_ready),
- .dcache_wbuf_data_valid_i(mem_req_wbuf_write_data_valid),
- .dcache_wbuf_data_i(mem_req_wbuf_write_data),
+ .dcache_write_data_ready_o(mem_req_write_data_ready),
+ .dcache_write_data_valid_i(mem_req_write_data_valid),
+ .dcache_write_data_i(mem_req_write_data),
 
- .dcache_wbuf_resp_ready_i(mem_resp_wbuf_write_ready),
- .dcache_wbuf_resp_valid_o(mem_resp_wbuf_write_valid),
- .dcache_wbuf_resp_o(mem_resp_wbuf_write),
-
- //      Uncached read interface
- .dcache_uc_read_ready_o(mem_req_uc_read_ready),
- .dcache_uc_read_valid_i(mem_req_uc_read_valid),
- .dcache_uc_read_i(mem_req_uc_read),
-
- .dcache_uc_read_resp_ready_i(mem_resp_uc_read_ready),
- .dcache_uc_read_resp_valid_o(mem_resp_uc_read_valid),
- .dcache_uc_read_resp_o(mem_resp_uc_read),
-
- //      Uncached write interface
- .dcache_uc_write_ready_o(mem_req_uc_write_ready),
- .dcache_uc_write_valid_i(mem_req_uc_write_valid),
- .dcache_uc_write_i(mem_req_uc_write),
- 
- .dcache_uc_write_data_ready_o(mem_req_uc_write_data_ready),
- .dcache_uc_write_data_valid_i(mem_req_uc_write_data_valid),
- .dcache_uc_write_data_i(mem_req_uc_write_data),
-
- .dcache_uc_write_resp_ready_i(mem_resp_uc_write_ready),
- .dcache_uc_write_resp_valid_o(mem_resp_uc_write_valid),
- .dcache_uc_write_resp_o(mem_resp_uc_write),
+ .dcache_write_resp_ready_i(mem_resp_write_ready),
+ .dcache_write_resp_valid_o(mem_resp_write_valid),
+ .dcache_write_resp_o(mem_resp_write),
  // }}}
 
  //    Ports to/from L1.5

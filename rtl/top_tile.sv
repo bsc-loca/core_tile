@@ -32,7 +32,8 @@ module top_tile
     parameter type hpdcache_mem_req_w_t =
         `HPDCACHE_DECL_MEM_REQ_W_T(hpdcache_mem_data_t, hpdcache_mem_be_t),
     parameter type hpdcache_mem_resp_w_t =
-        `HPDCACHE_DECL_MEM_RESP_W_T(hpdcache_mem_id_t)
+        `HPDCACHE_DECL_MEM_RESP_W_T(hpdcache_mem_id_t),
+    parameter type hpdcache_nline_t = logic [PHY_ADDR_SIZE-$clog2(DracCfg.DCacheLineWidth / 8)-1:0]
 )(
     `ifdef INTEL_PHYSICAL_MEM_CTRL
     input wire [27:0] hduspsr_mem_ctrl,
@@ -113,7 +114,7 @@ module top_tile
 `ifdef HPDCACHE_OPENPITON
     //      Invalidation interface
     input  logic                          mem_inval_valid_i,
-    input  hpdcache_pkg::hpdcache_nline_t mem_inval_i,
+    input  hpdcache_nline_t               mem_inval_i,
 `endif
 
 //-----------------------------------------------------------------------------------
@@ -598,7 +599,8 @@ hpdcache #(
     .hpdcache_mem_req_t   (hpdcache_mem_req_t),
     .hpdcache_mem_req_w_t (hpdcache_mem_req_w_t),
     .hpdcache_mem_resp_r_t(hpdcache_mem_resp_r_t),
-    .hpdcache_mem_resp_w_t(hpdcache_mem_resp_w_t)
+    .hpdcache_mem_resp_w_t(hpdcache_mem_resp_w_t),
+    .hpdcache_nline_t     (hpdcache_nline_t)
 ) dcache (
     `ifdef INTEL_PHYSICAL_MEM_CTRL
     .uhdusplr_mem_ctrl (uhdusplr_mem_ctrl),

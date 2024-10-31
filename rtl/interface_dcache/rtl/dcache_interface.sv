@@ -163,6 +163,7 @@ assign req_dcache_o.need_rsp = 1'b1;
 assign req_dcache_o.phys_indexed = 1'b1;
 assign req_dcache_o.pma.io = 1'b0;
 assign req_dcache_o.pma.uncacheable = io_address_space;
+assign req_dcache_o.pma.wr_policy_hint = HPDCACHE_WR_POLICY_AUTO;
 
 // Unused signals on physically indexed requests
 assign req_dcache_abort_o = 1'b0,
