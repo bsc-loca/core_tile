@@ -86,6 +86,7 @@ module sargantana_wrapper(
     output                               m_axi_uart_rready,
     input                                uart_irq
 );
+    localparam drac_pkg::drac_cfg_t DracCfg = drac_pkg::DracDefaultConfig;
 
     // Reset synchronization flipflops
     logic reset_sync_q[1:0];
@@ -110,8 +111,8 @@ module sargantana_wrapper(
         FallThrough:        1'b0,
         LatencyMode:        axi_pkg::CUT_ALL_AX,
         PipelineStages:     1,
-        AxiIdWidthSlvPorts: 32'(sargantana_hpdc_pkg::HPDCACHE_MEM_TID_WIDTH),
-        AxiIdUsedSlvPorts:  32'(sargantana_hpdc_pkg::HPDCACHE_MEM_TID_WIDTH),
+        AxiIdWidthSlvPorts: 32'(DracCfg.MemIDWidth),
+        AxiIdUsedSlvPorts:  32'(DracCfg.MemIDWidth),
         UniqueIds:          1,
         AxiAddrWidth:       `AXI_XBAR_ADDR_WIDTH,
         AxiDataWidth:       `AXI_XBAR_DATA_WIDTH,
@@ -159,7 +160,7 @@ module sargantana_wrapper(
     AXI_BUS #(
         .AXI_ADDR_WIDTH ( `AXI_XBAR_ADDR_WIDTH     ),
         .AXI_DATA_WIDTH ( `AXI_XBAR_DATA_WIDTH     ),
-        .AXI_ID_WIDTH   ( 32'(sargantana_hpdc_pkg::HPDCACHE_MEM_TID_WIDTH) ),
+        .AXI_ID_WIDTH   ( 32'(DracCfg.MemIDWidth) ),
         .AXI_USER_WIDTH ( `AXI_XBAR_USER_WIDTH )
     ) core2xbar_bus [xbar_cfg.NoSlvPorts-1:0] ();
 
@@ -254,7 +255,7 @@ module sargantana_wrapper(
 
     // *** Core Instance ***
 
-    axi_wrapper core_inst (
+    axi_wrapper #(.DracCfg(DracCfg)) core_inst (
         .clk_i(clk_i),
         .rstn_i(reset),
 

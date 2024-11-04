@@ -24,6 +24,7 @@
  *                 CVA6's instruction cache and the Core-V High-Performance
 *                  L1 Dcache (CV-HPDcache).
  *  History      : July, 2023. Modified for use with Sargantana instead of CVA6.
+ *  History      : November, 2024. Modified for use with HPDC v5.0.0, parametrized.
  */
 
 `include "defines.svh"
@@ -31,6 +32,24 @@
 import fpga_pkg::*;
 
 module axi_arbiter
+#(
+    parameter drac_pkg::drac_cfg_t DracCfg     = drac_pkg::DracDefaultConfig,
+
+    // HPDC Memory Interface Parameters
+    parameter type hpdcache_mem_addr_t = logic [DracCfg.MemAddrWidth-1:0],
+    parameter type hpdcache_mem_id_t = logic [DracCfg.MemIDWidth-1:0],
+    parameter type hpdcache_mem_data_t = logic [DracCfg.MemDataWidth-1:0],
+    parameter type hpdcache_mem_be_t = logic [DracCfg.MemDataWidth/8-1:0],
+    parameter type hpdcache_mem_req_t =
+        `HPDCACHE_DECL_MEM_REQ_T(hpdcache_mem_addr_t, hpdcache_mem_id_t),
+    parameter type hpdcache_mem_resp_r_t =
+        `HPDCACHE_DECL_MEM_RESP_R_T(hpdcache_mem_id_t, hpdcache_mem_data_t),
+    parameter type hpdcache_mem_req_w_t =
+        `HPDCACHE_DECL_MEM_REQ_W_T(hpdcache_mem_data_t, hpdcache_mem_be_t),
+    parameter type hpdcache_mem_resp_w_t =
+        `HPDCACHE_DECL_MEM_RESP_W_T(hpdcache_mem_id_t),
+    parameter type hpdcache_nline_t = logic [PHY_ADDR_SIZE-$clog2(DracCfg.DCacheLineWidth / 8)-1:0]
+)
 (
   input  wire logic                               clk_i,
   input  wire logic                               rst_ni,
@@ -39,67 +58,42 @@ module axi_arbiter
   input  wire logic                               icache_miss_valid_i,
   output wire logic                               icache_miss_ready_o,
   input  wire logic [drac_pkg::PHY_ADDR_SIZE-1:0]           icache_miss_paddr_i,
-  input  wire sargantana_hpdc_pkg::hpdcache_mem_id_t         icache_miss_id_i,
+  input  wire hpdcache_mem_id_t         icache_miss_id_i,
   output wire logic                               icache_miss_resp_valid_o,
   output wire logic [511:0]                       icache_miss_resp_data_o,
   output wire logic [1:0]                         icache_miss_resp_beat_o,
   
   // *** dCache interface ***
-  output wire logic                               dcache_miss_ready_o,
-  input  wire logic                               dcache_miss_valid_i,
-  input  wire sargantana_hpdc_pkg::hpdcache_mem_req_t        dcache_miss_i,
+  output wire logic                               dcache_read_ready_o,
+  input  wire logic                               dcache_read_valid_i,
+  input  wire hpdcache_mem_req_t        dcache_read_i,
 
-  input  wire logic                               dcache_miss_resp_ready_i,
-  output wire logic                               dcache_miss_resp_valid_o,
-  output wire sargantana_hpdc_pkg::hpdcache_mem_resp_r_t     dcache_miss_resp_o,
+  input  wire logic                               dcache_read_resp_ready_i,
+  output wire logic                               dcache_read_resp_valid_o,
+  output wire hpdcache_mem_resp_r_t     dcache_read_resp_o,
 
   //      Write-buffer write interface
-  output wire logic                               dcache_wbuf_ready_o,
-  input  wire logic                               dcache_wbuf_valid_i,
-  input  wire sargantana_hpdc_pkg::hpdcache_mem_req_t        dcache_wbuf_i,
+  output wire logic                               dcache_write_ready_o,
+  input  wire logic                               dcache_write_valid_i,
+  input  wire hpdcache_mem_req_t        dcache_write_i,
 
-  output wire logic                               dcache_wbuf_data_ready_o,
-  input  wire logic                               dcache_wbuf_data_valid_i,
-  input  wire sargantana_hpdc_pkg::hpdcache_mem_req_w_t      dcache_wbuf_data_i,
+  output wire logic                               dcache_write_data_ready_o,
+  input  wire logic                               dcache_write_data_valid_i,
+  input  wire hpdcache_mem_req_w_t      dcache_write_data_i,
 
-  input  wire logic                               dcache_wbuf_resp_ready_i,
-  output wire logic                               dcache_wbuf_resp_valid_o,
-  output wire sargantana_hpdc_pkg::hpdcache_mem_resp_w_t     dcache_wbuf_resp_o,
-
-  //      Uncached read interface
-  output wire logic                               dcache_uc_read_ready_o,
-  input  wire logic                               dcache_uc_read_valid_i,
-  input  wire sargantana_hpdc_pkg::hpdcache_mem_req_t        dcache_uc_read_i,
-  input  wire sargantana_hpdc_pkg::hpdcache_mem_id_t         dcache_uc_read_id_i,
-
-  input  wire logic                               dcache_uc_read_resp_ready_i,
-  output wire logic                               dcache_uc_read_resp_valid_o,
-  output wire sargantana_hpdc_pkg::hpdcache_mem_resp_r_t     dcache_uc_read_resp_o,
-
-  //      Uncached write interface
-  output wire logic                               dcache_uc_write_ready_o,
-  input  wire logic                               dcache_uc_write_valid_i,
-  input  wire sargantana_hpdc_pkg::hpdcache_mem_req_t        dcache_uc_write_i,
-  input  wire sargantana_hpdc_pkg::hpdcache_mem_id_t         dcache_uc_write_id_i,
-
-  output wire logic                               dcache_uc_write_data_ready_o,
-  input  wire logic                               dcache_uc_write_data_valid_i,
-  input  wire sargantana_hpdc_pkg::hpdcache_mem_req_w_t      dcache_uc_write_data_i,
-
-  input  wire logic                               dcache_uc_write_resp_ready_i,
-  output wire logic                               dcache_uc_write_resp_valid_o,
-  output wire sargantana_hpdc_pkg::hpdcache_mem_resp_w_t     dcache_uc_write_resp_o,
+  input  wire logic                               dcache_write_resp_ready_i,
+  output wire logic                               dcache_write_resp_valid_o,
+  output wire hpdcache_mem_resp_w_t     dcache_write_resp_o,
 
   // *** AXI interface ***
   output fpga_pkg::core_axi_req_t                                axi_req_o,
   input  fpga_pkg::core_axi_resp_t                               axi_resp_i
 );
 
-  localparam AxiCacheDataWidth = sargantana_hpdc_pkg::HPDCACHE_MEM_DATA_WIDTH;
-  localparam AxiCacheStrbWidth = AxiCacheDataWidth / 8;
+  localparam AxiCacheStrbWidth = DracCfg.MemDataWidth / 8;
   localparam IFILL_WIDTH = 512;
 
-  typedef logic [AxiCacheDataWidth-1:0] axi_cache_data_t;
+  typedef logic [DracCfg.MemDataWidth-1:0] axi_cache_data_t;
   typedef logic [AxiCacheStrbWidth-1:0] axi_cache_strb_t;
   typedef logic [7:0]    axi_cache_id_t;
   typedef logic [10:0]  axi_cache_user_t;
@@ -145,25 +139,25 @@ module axi_arbiter
       axi_cache_r_chan_t    r;
   } axi_cache_resp_t;
 
-  localparam int MEM_RESP_RT_DEPTH = (1 << sargantana_hpdc_pkg::HPDCACHE_MEM_TID_WIDTH);
-  typedef sargantana_hpdc_pkg::hpdcache_mem_id_t [MEM_RESP_RT_DEPTH-1:0]  mem_resp_rt_t;
+  localparam int MEM_RESP_RT_DEPTH = (1 << DracCfg.MemIDWidth);
+  typedef hpdcache_mem_id_t [MEM_RESP_RT_DEPTH-1:0]  mem_resp_rt_t;
   typedef logic [IFILL_WIDTH-1:0]  icache_resp_data_t;
 
 
   localparam int ICACHE_CL_SIZE         = $clog2(IFILL_WIDTH/8);
   localparam int ICACHE_MEM_REQ_CL_LEN  =
-    (IFILL_WIDTH + sargantana_hpdc_pkg::HPDCACHE_MEM_DATA_WIDTH - 1)/
-    sargantana_hpdc_pkg::HPDCACHE_MEM_DATA_WIDTH;
+    (IFILL_WIDTH + DracCfg.MemDataWidth - 1)/
+    DracCfg.MemDataWidth;
   localparam int ICACHE_MEM_REQ_CL_SIZE =
-    (sargantana_hpdc_pkg::HPDCACHE_MEM_DATA_WIDTH <= IFILL_WIDTH) ?
-      $clog2(sargantana_hpdc_pkg::HPDCACHE_MEM_DATA_WIDTH/8) :
+    (DracCfg.MemDataWidth <= IFILL_WIDTH) ?
+      $clog2(DracCfg.MemDataWidth/8) :
       ICACHE_CL_SIZE;
 
   //    I$ request
-  sargantana_hpdc_pkg::hpdcache_mem_req_t  icache_miss_req_wdata;
+  hpdcache_mem_req_t  icache_miss_req_wdata;
   logic  icache_miss_req_w, icache_miss_req_wok;
 
-  sargantana_hpdc_pkg::hpdcache_mem_req_t  icache_miss_req_rdata;
+  hpdcache_mem_req_t  icache_miss_req_rdata;
   logic  icache_miss_req_r, icache_miss_req_rok;
 
   //  This FIFO has two functionnalities:
@@ -173,7 +167,7 @@ module axi_arbiter
   //  -  Cut a possible long timing path.
   hpdcache_fifo_reg #(
       .FIFO_DEPTH  (1),
-      .fifo_data_t (sargantana_hpdc_pkg::hpdcache_mem_req_t)
+      .fifo_data_t (hpdcache_mem_req_t)
   ) i_icache_miss_req_fifo (
       .clk_i,
       .rst_ni,
@@ -201,7 +195,7 @@ module axi_arbiter
 
   //    I$ response
   logic                                icache_miss_resp_w, icache_miss_resp_wok;
-  sargantana_hpdc_pkg::hpdcache_mem_resp_r_t      icache_miss_resp_wdata;
+  hpdcache_mem_resp_r_t      icache_miss_resp_wdata;
 
   logic                                icache_miss_resp_data_w, icache_miss_resp_data_wok;
   logic                                icache_miss_resp_data_r, icache_miss_resp_data_rok;
@@ -209,16 +203,16 @@ module axi_arbiter
 
   logic                                icache_miss_resp_meta_w, icache_miss_resp_meta_wok;
   logic                                icache_miss_resp_meta_r, icache_miss_resp_meta_rok;
-  sargantana_hpdc_pkg::hpdcache_mem_id_t          icache_miss_resp_meta_id;
+  hpdcache_mem_id_t          icache_miss_resp_meta_id;
 
   assign icache_miss_resp_valid_o = icache_miss_resp_data_rok;
   assign icache_miss_resp_data_o = icache_miss_resp_data_rdata;
 
   generate
-   if (sargantana_hpdc_pkg::HPDCACHE_MEM_DATA_WIDTH < IFILL_WIDTH) begin
+   if (DracCfg.MemDataWidth < IFILL_WIDTH) begin
       hpdcache_fifo_reg #(
           .FIFO_DEPTH  (1),
-          .fifo_data_t (sargantana_hpdc_pkg::hpdcache_mem_id_t)
+          .fifo_data_t (hpdcache_mem_id_t)
       ) i_icache_refill_meta_fifo (
           .clk_i,
           .rst_ni,
@@ -233,7 +227,7 @@ module axi_arbiter
       );
 
       hpdcache_data_upsize #(
-          .WR_WIDTH(sargantana_hpdc_pkg::HPDCACHE_MEM_DATA_WIDTH),
+          .WR_WIDTH(DracCfg.MemDataWidth),
           .RD_WIDTH(IFILL_WIDTH),
           .DEPTH(1)
       ) i_icache_hpdcache_data_upsize (
@@ -261,11 +255,11 @@ module axi_arbiter
       assign icache_miss_resp_wok = icache_miss_resp_data_wok & (
                icache_miss_resp_meta_wok | ~icache_miss_resp_wdata.mem_resp_r_last);
 
-    end else if (sargantana_hpdc_pkg::HPDCACHE_MEM_DATA_WIDTH > IFILL_WIDTH) begin
+    end else if (DracCfg.MemDataWidth > IFILL_WIDTH) begin
 
       hpdcache_fifo_reg #(
           .FIFO_DEPTH  (1),
-          .fifo_data_t (sargantana_hpdc_pkg::hpdcache_mem_id_t)
+          .fifo_data_t (hpdcache_mem_id_t)
       ) i_icache_refill_meta_fifo (
           .clk_i,
           .rst_ni,
@@ -280,7 +274,7 @@ module axi_arbiter
       );
 
       hpdcache_data_downsize #(
-          .WR_WIDTH(sargantana_hpdc_pkg::HPDCACHE_MEM_DATA_WIDTH),
+          .WR_WIDTH(DracCfg.MemDataWidth),
           .RD_WIDTH(IFILL_WIDTH),
           .DEPTH(1)
       ) i_icache_hpdcache_data_downsize (
@@ -328,29 +322,25 @@ module axi_arbiter
   endgenerate
 
   //  Read request arbiter
-  logic                            mem_req_read_ready      [2:0];
-  logic                            mem_req_read_valid      [2:0];
-  sargantana_hpdc_pkg::hpdcache_mem_req_t     mem_req_read            [2:0];
+  logic [1:0]              mem_req_read_ready;
+  logic [1:0]              mem_req_read_valid;
+  hpdcache_mem_req_t [1:0] mem_req_read;
 
-  logic                            mem_req_read_ready_arb;
-  logic                            mem_req_read_valid_arb;
-  sargantana_hpdc_pkg::hpdcache_mem_req_t     mem_req_read_arb;
+  logic                    mem_req_read_ready_arb;
+  logic                    mem_req_read_valid_arb;
+  hpdcache_mem_req_t       mem_req_read_arb;
 
   assign icache_miss_req_r      = mem_req_read_ready[0],
          mem_req_read_valid[0]  = icache_miss_req_rok,
          mem_req_read[0]        = icache_miss_req_rdata;
 
-  assign dcache_miss_ready_o    = mem_req_read_ready[1],
-         mem_req_read_valid[1]  = dcache_miss_valid_i,
-         mem_req_read[1]        = dcache_miss_i;
-
-  assign dcache_uc_read_ready_o = mem_req_read_ready[2],
-         mem_req_read_valid[2]  = dcache_uc_read_valid_i,
-         mem_req_read[2]        = dcache_uc_read_i;
+  assign dcache_read_ready_o    = mem_req_read_ready[1],
+         mem_req_read_valid[1]  = dcache_read_valid_i,
+         mem_req_read[1]        = dcache_read_i;
 
   hpdcache_mem_req_read_arbiter #(
-    .N(3),
-    .hpdcache_mem_req_t (sargantana_hpdc_pkg::hpdcache_mem_req_t)
+    .N(2),
+    .hpdcache_mem_req_t (hpdcache_mem_req_t)
   ) i_mem_req_read_arbiter (
     .clk_i,
     .rst_ni,
@@ -367,26 +357,25 @@ module axi_arbiter
   //  Read response demultiplexor
   logic                                mem_resp_read_ready;
   logic                                mem_resp_read_valid;
-  sargantana_hpdc_pkg::hpdcache_mem_resp_r_t      mem_resp_read;
+  hpdcache_mem_resp_r_t      mem_resp_read;
 
-  logic                                mem_resp_read_ready_arb [2:0];
-  logic                                mem_resp_read_valid_arb [2:0];
-  sargantana_hpdc_pkg::hpdcache_mem_resp_r_t      mem_resp_read_arb       [2:0];
+  logic                                mem_resp_read_ready_arb [1:0];
+  logic                                mem_resp_read_valid_arb [1:0];
+  hpdcache_mem_resp_r_t      mem_resp_read_arb       [1:0];
 
   mem_resp_rt_t mem_resp_read_rt;
 
   always_comb
   begin
     for (int i = 0; i < MEM_RESP_RT_DEPTH; i++) begin
-      mem_resp_read_rt[i] = (i == int'(   icache_miss_id_i)) ? 0 :
-                            (i == int'(dcache_uc_read_id_i)) ? 2 : 1;
+      mem_resp_read_rt[i] = (i == int'(   icache_miss_id_i)) ? 0 : 1;
     end
   end
 
   hpdcache_mem_resp_demux #(
-    .N                  (3),
-    .resp_t             (sargantana_hpdc_pkg::hpdcache_mem_resp_r_t),
-    .resp_id_t          (sargantana_hpdc_pkg::hpdcache_mem_id_t)
+    .N                  (2),
+    .resp_t             (hpdcache_mem_resp_r_t),
+    .resp_id_t          (hpdcache_mem_id_t)
   ) i_mem_resp_read_demux (
     .clk_i,
     .rst_ni,
@@ -407,117 +396,9 @@ module axi_arbiter
          icache_miss_resp_wdata      = mem_resp_read_arb[0],
          mem_resp_read_ready_arb[0]  = icache_miss_resp_wok;
 
-  assign dcache_miss_resp_valid_o    = mem_resp_read_valid_arb[1],
-         dcache_miss_resp_o          = mem_resp_read_arb[1],
-         mem_resp_read_ready_arb[1]  = dcache_miss_resp_ready_i;
-
-  assign dcache_uc_read_resp_valid_o = mem_resp_read_valid_arb[2],
-         dcache_uc_read_resp_o       = mem_resp_read_arb[2],
-         mem_resp_read_ready_arb[2]  = dcache_uc_read_resp_ready_i;
-
-  //  Write request arbiter
-  logic                              mem_req_write_ready       [1:0];
-  logic                              mem_req_write_valid       [1:0];
-  sargantana_hpdc_pkg::hpdcache_mem_req_t       mem_req_write             [1:0];
-
-  logic                              mem_req_write_data_ready  [1:0];
-  logic                              mem_req_write_data_valid  [1:0];
-  sargantana_hpdc_pkg::hpdcache_mem_req_w_t     mem_req_write_data        [1:0];
-
-  logic                              mem_req_write_ready_arb;
-  logic                              mem_req_write_valid_arb;
-  sargantana_hpdc_pkg::hpdcache_mem_req_t       mem_req_write_arb;
-
-  logic                              mem_req_write_data_ready_arb;
-  logic                              mem_req_write_data_valid_arb;
-  sargantana_hpdc_pkg::hpdcache_mem_req_w_t     mem_req_write_data_arb;
-
-  assign dcache_wbuf_ready_o          = mem_req_write_ready[0],
-         mem_req_write_valid[0]       = dcache_wbuf_valid_i,
-         mem_req_write[0]             = dcache_wbuf_i;
-
-  assign dcache_wbuf_data_ready_o     = mem_req_write_data_ready[0],
-         mem_req_write_data_valid[0]  = dcache_wbuf_data_valid_i,
-         mem_req_write_data[0]        = dcache_wbuf_data_i;
-
-  assign dcache_uc_write_ready_o      = mem_req_write_ready[1],
-         mem_req_write_valid[1]       = dcache_uc_write_valid_i,
-         mem_req_write[1]             = dcache_uc_write_i;
-
-  assign dcache_uc_write_data_ready_o = mem_req_write_data_ready[1],
-         mem_req_write_data_valid[1]  = dcache_uc_write_data_valid_i,
-         mem_req_write_data[1]        = dcache_uc_write_data_i;
-
-  hpdcache_mem_req_write_arbiter #(
-    .N(2),
-    .hpdcache_mem_req_t   (sargantana_hpdc_pkg::hpdcache_mem_req_t),
-    .hpdcache_mem_req_w_t (sargantana_hpdc_pkg::hpdcache_mem_req_w_t)
-  ) i_mem_req_write_arbiter (
-    .clk_i,
-    .rst_ni,
-
-    .mem_req_write_ready_o      (mem_req_write_ready),
-    .mem_req_write_valid_i      (mem_req_write_valid),
-    .mem_req_write_i            (mem_req_write),
-
-    .mem_req_write_data_ready_o (mem_req_write_data_ready),
-    .mem_req_write_data_valid_i (mem_req_write_data_valid),
-    .mem_req_write_data_i       (mem_req_write_data),
-
-    .mem_req_write_ready_i      (mem_req_write_ready_arb),
-    .mem_req_write_valid_o      (mem_req_write_valid_arb),
-    .mem_req_write_o            (mem_req_write_arb),
-
-    .mem_req_write_data_ready_i (mem_req_write_data_ready_arb),
-    .mem_req_write_data_valid_o (mem_req_write_data_valid_arb),
-    .mem_req_write_data_o       (mem_req_write_data_arb)
-  );
-
-  //  Write response demultiplexor
-  logic                                mem_resp_write_ready;
-  logic                                mem_resp_write_valid;
-  sargantana_hpdc_pkg::hpdcache_mem_resp_w_t      mem_resp_write;
-
-  logic                                mem_resp_write_ready_arb [1:0];
-  logic                                mem_resp_write_valid_arb [1:0];
-  sargantana_hpdc_pkg::hpdcache_mem_resp_w_t      mem_resp_write_arb       [1:0];
-
-  mem_resp_rt_t mem_resp_write_rt;
-
-  always_comb
-  begin
-    for (int i = 0; i < MEM_RESP_RT_DEPTH; i++) begin
-      mem_resp_write_rt[i] = (i == int'(dcache_uc_write_id_i)) ? 1 : 0;
-    end
-  end
-
-  hpdcache_mem_resp_demux #(
-    .N                  (2),
-    .resp_t             (sargantana_hpdc_pkg::hpdcache_mem_resp_w_t),
-    .resp_id_t          (sargantana_hpdc_pkg::hpdcache_mem_id_t)
-  ) i_hpdcache_mem_resp_write_demux (
-    .clk_i,
-    .rst_ni,
-
-    .mem_resp_ready_o   (mem_resp_write_ready),
-    .mem_resp_valid_i   (mem_resp_write_valid),
-    .mem_resp_id_i      (mem_resp_write.mem_resp_w_id),
-    .mem_resp_i         (mem_resp_write),
-
-    .mem_resp_ready_i   (mem_resp_write_ready_arb),
-    .mem_resp_valid_o   (mem_resp_write_valid_arb),
-    .mem_resp_o         (mem_resp_write_arb),
-
-    .mem_resp_rt_i      (mem_resp_write_rt)
-  );
-
-  assign dcache_wbuf_resp_valid_o     = mem_resp_write_valid_arb[0],
-         dcache_wbuf_resp_o           = mem_resp_write_arb[0],
-         mem_resp_write_ready_arb[0]  = dcache_wbuf_resp_ready_i;
-
-  assign dcache_uc_write_resp_valid_o = mem_resp_write_valid_arb[1],
-         dcache_uc_write_resp_o       = mem_resp_write_arb[1],
-         mem_resp_write_ready_arb[1]  = dcache_uc_write_resp_ready_i;
+  assign dcache_read_resp_valid_o    = mem_resp_read_valid_arb[1],
+         dcache_read_resp_o          = mem_resp_read_arb[1],
+         mem_resp_read_ready_arb[1]  = dcache_read_resp_ready_i;
 
   //  AXI adapters
   axi_cache_req_t       axi_req;
@@ -527,21 +408,21 @@ module axi_arbiter
       .aw_chan_t          (aw_chan_t),
       .w_chan_t           (axi_cache_w_chan_t),
       .b_chan_t           (b_chan_t),
-      .hpdcache_mem_req_t     (sargantana_hpdc_pkg::hpdcache_mem_req_t),
-      .hpdcache_mem_req_w_t   (sargantana_hpdc_pkg::hpdcache_mem_req_w_t),
-      .hpdcache_mem_resp_w_t  (sargantana_hpdc_pkg::hpdcache_mem_resp_w_t)
+      .hpdcache_mem_req_t     (hpdcache_mem_req_t),
+      .hpdcache_mem_req_w_t   (hpdcache_mem_req_w_t),
+      .hpdcache_mem_resp_w_t  (hpdcache_mem_resp_w_t)
   ) i_hpdcache_mem_to_axi_write (
-      .req_ready_o        (mem_req_write_ready_arb),
-      .req_valid_i        (mem_req_write_valid_arb),
-      .req_i              (mem_req_write_arb),
+      .req_ready_o        (dcache_write_ready_o),
+      .req_valid_i        (dcache_write_valid_i),
+      .req_i              (dcache_write_i),
 
-      .req_data_ready_o   (mem_req_write_data_ready_arb),
-      .req_data_valid_i   (mem_req_write_data_valid_arb),
-      .req_data_i         (mem_req_write_data_arb),
+      .req_data_ready_o   (dcache_write_data_ready_o),
+      .req_data_valid_i   (dcache_write_data_valid_i),
+      .req_data_i         (dcache_write_data_i),
 
-      .resp_ready_i       (mem_resp_write_ready),
-      .resp_valid_o       (mem_resp_write_valid),
-      .resp_o             (mem_resp_write),
+      .resp_ready_i       (dcache_write_resp_ready_i),
+      .resp_valid_o       (dcache_write_resp_valid_o),
+      .resp_o             (dcache_write_resp_o),
 
       .axi_aw_valid_o     (axi_req.aw_valid),
       .axi_aw_o           (axi_req.aw),
@@ -559,8 +440,8 @@ module axi_arbiter
   hpdcache_mem_to_axi_read #(
     .ar_chan_t            (ar_chan_t),
     .r_chan_t             (axi_cache_r_chan_t),
-    .hpdcache_mem_req_t     (sargantana_hpdc_pkg::hpdcache_mem_req_t),
-    .hpdcache_mem_resp_r_t  (sargantana_hpdc_pkg::hpdcache_mem_resp_r_t)
+    .hpdcache_mem_req_t     (hpdcache_mem_req_t),
+    .hpdcache_mem_resp_r_t  (hpdcache_mem_resp_r_t)
   ) i_hpdcache_mem_to_axi_read (
     .req_ready_o          (mem_req_read_ready_arb),
     .req_valid_i          (mem_req_read_valid_arb),
