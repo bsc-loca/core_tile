@@ -172,6 +172,8 @@ build-uvm:
   rules:
     - !reference [.rules_uvm_scheduled]
     - !reference [.rules_uvm_smoke]
+  variables:
+    CORE_TYPE: sargantana
   script:
     - make clone_dv
     - make clone_ci_scripts
@@ -312,6 +314,7 @@ uvm-random-regression:
   variables:
     RUNNER_SCRIPT_TIMEOUT: 7h30m
     BADGE_GEN: "true"    
+    CORE_TYPE: sargantana
   script:
     - cd verif/core_uvm
     - *riscv_dv_generate
@@ -335,6 +338,7 @@ uvm-regression:
   rules:
     - !reference [.rules_uvm_smoke]
   variables:
+    CORE_TYPE: sargantana
     BADGE_GEN: "true"
   script:
     - cd verif/core_uvm
