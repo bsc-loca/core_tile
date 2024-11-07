@@ -227,6 +227,7 @@ logic                            icache_resp_ready;
 logic                            icache_resp_valid;
 logic [ICACHELINE_SIZE-1:0]      icache_resp_data;
 logic                            icache_resp_xcpt;
+logic                            icache_resp_guest_xcpt;
 
 logic                            nc_fetch_resp_valid;
 logic [ICACHELINE_SIZE-1:0]      nc_fetch_resp_data;
@@ -237,6 +238,7 @@ logic                            icache_tlb_resp_miss;
 logic                            icache_tlb_resp_ptw_v;
 logic [ICACHE_PPN_SIZE-1:0]      icache_tlb_resp_ppn;
 logic                            icache_tlb_resp_xcpt;
+logic                            icache_tlb_resp_guest_xcpt;
 
 logic                            icache_tlb_req_valid;
 logic [ICACHE_VPN_SIZE-1:0]      icache_tlb_req_vpn;
@@ -310,11 +312,13 @@ sargantana_subtile #(
     .icache_resp_valid_i(icache_resp_valid | icache_nc_valid),
     .icache_resp_data_i(icache_nc_valid ? icache_nc_data : icache_resp_data),
     .icache_resp_xcpt_i(icache_resp_xcpt),
+    .icache_resp_guest_xcpt_i(icache_resp_guest_xcpt),
 
     .icache_tlb_resp_miss_o(icache_tlb_resp_miss),
     .icache_tlb_resp_ptw_v_o(icache_tlb_resp_ptw_v),
     .icache_tlb_resp_ppn_o(icache_tlb_resp_ppn),
     .icache_tlb_resp_xcpt_o(icache_tlb_resp_xcpt),
+    .icache_tlb_resp_guest_xcpt_o(icache_tlb_resp_guest_xcpt),
 
     .icache_tlb_req_valid_i(icache_tlb_req_valid),
     .icache_tlb_req_vpn_i(icache_tlb_req_vpn),
@@ -448,11 +452,13 @@ sargantana_top_icache # (
     .icache_resp_data_o         (icache_resp_data),
     .icache_resp_xcpt_o         (icache_resp_xcpt),
     .icache_resp_vaddr_o        ( /* unused */),
+    .icache_resp_xcpt_g_o       (icache_resp_guest_xcpt),
 
     .mmu_tresp_miss_i           (icache_tlb_resp_miss),
     .mmu_tresp_ptw_v_i          (icache_tlb_resp_ptw_v),
     .mmu_tresp_ppn_i            (icache_tlb_resp_ppn),
     .mmu_tresp_xcpt_i           (icache_tlb_resp_xcpt),
+    .mmu_tresp_xcpt_g_i         (icache_tlb_resp_guest_xcpt),
 
     .icache_treq_valid_o        (icache_tlb_req_valid),
     .icache_treq_vpn_o          (icache_tlb_req_vpn),

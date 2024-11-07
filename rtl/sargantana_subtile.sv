@@ -65,12 +65,14 @@ module sargantana_subtile
     input  logic                            icache_resp_valid_i,
     input  logic [ICACHELINE_SIZE-1:0]      icache_resp_data_i,
     input  logic                            icache_resp_xcpt_i,
+    input  logic                            icache_resp_guest_xcpt_i,
 
     // iTLB interface
     output logic                            icache_tlb_resp_miss_o,
     output logic                            icache_tlb_resp_ptw_v_o,
     output logic [ICACHE_PPN_SIZE-1:0]      icache_tlb_resp_ppn_o,
     output logic                            icache_tlb_resp_xcpt_o,
+    output logic                            icache_tlb_resp_guest_xcpt_o,
 
     //- To MMU
     input  logic                            icache_tlb_req_valid_i,
@@ -156,7 +158,9 @@ req_cpu_dcache_t req_datapath_dcache_interface;
 
 // Response CSR Interface to datapath
 logic [1:0] priv_lvl;
+logic v_mode;
 logic en_translation;
+logic en_g_translation;
 
 // *** Memory Management Unit ***
 
@@ -175,12 +179,15 @@ assign icache_itlb_comm.req.passthrough = 1'b0;
 assign icache_itlb_comm.req.instruction = 1'b1;
 assign icache_itlb_comm.req.store       = 1'b0;
 assign icache_itlb_comm.priv_lvl        = priv_lvl;
-assign icache_itlb_comm.vm_enable       = en_translation;
+assign icache_itlb_comm.vm_enable       = en_translation | en_g_translation;
+assign icache_itlb_comm.vs_enable       = en_translation && v_mode;
+assign icache_itlb_comm.g_enable        = en_g_translation && v_mode;
 
 assign icache_tlb_resp_miss_o  = itlb_icache_comm.resp.miss;
 assign icache_tlb_resp_ptw_v_o = itlb_icache_comm.tlb_ready;
 assign icache_tlb_resp_ppn_o   = itlb_icache_comm.resp.ppn[ICACHE_PPN_SIZE-1:0];
 assign icache_tlb_resp_xcpt_o  = itlb_icache_comm.resp.xcpt.fetch;
+assign icache_tlb_resp_guest_xcpt_o = itlb_icache_comm.resp.guest_xcpt.fetch;
 
 // *** Core Instance ***
 
@@ -207,7 +214,9 @@ top_drac #(
     .req_icache_ready_i(req_icache_ready),
     .req_cpu_icache_o(req_datapath_icache_interface),
     .en_translation_o(en_translation),
+    .en_g_translation_o(en_g_translation),
     .priv_lvl_o(priv_lvl),
+    .v_mode_o(v_mode),
     .resp_icache_cpu_i(resp_icache_interface_datapath),
 
     // dCache Interface
@@ -268,6 +277,7 @@ icache_interface icache_interface_inst(
     .icache_resp_valid_i        ( icache_resp_valid_i ),
     .icache_req_ready_i         ( icache_resp_ready_i ),
     .tlb_resp_xcp_if_i          ( icache_resp_xcpt_i  ),
+    .tlb_resp_guest_xcp_if_i    ( icache_resp_guest_xcpt_i ),
     .en_translation_i           ( en_translation      ),
 
     // Outputs ICache
