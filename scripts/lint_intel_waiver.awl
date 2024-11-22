@@ -75,8 +75,8 @@ waive -rule { {ImproperRangeIndex-ML} } -du {mem_unit} -regexp -msg {+:} -commen
 waive -rule { {W468} } -du {vagu} -regexp -msg {mask_buffer.+velem_cnt_q} -comment {"Allow indexing mask_buffer with velem_cnt_q in vagu"}
 waive -rule { {W164a_a} } -du {mem_unit} -regexp -msg {deadcode} -comment {"Allow width missmatch in code for other values of a parameter"}
 
-waive -rule { {W164a_b} } -du {alu} -regexp -msg {data_rs2[4:0]} -comment {"Allow width missmatch in shift"}
-waive -rule { {W164a_b} } -du {alu} -regexp -msg {data_rs2[5:0]} -comment {"Allow width missmatch in shift"}
+waive -rule { {W164a_b} } -du {alu_shift} -regexp -msg {shamt_sll} -comment {"Allow width missmatch in shift"}
+waive -rule { {W164a_b} } -du {alu_shift} -regexp -msg {shamt_srl} -comment {"Allow width missmatch in shift"}
 
 waive -rule { {AlwaysFalseTrueCond-ML} } -regexp -msg {OPERAND_ID|MEMORY_TYPE|REVERT} -comment {"Allow always false/true conditions that depend on parameters"}
 waive -rule { {SigName} } -du {data_selection_unit_v2} -comment {"Allow signal names starting with '_'"}
@@ -104,3 +104,5 @@ waive -rule {  {UseSVAlways-ML} } -file {sp_ram_model.v} -comment {"Waive errors
 waive -rule {  {AlwaysFalseTrueCond-ML} } -file {sp_ram.v} -comment {"Waive errors in external memory library"}
 waive -rule { {AlwaysFalseTrueCond-ML} } -file {def_pkg.sv} -comment {"Allow always false/true conditions that depend on parameters"}
 waive -rule { {AlwaysFalseTrueCond-ML} } -file {drac_pkg.sv} -comment {"Allow always false/true conditions that depend on parameters"}
+
+waive -rule {  {OneModule-ML} } -file {alu_count_zeros.sv} -ignore
