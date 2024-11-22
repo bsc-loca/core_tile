@@ -15,16 +15,8 @@ IMPLEMENTED_EXTENSIONS = ['i', 'm', 'f', 'd', 'a', 'zba', 'zbb']
 TESTS_TO_SKIP = {
     "rv64ui-p-ma_data": "Core doesn't support misaligned load/stores",
     "rv64ui-v-ma_data": "Core doesn't support misaligned load/stores",
-    "rv64uzbb-p-clz": "Instruction not implemented",
-    "rv64uzbb-p-clzw": "Instruction not implemented",
-    "rv64uzbb-p-ctz": "Instruction not implemented",
-    "rv64uzbb-p-ctzw": "Instruction not implemented",
     "rv64uzbb-p-cpop": "Instruction not implemented",
     "rv64uzbb-p-cpopw": "Instruction not implemented",
-    "rv64uzbb-v-clz": "Instruction not implemented",
-    "rv64uzbb-v-clzw": "Instruction not implemented",
-    "rv64uzbb-v-ctz": "Instruction not implemented",
-    "rv64uzbb-v-ctzw": "Instruction not implemented",
     "rv64uzbb-v-cpop": "Instruction not implemented",
     "rv64uzbb-v-cpopw": "Instruction not implemented",
 }
