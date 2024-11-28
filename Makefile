@@ -5,7 +5,7 @@ FILELIST = ${PROJECT_DIR}/filelist.f
 DV_DIR = $(PROJECT_DIR)/verif
 CORE_UVM_DIR = $(DV_DIR)/core_uvm
 CORE_UVM_REPO = git@gitlab-internal.bsc.es:hwdesign/verification/core-uvm.git
-CORE_UVM_BRANCH ?= master
+CORE_UVM_BRANCH ?= ft/ci_add_isa_tests_pkg_master
 
 DC_REPO = git@gitlab-internal.bsc.es:hwdesign/spd/dc-scripts.git
 DC_BRANCH = sargantana_syn
@@ -63,7 +63,7 @@ clone_uvm:
 	mkdir -p ${CORE_UVM_DIR}
 	git clone ${SHALLOW_CLONE} ${CORE_UVM_REPO} ${CORE_UVM_DIR} -b ${CORE_UVM_BRANCH}
 	make -C ${CORE_UVM_DIR} clone_spike 
-	make -C ${CORE_UVM_DIR} clone_tests
+	make -C ${CORE_UVM_DIR} clone_all_tests
 
 $(DC_DIR):
 	git clone ${DC_REPO} -b ${DC_BRANCH} $@
