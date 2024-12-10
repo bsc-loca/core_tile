@@ -1,7 +1,3 @@
-[submodule "rtl/mmu"]
-	path = rtl/mmu
-	url = ../mmu/mmu_bsc.git
-	branch = sargantana
 [submodule "tb/tb_torture/riscv-torture"]
 	path = tb/tb_torture/riscv-torture
 	url = https://github.com/ucb-bar/riscv-torture.git

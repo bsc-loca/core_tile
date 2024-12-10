@@ -186,281 +186,11 @@ module top_tile
 
 );
 
-
-// Response Interface icache to datapath
-resp_icache_cpu_t resp_icache_interface_datapath;
-
-// Request Datapath to Icache interface
-req_cpu_icache_t req_datapath_icache_interface;
-
-// Response Interface dcache to datapath
-resp_dcache_cpu_t resp_dcache_interface_datapath;
-
-// Request Datapath to Dcache interface
-req_cpu_dcache_t req_datapath_dcache_interface;
-
-// Response CSR Interface to datapath
-logic [1:0] priv_lvl;
-logic en_translation;
-
-//iCache
-iresp_o_t      icache_resp  ;
-ireq_i_t       lagarto_ireq ;
-treq_o_t       itlb_treq    ;
-ifill_resp_i_t ifill_resp   ;
-ifill_req_o_t  ifill_req    ;
-logic          iflush       ;
-logic          req_icache_ready_cached;
-logic          req_icache_ready;
-logic          nc_grant_valid;
-
-//--PMU
-pmu_interface_t pmu_interface;
-assign pmu_interface.icache_req = lagarto_ireq.valid;
-assign pmu_interface.icache_kill = lagarto_ireq.kill;
-assign pmu_interface.icache_busy = !icache_resp.ready;
-
-// Debug wires
-debug_contr_in_t                debug_contr_in;
-debug_reg_in_t                  debug_reg_in;
-debug_contr_out_t               debug_contr_out;
-debug_reg_out_t                 debug_reg_out;
-
-// *** Memory Management Unit ***
-
-// Page Table Walker - iTLB/dTLB - dCache Connections
-tlb_ptw_comm_t itlb_ptw_comm, dtlb_ptw_comm;
-ptw_tlb_comm_t ptw_itlb_comm, ptw_dtlb_comm;
-ptw_dmem_comm_t ptw_dmem_comm;
-dmem_ptw_comm_t dmem_ptw_comm;
-
-mmu_pkg::csr_ptw_comm_t csr_ptw_comm;
-
-// Page Table Walker - iCache/dCache Connections
-
-mmu_pkg::cache_tlb_comm_t icache_itlb_comm, core_dtlb_comm;
-mmu_pkg::tlb_cache_comm_t itlb_icache_comm, dtlb_core_comm;
-
-assign icache_itlb_comm.req.valid = itlb_treq.valid;
-assign icache_itlb_comm.req.asid = 1'b0;
-assign icache_itlb_comm.req.vpn = itlb_treq.vpn;
-assign icache_itlb_comm.req.passthrough = 1'b0;
-assign icache_itlb_comm.req.instruction = 1'b1;
-assign icache_itlb_comm.req.store = 1'b0;
-assign icache_itlb_comm.priv_lvl = priv_lvl;
-assign icache_itlb_comm.vm_enable = en_translation;
-
-assign pmu_interface.itlb_stall = itlb_icache_comm.resp.miss && !itlb_icache_comm.tlb_ready;
-
-// *** Core Instance ***
-
-top_drac #(
-    .DracCfg(DracCfg)
-) sargantana_inst (
-    .clk_i(clk_i),
-    .rstn_i(rstn_i),
-    `ifdef INTEL_FSCAN_CTECH
-    .fscan_rstbypen(fscan_rstbypen),//AK
-    `endif // INTEL_FSCAN_CTECH
-    .soft_rstn_i(soft_rstn_i),
-    .reset_addr_i(reset_addr_i),
-    .core_id_i(core_id_i),
-    `ifdef PITON_CINCORANCH
-    .boot_main_id_i(boot_main_id_i),
-    `endif  // Custom for CincoRanch
-    `ifdef EXTERNAL_HPM_EVENT_NUM
-     .external_hpm_i(external_hpm_i),
-     `endif
-
-    // iCache Interface
-    .req_icache_ready_i(req_icache_ready),
-    .req_cpu_icache_o(req_datapath_icache_interface),
-    .en_translation_o(en_translation),
-    .priv_lvl_o(priv_lvl),
-    .resp_icache_cpu_i(resp_icache_interface_datapath),
-
-    // dCache Interface
-    .resp_dcache_cpu_i(resp_dcache_interface_datapath),
-    .req_cpu_dcache_o(req_datapath_dcache_interface), 
-
-    // MMU Interface
-    .csr_ptw_comm_o(csr_ptw_comm),
-    .dtlb_comm_o(core_dtlb_comm),
-    .dtlb_comm_i(dtlb_core_comm),
-
-    // Debug Module
-    .visa_o(visa_o),
-    .debug_contr_i(debug_contr_in),
-    .debug_reg_i(debug_reg_in),
-
-    .debug_contr_o(debug_contr_out),
-    .debug_reg_o(debug_reg_out),
-
-    // PMU Interface
-    .pmu_interface_i(pmu_interface),
-
-`ifdef CONF_SARGANTANA_ENABLE_PCR
-    // PCR
-    .pcr_req_ready_i(pcr_req_ready_i),    // ready bit of the pcr
-    .pcr_resp_valid_i(pcr_resp_valid_i),   // ready bit of the pcr
-    .pcr_resp_data_i(pcr_resp_data_i),    // read data from performance counter module
-    .pcr_resp_core_id_i(pcr_resp_core_id_i), // core id of the tile that the date is sended
-    .pcr_req_valid_o(pcr_req_valid_o),    // valid bit to make a pcr request
-    .pcr_req_addr_o(pcr_req_addr_o),     // read/write address to performance counter module (up to 29 aux counters possible in riscv encoding.h)h
-    .pcr_req_data_o(pcr_req_data_o),     // write data to performance counter module
-    .pcr_req_we_o(pcr_req_we_o),       // Cmd of the petition
-    .pcr_req_core_id_o(pcr_req_core_id_o),   // core id of the tile
-`endif // CONF_SARGANTANA_ENABLE_PCR
-
-    // Interrupts
-    .time_irq_i(time_irq_i), // timer interrupt
-    .irq_i(irq_i),      // external interrupt in
-    .soft_irq_i(soft_irq_i),
-    .time_i(time_i)     // time passed since the core is reset
-);
-
-// Debug donnections
-assign debug_contr_in.halt_req      = debug_contr_halt_req_i;
-assign debug_contr_in.resume_req    = debug_contr_resume_req_i;
-assign debug_contr_in.progbuf_req   = debug_contr_progbuf_req_i;
-assign debug_contr_in.halt_on_reset = debug_contr_halt_on_reset_i;
-
-assign debug_reg_in.rnm_read_en     = debug_reg_rnm_read_en_i;
-assign debug_reg_in.rnm_read_reg    = debug_reg_rnm_read_reg_i;
-assign debug_reg_in.rf_en           = debug_reg_rf_en_i;
-assign debug_reg_in.rf_preg         = debug_reg_rf_preg_i;
-assign debug_reg_in.rf_we           = debug_reg_rf_we_i;
-assign debug_reg_in.rf_wdata        = debug_reg_rf_wdata_i;
-
-assign debug_contr_halt_ack_o       = debug_contr_out.halt_ack;
-assign debug_contr_halted_o         = debug_contr_out.halted;
-assign debug_contr_resume_ack_o     = debug_contr_out.resume_ack;
-assign debug_contr_running_o        = debug_contr_out.running;
-assign debug_contr_progbuf_ack_o    = debug_contr_out.progbuf_ack;
-assign debug_contr_parked_o         = debug_contr_out.parked;
-assign debug_contr_unavail_o        = debug_contr_out.unavail;
-assign debug_contr_progbuf_xcpt_o   = debug_contr_out.progbuf_xcpt;
-assign debug_contr_havereset_o      = debug_contr_out.havereset;
-
-assign debug_reg_rnm_read_resp_o    = debug_reg_out.rnm_read_resp;
-assign debug_reg_rf_rdata_o         = debug_reg_out.rf_rdata;
-
-// *** iCache ***
-
-//L2 Network conection - response
-assign ifill_resp.data  = io_mem_grant_bits_data             ;
-assign ifill_resp.valid = io_mem_grant_valid                 ;
-assign ifill_resp.ack   = io_mem_grant_bits_addr_beat[0] &
-                          io_mem_grant_bits_addr_beat[1] ;
-
-assign ifill_resp.inv.valid = io_mem_grant_inval;
-assign ifill_resp.inv.paddr = io_mem_grant_inval_addr;
-
-//L2 Network conection - request
-assign io_mem_acquire_valid                = ifill_req.valid        ;
-assign io_mem_acquire_bits_addr_block      = ifill_req.paddr        ;
-
-resp_icache_cpu_t resp_icache_interface_datapath_cached ;
-req_cpu_icache_t  req_datapath_icache_interface_cached  ;
-
-assign nc_grant_valid = io_mem_grant_valid && !io_mem_grant_inval;
-
-nc_icache_buffer #(
-    .DRAC_CFG(DracCfg)
-)  nc_icache_bf (    
-    .clk_i              ( clk_i                                   ) , 
-    .rstn_i             ( rstn_i                                  ) ,
-    .en_translation_i   ( en_translation                          ) ,
-    .l2_grant_valid_i   ( nc_grant_valid                          ) ,
-    .datapath_req_i     ( req_datapath_icache_interface           ) ,
-    .icache_resp_i      ( resp_icache_interface_datapath_cached   ) ,        
-    .l2_resp_data_i     ( io_mem_grant_bits_data[63:0]            ) ,
-    .req_icache_ready_i ( req_icache_ready_cached                 ) ,
-    .req_icache_ready_o ( req_icache_ready                        ) ,
-    .req_nc_valid_o     ( brom_req_valid_o                        ) ,
-    .req_nc_vaddr_o     ( brom_req_address_o                      ) ,
-    .req_icache_o       ( req_datapath_icache_interface_cached    ) ,
-    .resp_datapath_o    ( resp_icache_interface_datapath          )     
-);
-
-icache_interface icache_interface_inst(
-    .clk_i(clk_i),
-    .rstn_i(rstn_i),
-
-    // Inputs ICache
-    .icache_resp_datablock_i    ( icache_resp.data  ),
-    .icache_resp_valid_i        ( icache_resp.valid ),
-    .icache_req_ready_i         ( icache_resp.ready ), 
-    .tlb_resp_xcp_if_i          ( icache_resp.xcpt  ),
-    .en_translation_i           ( en_translation ), 
-   
-    // Outputs ICache
-    .icache_invalidate_o    ( iflush             ), 
-    .icache_req_bits_idx_o  ( lagarto_ireq.idx   ), 
-    .icache_req_kill_o      ( lagarto_ireq.kill  ), 
-    .icache_req_valid_o     ( lagarto_ireq.valid ),
-    .icache_req_bits_vpn_o  ( lagarto_ireq.vpn   ), 
-
-    // Fetch stage interface - Request packet from fetch_stage
-    .req_fetch_icache_i   (req_datapath_icache_interface_cached  ),
-    
-    // Fetch stage interface - Response packet icache to fetch
-    .resp_icache_fetch_o  (resp_icache_interface_datapath_cached ),
-    .req_fetch_ready_o(req_icache_ready_cached)
-);
-
-// PPN Size is address size - set bits - offset bits 
-localparam int unsigned ICACHE_PPN_SIZE = PHY_VIRT_MAX_ADDR_SIZE - $clog2(64) - $clog2(ICACHELINE_SIZE/8);
-
-sargantana_top_icache # (
-    .KILL_RESP          ( 1'b1          ),
-    .LINES_256          ( 1'b0          ),
-
-    .ICACHE_MEM_BLOCK   (ICACHELINE_SIZE/8),  // In Bytes
-    .PADDR_SIZE         (PHY_ADDR_SIZE),
-    .ADDR_SIZE          (PHY_VIRT_MAX_ADDR_SIZE),
-    .IDX_BITS_SIZE      (12), // TODO: Where does this come from?
-    .FETCH_WIDHT        (ICACHELINE_SIZE)
-) icache (
-    `ifdef INTEL_PHYSICAL_MEM_CTRL
-    .hduspsr_mem_ctrl           (hduspsr_mem_ctrl),
-    `endif
-    .clk_i                      (clk_i),
-    .rstn_i                     (rstn_i),
-    .flush_i                    (iflush),
-
-    .lagarto_ireq_valid_i       (lagarto_ireq.valid),
-    .lagarto_ireq_kill_i        (lagarto_ireq.kill),
-    .lagarto_ireq_idx_i         (lagarto_ireq.idx),
-    .lagarto_ireq_vpn_i         (lagarto_ireq.vpn),
-    
-    .icache_resp_ready_o        (icache_resp.ready),
-    .icache_resp_valid_o        (icache_resp.valid),
-    .icache_resp_data_o         (icache_resp.data),
-    .icache_resp_vaddr_o        (icache_resp.vaddr),
-    .icache_resp_xcpt_o         (icache_resp.xcpt),
-
-    .mmu_tresp_miss_i           (itlb_icache_comm.resp.miss),
-    .mmu_tresp_ptw_v_i          (ptw_itlb_comm.resp.valid),
-    .mmu_tresp_ppn_i            (itlb_icache_comm.resp.ppn[ICACHE_PPN_SIZE-1:0]),
-    .mmu_tresp_xcpt_i           (itlb_icache_comm.resp.xcpt.fetch),
-
-    .icache_treq_valid_o        (itlb_treq.valid),
-    .icache_treq_vpn_o          (itlb_treq.vpn),
-
-    .ifill_resp_valid_i         (ifill_resp.valid),
-    .ifill_resp_ack_i           (ifill_resp.ack),
-    .ifill_resp_data_i          (ifill_resp.data),
-    .ifill_resp_inv_valid_i     (ifill_resp.inv.valid),
-    .ifill_resp_inv_paddr_i     (ifill_resp.inv.paddr),
-    
-    .icache_ifill_req_valid_o   (ifill_req.valid),
-    //.icache_ifill_req_way_o     (ifill_req.way),
-    .icache_ifill_req_paddr_o   (ifill_req.paddr),
-
-    .imiss_time_pmu_o           (pmu_interface.icache_miss_time),
-    .imiss_kill_pmu_o           (pmu_interface.icache_miss_kill)
-);
+// PPN Size is address size - set bits - offset bits
+localparam int unsigned ICACHE_NUM_SETS = 64;
+localparam int unsigned ICACHE_INDEX_SIZE = $clog2(ICACHE_NUM_SETS) + $clog2(ICACHELINE_SIZE/8);
+localparam int unsigned ICACHE_PPN_SIZE = PHY_VIRT_MAX_ADDR_SIZE - ICACHE_INDEX_SIZE;
+localparam int unsigned ICACHE_VPN_SIZE = PHY_VIRT_MAX_ADDR_SIZE - ICACHE_INDEX_SIZE;
 
 // *** dCache ***
 parameter HPDCACHE_NREQUESTERS = 2; // Core + PTW
@@ -538,6 +268,232 @@ localparam hpdcache_pkg::hpdcache_user_cfg_t HPDcacheUserCfg = '{
   `HPDCACHE_TYPEDEF_RSP_T(hpdcache_rsp_t, hpdcache_req_data_t, hpdcache_req_sid_t,
                           hpdcache_req_tid_t);
 
+// iCache
+logic                            icache_flush;
+logic                            icache_req_valid;
+logic                            icache_req_kill;
+logic [ICACHE_INDEX_SIZE-1:0]    icache_req_idx;
+logic [ICACHE_VPN_SIZE-1:0]      icache_req_vpn;
+
+// To Core
+logic                            icache_resp_ready;
+logic                            icache_resp_valid;
+logic [ICACHELINE_SIZE-1:0]      icache_resp_data;
+logic                            icache_resp_xcpt;
+
+logic                            nc_fetch_resp_valid;
+logic [ICACHELINE_SIZE-1:0]      nc_fetch_resp_data;
+logic                            nc_fetch_req_valid;
+logic [PHY_VIRT_MAX_ADDR_SIZE-1:0] nc_fetch_req_addr;
+
+logic                            icache_tlb_resp_miss;
+logic                            icache_tlb_resp_ptw_v;
+logic [ICACHE_PPN_SIZE-1:0]      icache_tlb_resp_ppn;
+logic                            icache_tlb_resp_xcpt;
+
+logic                            icache_tlb_req_valid;
+logic [ICACHE_VPN_SIZE-1:0]      icache_tlb_req_vpn;
+
+//--PMU
+pmu_interface_t pmu_interface;
+// TODO!!!
+//assign pmu_interface.icache_req = lagarto_ireq.valid;
+//assign pmu_interface.icache_kill = lagarto_ireq.kill;
+//assign pmu_interface.icache_busy = !icache_resp.ready;
+
+// Debug wires
+debug_contr_in_t                debug_contr_in;
+debug_reg_in_t                  debug_reg_in;
+debug_contr_out_t               debug_contr_out;
+debug_reg_out_t                 debug_reg_out;
+
+// *** Memory Management Unit ***
+
+//assign pmu_interface.itlb_stall = itlb_icache_comm.resp.miss && !itlb_icache_comm.tlb_ready;
+
+// *** Core Instance ***
+
+sargantana_subtile #(
+    .DracCfg(DracCfg),
+
+    .MMU_REQUESTER_SID(0),
+    .CORE_REQUESTER_SID(1),
+
+    .ICACHELINE_SIZE(ICACHELINE_SIZE),
+    .ICACHE_INDEX_SIZE(ICACHE_INDEX_SIZE),
+    .ICACHE_PPN_SIZE(ICACHE_PPN_SIZE),
+    .ICACHE_VPN_SIZE(ICACHE_VPN_SIZE),
+
+    .hpdcache_req_t(hpdcache_req_t),
+    .hpdcache_tag_t(hpdcache_tag_t),
+    .hpdcache_rsp_t(hpdcache_rsp_t)
+) subtile_inst (
+    .clk_i(clk_i),
+    .rstn_i(rstn_i),
+    .soft_rstn_i(soft_rstn_i),
+    .reset_addr_i(reset_addr_i),
+    .core_id_i(core_id_i),
+
+    // Chip-specific connections
+
+    `ifdef INTEL_FSCAN_CTECH
+    .fscan_rstbypen(fscan_rstbypen),//AK
+    `endif // INTEL_FSCAN_CTECH
+    `ifdef PITON_CINCORANCH
+    .boot_main_id_i(boot_main_id_i),
+    `endif  // Custom for CincoRanch
+    `ifdef EXTERNAL_HPM_EVENT_NUM
+    .external_hpm_i(external_hpm_i),
+    `endif
+
+    // iCache Interface
+
+    .icache_flush_o(icache_flush),
+    .icache_req_valid_o(icache_req_valid),
+    .icache_req_kill_o(icache_req_kill),
+    .icache_req_idx_o(icache_req_idx),
+    .icache_req_vpn_o(icache_req_vpn),
+
+    // To Core
+    .icache_resp_ready_i(icache_resp_ready),
+    .icache_resp_valid_i(icache_resp_valid),
+    .icache_resp_data_i(icache_resp_data),
+    .icache_resp_xcpt_i(icache_resp_xcpt),
+
+    .icache_tlb_resp_miss_o(icache_tlb_resp_miss),
+    .icache_tlb_resp_ptw_v_o(icache_tlb_resp_ptw_v),
+    .icache_tlb_resp_ppn_o(icache_tlb_resp_ppn),
+    .icache_tlb_resp_xcpt_o(icache_tlb_resp_xcpt),
+
+    .icache_tlb_req_valid_i(icache_tlb_req_valid),
+    .icache_tlb_req_vpn_i(icache_tlb_req_vpn),
+
+    .nc_fetch_resp_valid_i(io_mem_grant_valid & ~io_mem_grant_inval),
+    .nc_fetch_resp_data_i(io_mem_grant_bits_data),
+    .nc_fetch_req_valid_o(brom_req_valid_o),
+    .nc_fetch_req_addr_o(brom_req_address_o),
+
+    // HPDCache interface
+    .dcache_req_valid_o(dcache_req_valid),
+    .dcache_req_ready_i(dcache_req_ready),
+    .dcache_req_o(dcache_req),
+    .dcache_req_abort_o(dcache_req_abort),
+    .dcache_req_tag_o(dcache_req_tag),
+    .dcache_req_pma_o(dcache_req_pma),
+
+    .dcache_rsp_valid_i(dcache_rsp_valid),
+    .dcache_rsp_i(dcache_rsp),
+    .wbuf_empty_i(wbuf_empty),
+
+    // Debug Module
+    .visa_o(visa_o),
+    .debug_contr_i(debug_contr_in),
+    .debug_reg_i(debug_reg_in),
+
+    .debug_contr_o(debug_contr_out),
+    .debug_reg_o(debug_reg_out),
+
+    // PMU Interface
+    .pmu_interface_i(pmu_interface),
+
+`ifdef CONF_SARGANTANA_ENABLE_PCR
+    // PCR
+    .pcr_req_ready_i(pcr_req_ready_i),    // ready bit of the pcr
+    .pcr_resp_valid_i(pcr_resp_valid_i),   // ready bit of the pcr
+    .pcr_resp_data_i(pcr_resp_data_i),    // read data from performance counter module
+    .pcr_resp_core_id_i(pcr_resp_core_id_i), // core id of the tile that the date is sended
+    .pcr_req_valid_o(pcr_req_valid_o),    // valid bit to make a pcr request
+    .pcr_req_addr_o(pcr_req_addr_o),     // read/write address to performance counter module (up to 29 aux counters possible in riscv encoding.h)h
+    .pcr_req_data_o(pcr_req_data_o),     // write data to performance counter module
+    .pcr_req_we_o(pcr_req_we_o),       // Cmd of the petition
+    .pcr_req_core_id_o(pcr_req_core_id_o),   // core id of the tile
+`endif // CONF_SARGANTANA_ENABLE_PCR
+
+    // Interrupts
+    .time_irq_i(time_irq_i), // timer interrupt
+    .irq_i(irq_i),      // external interrupt in
+    .soft_irq_i(soft_irq_i),
+    .time_i(time_i)     // time passed since the core is reset
+);
+
+// Debug donnections
+assign debug_contr_in.halt_req      = debug_contr_halt_req_i;
+assign debug_contr_in.resume_req    = debug_contr_resume_req_i;
+assign debug_contr_in.progbuf_req   = debug_contr_progbuf_req_i;
+assign debug_contr_in.halt_on_reset = debug_contr_halt_on_reset_i;
+
+assign debug_reg_in.rnm_read_en     = debug_reg_rnm_read_en_i;
+assign debug_reg_in.rnm_read_reg    = debug_reg_rnm_read_reg_i;
+assign debug_reg_in.rf_en           = debug_reg_rf_en_i;
+assign debug_reg_in.rf_preg         = debug_reg_rf_preg_i;
+assign debug_reg_in.rf_we           = debug_reg_rf_we_i;
+assign debug_reg_in.rf_wdata        = debug_reg_rf_wdata_i;
+
+assign debug_contr_halt_ack_o       = debug_contr_out.halt_ack;
+assign debug_contr_halted_o         = debug_contr_out.halted;
+assign debug_contr_resume_ack_o     = debug_contr_out.resume_ack;
+assign debug_contr_running_o        = debug_contr_out.running;
+assign debug_contr_progbuf_ack_o    = debug_contr_out.progbuf_ack;
+assign debug_contr_parked_o         = debug_contr_out.parked;
+assign debug_contr_unavail_o        = debug_contr_out.unavail;
+assign debug_contr_progbuf_xcpt_o   = debug_contr_out.progbuf_xcpt;
+assign debug_contr_havereset_o      = debug_contr_out.havereset;
+
+assign debug_reg_rnm_read_resp_o    = debug_reg_out.rnm_read_resp;
+assign debug_reg_rf_rdata_o         = debug_reg_out.rf_rdata;
+
+// *** iCache ***
+
+
+sargantana_top_icache # (
+    .KILL_RESP          ( 1'b1          ),
+    .LINES_256          ( 1'b0          ),
+
+    .ICACHE_MEM_BLOCK   (ICACHELINE_SIZE/8),  // In Bytes
+    .PADDR_SIZE         (PHY_ADDR_SIZE),
+    .ADDR_SIZE          (PHY_VIRT_MAX_ADDR_SIZE),
+    .IDX_BITS_SIZE      (12), // TODO: Where does this come from?
+    .FETCH_WIDHT        (ICACHELINE_SIZE)
+) icache (
+    `ifdef INTEL_PHYSICAL_MEM_CTRL
+    .hduspsr_mem_ctrl           (hduspsr_mem_ctrl),
+    `endif
+    .clk_i                      (clk_i),
+    .rstn_i                     (rstn_i),
+    .flush_i                    (icache_flush),
+
+    .lagarto_ireq_valid_i       (icache_req_valid),
+    .lagarto_ireq_kill_i        (icache_req_kill),
+    .lagarto_ireq_idx_i         (icache_req_idx),
+    .lagarto_ireq_vpn_i         (icache_req_vpn),
+
+    .icache_resp_ready_o        (icache_resp_ready),
+    .icache_resp_valid_o        (icache_resp_valid),
+    .icache_resp_data_o         (icache_resp_data),
+    .icache_resp_xcpt_o         (icache_resp_xcpt),
+    .icache_resp_vaddr_o        ( /* unused */),
+
+    .mmu_tresp_miss_i           (icache_tlb_resp_miss),
+    .mmu_tresp_ptw_v_i          (icache_tlb_resp_ptw_v),
+    .mmu_tresp_ppn_i            (icache_tlb_resp_ppn),
+    .mmu_tresp_xcpt_i           (icache_tlb_resp_xcpt),
+
+    .icache_treq_valid_o        (icache_tlb_req_valid),
+    .icache_treq_vpn_o          (icache_tlb_req_vpn),
+
+    .ifill_resp_valid_i         (io_mem_grant_valid),
+    .ifill_resp_ack_i           (&io_mem_grant_bits_addr_beat),
+    .ifill_resp_data_i          (io_mem_grant_bits_data),
+    .ifill_resp_inv_valid_i     (io_mem_grant_inval),
+    .ifill_resp_inv_paddr_i     (io_mem_grant_inval_addr),
+
+    .icache_ifill_req_valid_o   (io_mem_acquire_valid),
+    //.icache_ifill_req_way_o     (ifill_req.way),
+    .icache_ifill_req_paddr_o   (io_mem_acquire_bits_addr_block),
+
+    .imiss_time_pmu_o           (pmu_interface.icache_miss_time),
+    .imiss_kill_pmu_o           (pmu_interface.icache_miss_kill)
+);
 
 // Core-dCache Interface
 logic          dcache_req_valid [HPDCACHE_NREQUESTERS];
@@ -550,35 +506,6 @@ hpdcache_pkg::hpdcache_pma_t dcache_req_pma   [HPDCACHE_NREQUESTERS];
 logic           dcache_rsp_valid [HPDCACHE_NREQUESTERS];
 hpdcache_rsp_t  dcache_rsp [HPDCACHE_NREQUESTERS];
 logic wbuf_empty;
-
-dcache_interface #(
-    .DracCfg(DracCfg),
-    .hpdcache_req_t(hpdcache_req_t),
-    .hpdcache_tag_t(hpdcache_tag_t),
-    .hpdcache_rsp_t(hpdcache_rsp_t)
-) dcache_interface_inst(
-    .clk_i(clk_i),
-    .rstn_i(rstn_i),
-
-    // CPU Interface
-    .req_cpu_dcache_i(req_datapath_dcache_interface),
-    .resp_dcache_cpu_o(resp_dcache_interface_datapath),
-
-    // dCache Interface
-    .dcache_ready_i(dcache_req_ready[1]),
-    .dcache_valid_i(dcache_rsp_valid[1]),
-    .core_req_valid_o(dcache_req_valid[1]),
-    .req_dcache_o(dcache_req[1]),
-    .req_dcache_abort_o(dcache_req_abort[1]),
-    .req_dcache_tag_o(dcache_req_tag[1]),
-    .req_dcache_pma_o(dcache_req_pma[1]),
-    .rsp_dcache_i(dcache_rsp[1]),
-    .wbuf_empty_i(wbuf_empty),
-
-    // PMU
-    .dmem_is_store_o ( pmu_interface.exe_store ),
-    .dmem_is_load_o  ( pmu_interface.exe_load  )
-);
 
 hpdcache #(
     .HPDcacheCfg          (HPDcacheCfg),
@@ -676,118 +603,7 @@ hpdcache #(
 
 );
 
-tlb itlb (
-    .clk_i(clk_i),
-    .rstn_i(rstn_i),
-    .cache_tlb_comm_i(icache_itlb_comm),
-    .tlb_cache_comm_o(itlb_icache_comm),
-    .ptw_tlb_comm_i(ptw_itlb_comm),
-    .tlb_ptw_comm_o(itlb_ptw_comm),
-    .pmu_tlb_access_o(pmu_interface.itlb_access),
-    .pmu_tlb_miss_o(pmu_interface.itlb_miss)
-);
-
-tlb dtlb (
-    .clk_i(clk_i),
-    .rstn_i(rstn_i),
-    .cache_tlb_comm_i(core_dtlb_comm),
-    .tlb_cache_comm_o(dtlb_core_comm),
-    .ptw_tlb_comm_i(ptw_dtlb_comm),
-    .tlb_ptw_comm_o(dtlb_ptw_comm),
-    .pmu_tlb_access_o(pmu_interface.dtlb_access),
-    .pmu_tlb_miss_o(pmu_interface.dtlb_miss )
-);
-
-ptw ptw_inst (
-    .clk_i(clk_i),
-    .rstn_i(rstn_i),
-
-    // iTLB request-response
-    .itlb_ptw_comm_i(itlb_ptw_comm), 
-    .ptw_itlb_comm_o(ptw_itlb_comm),
-
-    // dTLB request-response
-    .dtlb_ptw_comm_i(dtlb_ptw_comm),
-    .ptw_dtlb_comm_o(ptw_dtlb_comm),
-
-    // dmem request-response
-    .dmem_ptw_comm_i(dmem_ptw_comm),
-    .ptw_dmem_comm_o(ptw_dmem_comm),
-
-    // csr interface
-    .csr_ptw_comm_i(csr_ptw_comm),
-
-    // pmu interface
-    .pmu_ptw_hit_o(pmu_interface.ptw_buffer_hit),
-    .pmu_ptw_miss_o(pmu_interface.ptw_buffer_miss)
-);
-
-// Connect PTW to dcache
-assign dcache_req_valid[0] = ptw_dmem_comm.req.valid;
-assign dcache_req[0].addr_offset = ptw_dmem_comm.req.addr[(HPDcacheCfg.clOffsetWidth+HPDcacheCfg.setWidth)-1:0],
-       dcache_req[0].op = ((ptw_dmem_comm.req.cmd == 5'b01010) ? hpdcache_pkg::HPDCACHE_REQ_AMO_OR : hpdcache_pkg::HPDCACHE_REQ_LOAD),
-       dcache_req[0].size = ptw_dmem_comm.req.typ[2:0],
-       dcache_req[0].sid = '0,
-       dcache_req[0].tid = '0,
-       dcache_req[0].need_rsp = 1'b1,
-       dcache_req[0].phys_indexed = 1'b1,
-       dcache_req[0].addr_tag = ptw_dmem_comm.req.addr[SIZE_VADDR:(HPDcacheCfg.clOffsetWidth+HPDcacheCfg.setWidth)],
-       dcache_req[0].pma.io = 1'b0, 
-       dcache_req[0].pma.uncacheable = 1'b0;
-// Unused signals on physically indexed requests
-assign dcache_req_abort[0] = 1'b0,
-       dcache_req_tag[0] = '0,
-       dcache_req_pma[0] = '0;
-
-generate
-    if (HPDcacheUserCfg.reqWords == 1) begin
-        assign dcache_req[0].wdata = ptw_dmem_comm.req.data;
-        assign dcache_req[0].be = (ptw_dmem_comm.req.cmd == 5'b01010) ? 8'hff : 8'h00;
-    end else begin
-        always_comb begin
-            for (int i = 0; i < HPDcacheUserCfg.reqWords; ++i) begin
-                if ((ptw_dmem_comm.req.addr[$clog2(HPDcacheUserCfg.reqWords)+2:0] == (3'(i) << 3))) begin
-                    dcache_req[0].wdata[i] = ptw_dmem_comm.req.data;
-                    dcache_req[0].be[i] = (ptw_dmem_comm.req.cmd == 5'b01010) ? 8'hff : 8'h00;
-                end else begin 
-                    dcache_req[0].wdata[i] = '0;
-                    dcache_req[0].be[i] = 8'h00;
-                end 
-            end
-        end
-    end
-endgenerate
-
-assign dmem_ptw_comm.dmem_ready         = dcache_req_ready[0];
-assign dmem_ptw_comm.resp.valid         = dcache_rsp_valid[0];
-assign dmem_ptw_comm.resp.nack          = '0;
-assign dmem_ptw_comm.resp.addr          = '0;
-assign dmem_ptw_comm.resp.tag_addr      = '0;
-assign dmem_ptw_comm.resp.cmd           = '0;
-assign dmem_ptw_comm.resp.typ           = '0;
-assign dmem_ptw_comm.resp.replay        = '0;
-assign dmem_ptw_comm.resp.has_data      = '0;
-assign dmem_ptw_comm.resp.data_subw     = '0;
-assign dmem_ptw_comm.resp.store_data    = '0;
-assign dmem_ptw_comm.resp.rnvalid       = '0;
-assign dmem_ptw_comm.resp.rnext         = '0;
-assign dmem_ptw_comm.resp.xcpt_ma_ld    = '0;
-assign dmem_ptw_comm.resp.xcpt_ma_st    = '0;
-assign dmem_ptw_comm.resp.xcpt_pf_ld    = '0;
-assign dmem_ptw_comm.resp.xcpt_pf_st    = '0;
-assign dmem_ptw_comm.resp.ordered       = '0;
-
-generate
-    if (HPDcacheUserCfg.reqWords == 1) begin
-        assign dmem_ptw_comm.resp.data = dcache_rsp[0].rdata;
-    end else begin
-        assign dmem_ptw_comm.resp.data = dcache_rsp[0].rdata[ptw_dmem_comm.req.addr[$clog2(HPDcacheUserCfg.reqWords)+2:3]];
-    end
-endgenerate
-
-//PMU  
-assign pmu_interface.icache_miss_l2_hit = ifill_resp.ack & io_core_pmu_l2_hit_i;
-
-
+//PMU
+//TODO!!! assign pmu_interface.icache_miss_l2_hit = ifill_resp.ack & io_core_pmu_l2_hit_i;
 
 endmodule

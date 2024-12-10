@@ -23,6 +23,8 @@ module dcache_interface
 #(
     parameter drac_pkg::drac_cfg_t DracCfg     = drac_pkg::DracDefaultConfig,
 
+    parameter int unsigned SID,
+
     parameter type hpdcache_req_t = logic,
     parameter type hpdcache_tag_t = logic,
     parameter type hpdcache_rsp_t = logic
@@ -157,7 +159,7 @@ assign req_dcache_o.addr_offset = req_cpu_dcache_i.data_rs1[OFFSET_SIZE-1:0],
 // Request to HPDC. Pass only 2 bits as the sign extension process (see specs for LBU, LHU, LWU) is done in the mem_unit 
 // HPDC does NOT extend the sign.
 assign req_dcache_o.size = {req_cpu_dcache_i.mem_size[3], req_cpu_dcache_i.mem_size[1:0]}; // TODO: Core supports bigger memory sizes than HPDC!
-assign req_dcache_o.sid = 3'b001;
+assign req_dcache_o.sid = SID;
 assign req_dcache_o.tid = req_cpu_dcache_i.rd;
 assign req_dcache_o.need_rsp = 1'b1;
 assign req_dcache_o.phys_indexed = 1'b1;
