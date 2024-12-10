@@ -5,7 +5,7 @@ FILELIST = ${PROJECT_DIR}/filelist.f
 DV_DIR = $(PROJECT_DIR)/verif
 CORE_UVM_DIR = $(DV_DIR)/core_uvm
 CORE_UVM_REPO = git@gitlab-internal.bsc.es:hwdesign/verification/core-uvm.git
-CORE_UVM_BRANCH ?= master
+CORE_UVM_BRANCH ?= ft/vset
 
 DC_REPO = git@gitlab-internal.bsc.es:hwdesign/spd/dc-scripts.git
 DC_BRANCH = sargantana_syn
