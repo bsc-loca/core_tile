@@ -294,6 +294,13 @@ logic                            icache_tlb_resp_xcpt;
 logic                            icache_tlb_req_valid;
 logic [ICACHE_VPN_SIZE-1:0]      icache_tlb_req_vpn;
 
+logic icache_en_translation;
+logic icache_invalidate;
+logic icache_nc_busy;
+logic icache_nc_valid;
+logic [ICACHELINE_SIZE-1:0]      icache_nc_data;
+logic core_fetch_req_valid;
+
 //--PMU
 pmu_interface_t pmu_interface;
 // TODO!!!
@@ -349,15 +356,15 @@ sargantana_subtile #(
     // iCache Interface
 
     .icache_flush_o(icache_flush),
-    .icache_req_valid_o(icache_req_valid),
+    .icache_req_valid_o(core_fetch_req_valid),
     .icache_req_kill_o(icache_req_kill),
     .icache_req_idx_o(icache_req_idx),
     .icache_req_vpn_o(icache_req_vpn),
 
     // To Core
-    .icache_resp_ready_i(icache_resp_ready),
-    .icache_resp_valid_i(icache_resp_valid),
-    .icache_resp_data_i(icache_resp_data),
+    .icache_resp_ready_i(icache_resp_ready & ~icache_nc_busy),
+    .icache_resp_valid_i(icache_resp_valid | icache_nc_valid),
+    .icache_resp_data_i(icache_nc_valid ? icache_nc_data : icache_resp_data),
     .icache_resp_xcpt_i(icache_resp_xcpt),
 
     .icache_tlb_resp_miss_o(icache_tlb_resp_miss),
@@ -368,10 +375,7 @@ sargantana_subtile #(
     .icache_tlb_req_valid_i(icache_tlb_req_valid),
     .icache_tlb_req_vpn_i(icache_tlb_req_vpn),
 
-    .nc_fetch_resp_valid_i(io_mem_grant_valid & ~io_mem_grant_inval),
-    .nc_fetch_resp_data_i(io_mem_grant_bits_data),
-    .nc_fetch_req_valid_o(brom_req_valid_o),
-    .nc_fetch_req_addr_o(brom_req_address_o),
+    .icache_en_translation_o(icache_en_translation),
 
     // HPDCache interface
     .dcache_req_valid_o(dcache_req_valid),
@@ -444,6 +448,28 @@ assign debug_reg_rf_rdata_o         = debug_reg_out.rf_rdata;
 
 // *** iCache ***
 
+nc_icache_buffer nc_icache_bf (
+    .clk_i,
+    .rstn_i,
+
+    .en_translation_i(icache_en_translation),
+    .core_req_valid_i(core_fetch_req_valid),
+    .core_req_addr_i({icache_req_vpn, icache_req_idx}),
+    .core_req_invalidate_i(icache_flush),
+    .core_req_kill_i(icache_req_kill),
+
+    .core_rsp_nc_busy_o(icache_nc_busy),
+    .core_rsp_valid_o(icache_nc_valid),
+    .core_rsp_data_o(icache_nc_data),
+
+    .icache_req_valid_o(icache_req_valid),
+
+    .req_nc_valid_o(brom_req_valid_o),
+    .req_nc_vaddr_o(brom_req_address_o),
+
+    .l2_grant_valid_i(io_mem_grant_valid & ~io_mem_grant_inval),
+    .l2_resp_data_i(io_mem_grant_bits_data)
+);
 
 sargantana_top_icache # (
     .KILL_RESP          ( 1'b1          ),

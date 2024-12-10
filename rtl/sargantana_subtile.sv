@@ -76,10 +76,8 @@ module sargantana_subtile
     input  logic                            icache_tlb_req_valid_i,
     input  logic [ICACHE_VPN_SIZE-1:0]      icache_tlb_req_vpn_i,
 
-    input  logic                            nc_fetch_resp_valid_i,
-    input  logic [ICACHELINE_SIZE-1:0]      nc_fetch_resp_data_i,
-    output logic                            nc_fetch_req_valid_o,
-    output logic [PHY_VIRT_MAX_ADDR_SIZE-1:0] nc_fetch_req_addr_o,
+    output logic                            icache_en_translation_o,
+    output logic                            icache_invalidate_o,
 
 //----------------------------------------------------------------------------------
 // HPDCache INTERFACE
@@ -252,27 +250,6 @@ top_drac #(
 
 // *** iCache Interface ***
 
-resp_icache_cpu_t resp_icache_interface_datapath_cached ;
-req_cpu_icache_t  req_datapath_icache_interface_cached  ;
-
-nc_icache_buffer #(
-    .DRAC_CFG(DracCfg)
-) nc_icache_bf (
-    .clk_i              ( clk_i                                   ),
-    .rstn_i             ( rstn_i                                  ),
-    .en_translation_i   ( en_translation                          ),
-    .l2_grant_valid_i   ( nc_fetch_resp_valid_i                   ),
-    .datapath_req_i     ( req_datapath_icache_interface           ),
-    .icache_resp_i      ( resp_icache_interface_datapath_cached   ),
-    .l2_resp_data_i     ( nc_fetch_resp_data_i                    ),
-    .req_icache_ready_i ( req_icache_ready_cached                 ),
-    .req_icache_ready_o ( req_icache_ready                        ),
-    .req_nc_valid_o     ( nc_fetch_req_valid_o                    ),
-    .req_nc_vaddr_o     ( nc_fetch_req_addr_o                     ),
-    .req_icache_o       ( req_datapath_icache_interface_cached    ),
-    .resp_datapath_o    ( resp_icache_interface_datapath          )
-);
-
 icache_interface icache_interface_inst(
     .clk_i(clk_i),
     .rstn_i(rstn_i),
@@ -292,12 +269,14 @@ icache_interface icache_interface_inst(
     .icache_req_bits_vpn_o  ( icache_req_vpn_o   ),
 
     // Fetch stage interface - Request packet from fetch_stage
-    .req_fetch_icache_i   (req_datapath_icache_interface_cached  ),
+    .req_fetch_icache_i   (req_datapath_icache_interface  ),
 
     // Fetch stage interface - Response packet icache to fetch
-    .resp_icache_fetch_o  (resp_icache_interface_datapath_cached ),
-    .req_fetch_ready_o(req_icache_ready_cached)
+    .resp_icache_fetch_o  (resp_icache_interface_datapath ),
+    .req_fetch_ready_o(req_icache_ready)
 );
+
+assign icache_en_translation_o = en_translation;
 
 // *** dCache Interface ***
 
