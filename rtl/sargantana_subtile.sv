@@ -174,6 +174,7 @@ tlb_cache_comm_t                 itlb_icache_comm;
 
 assign icache_itlb_comm.req.valid       = icache_tlb_req_valid_i;
 assign icache_itlb_comm.req.asid        = 1'b0;
+assign icache_itlb_comm.req.vmid        = 1'b0;
 assign icache_itlb_comm.req.vpn         = icache_tlb_req_vpn_i;
 assign icache_itlb_comm.req.passthrough = 1'b0;
 assign icache_itlb_comm.req.instruction = 1'b1;
