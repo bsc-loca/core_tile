@@ -10,7 +10,7 @@ from glob import glob
 SIMULATOR = sys.argv[1]
 ISA_DIR = sys.argv[2]
 TEST_TIMEOUT = 100000
-IMPLEMENTED_EXTENSIONS = ['i', 'm', 'f', 'd', 'a', 'zba', 'zbb']
+IMPLEMENTED_EXTENSIONS = ['i', 'm', 'f', 'd', 'a', 'zba', 'zbb', 'zbs']
 
 TESTS_TO_SKIP = {
     "rv64ui-p-ma_data": "Core doesn't support misaligned load/stores",
