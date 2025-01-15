@@ -9,6 +9,7 @@
 
 #include <svdpi.h>
 #include <string>
+#include <map>
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,6 +28,32 @@ extern void memory_symbol_addr(const char *symbol, svBitVecVal *addr);
 #ifdef __cplusplus
 }
 #endif
+
+class Memory32 {                    // data width = 32-bit
+    public:
+        std::map<uint32_t, uint32_t> mem; // memory storage
+        uint32_t addr_max;          // the maximal address, 0 means all 32-bit
+
+        Memory32(uint32_t addr_max);
+
+        Memory32();
+
+        // initialize a memory location with a value
+        void init(const uint32_t addr, const uint32_t &data);
+
+        // write a value
+        bool write(const uint32_t addr, const uint32_t &data, const uint32_t &mask);
+            // burst write
+        void write_block(uint32_t addr, uint32_t size, const uint8_t* buf);
+        // read a value
+        bool read(const uint32_t addr, uint32_t &data);
+
+        uint32_t max_addr() const;
+};
+
+extern Memory32 memoryContents;
+extern std::map<std::string, uint64_t> symbols;
+extern std::map<uint64_t, std::string> reverseSymbols;
 
 void memory_enable_read_debug();
 

@@ -11,12 +11,13 @@ VERI_FLAGS = \
 	$(foreach flag, $(FLAGS), -D$(flag)) \
 	-DVERILATOR_GCC \
 	-F $(SIM_DIR)/simulator.f \
+	$(SIM_DIR)/models/cxx/dpi_checkpoint.cpp \
 	--top-module $(TOP_MODULE) \
 	--unroll-count 256 \
 	-Wno-lint -Wno-style -Wno-STMTDLY -Wno-fatal \
-	-CFLAGS "-std=c++14 -I$(SPIKE_DIR)/riscv-isa-sim/ -fcoroutines" \
+	-CFLAGS "-std=c++14 -I$(SPIKE_DIR)/riscv-isa-sim/" \
 	-LDFLAGS "-pthread -L$(SPIKE_DIR)/build/ -Wl,-rpath=$(SPIKE_DIR)/build/ -ldisasm -ldl" \
-	--exe --main --timing \
+	--exe --savable --no-timing \
 	--trace-fst \
 	--trace-max-array 512 \
 	--trace-max-width 256 \

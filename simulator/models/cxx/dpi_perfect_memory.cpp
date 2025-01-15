@@ -9,31 +9,9 @@
 #include "loadelf.hpp"
 //#include "dpi_torture.h"
 
-class Memory32 {                    // data width = 32-bit
-    std::map<uint32_t, uint32_t> mem; // memory storage
-    uint32_t addr_max;          // the maximal address, 0 means all 32-bit
-
-    public:
-        Memory32(uint32_t addr_max) : addr_max(addr_max) {}
-
-        Memory32() : addr_max(0) {}
-
-        // initialize a memory location with a value
-        void init(const uint32_t addr, const uint32_t &data) { mem[addr] = data; }
-
-        // write a value
-        bool write(const uint32_t addr, const uint32_t &data, const uint32_t &mask);
-            // burst write
-        void write_block(uint32_t addr, uint32_t size, const uint8_t* buf);
-        // read a value
-        bool read(const uint32_t addr, uint32_t &data);
-
-        uint32_t max_addr() const { return addr_max; }
-};
-
-static Memory32 memoryContents;
-static std::map<std::string, uint64_t> symbols;
-static std::map<uint64_t, std::string> reverseSymbols;
+Memory32 memoryContents;
+std::map<std::string, uint64_t> symbols;
+std::map<uint64_t, std::string> reverseSymbols;
 
 void memory_read(const svBitVecVal *addr, svBitVecVal *data) {
     uint32_t baseAddress = addr[0] & BUS_ADDR_MASK;
@@ -155,6 +133,12 @@ void memory_enable_read_debug() {
 
 // *** Memory module ***
 
+Memory32::Memory32(uint32_t addr_max) : addr_max(addr_max) {}
+
+Memory32::Memory32() : addr_max(0) {}
+
+void Memory32::init(const uint32_t addr, const uint32_t &data) { mem[addr] = data; }
+
 bool Memory32::write(const uint32_t addr, const uint32_t &data,
                      const uint32_t &mask) {
     assert((addr & 0x3) == 0);
@@ -219,6 +203,8 @@ bool Memory32::read(const uint32_t addr, uint32_t &data) {
 
     return true;
 }
+
+uint32_t Memory32::max_addr() const { return addr_max; }
 
 std::string memory_symbol_from_addr(uint64_t addr) {
     auto symbol = reverseSymbols.find(addr);

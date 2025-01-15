@@ -1,12 +1,23 @@
 
 module sim_top #(
     parameter NUM_HARTS = 1
+`ifdef VERILATOR
+) (
+    input logic tb_clk,
+    input logic tb_rstn
+`endif
 );
     import sargantana_hpdc_pkg::*, drac_pkg::*;
 
-    logic tb_clk, tb_rstn;
-
     logic dut_rstn, debug_reset;
+
+`ifdef VERILATOR
+
+    import "DPI-C" function void save_model(input string filename);
+`else
+    // Verilator checkpoints (--savable flag) are not compatible with SystemVerilog delays, so we keep the original code
+    // for Questa RTL simulations and only add this changes when using Verilator via defines
+    logic tb_clk, tb_rstn;
 
     // *** Clock & Reset drivers ***
 
@@ -17,6 +28,7 @@ module sim_top #(
     end
 
     always #1 tb_clk = ~tb_clk;
+`endif
 
     // *** DUT ***
 
@@ -550,6 +562,10 @@ module sim_top #(
     // *** Testbench monitors ***
 
     logic [63:0] cycles, max_cycles, start_cycles;
+    logic [63:0] checkpoint_cycles;
+    logic checkpointFile1, checkpoint_restore;
+    string checkpointSaveFileName;
+    string checkpointRestoreFileName;
 
     always @(posedge tb_clk, negedge tb_rstn) begin
         if (~tb_rstn) cycles <= 0;
@@ -566,6 +582,13 @@ module sim_top #(
             end
         end
         if (!$value$plusargs("max-cycles=%d", max_cycles)) max_cycles = 0;
+`ifdef VERILATOR
+        checkpoint_cycles = 0;
+        checkpointFile1 = 1'b1;
+        if (!$value$plusargs("checkpoint_Mcycles=%d", checkpoint_cycles)) checkpoint_cycles = 0;
+        if (!$value$plusargs("checkpoint_name=%s", checkpointSaveFileName)) checkpointSaveFileName = "verilator_model";
+        checkpoint_cycles = checkpoint_cycles * 1000000;
+`endif
     end
 
     always @(posedge tb_clk) begin
@@ -580,6 +603,20 @@ module sim_top #(
             $finish;
         end
     end
+
+`ifdef VERILATOR
+    always @(posedge tb_clk) begin
+        if ((checkpoint_cycles != 0) && ((cycles % checkpoint_cycles) == 0) && (cycles != 0)) begin
+            if (checkpointFile1) begin
+                save_model({checkpointSaveFileName, "_1.bin"});
+                checkpointFile1 = 1'b0;
+            end else begin
+                save_model({checkpointSaveFileName, "_2.bin"});
+                checkpointFile1 = 1'b1;
+            end
+        end
+    end
+`endif
 
     initial begin
         if ($test$plusargs("jtag")) begin

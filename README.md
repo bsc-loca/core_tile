@@ -88,6 +88,10 @@ To run a simulation using **Questasim**, use the following command:
 - `+vcd[=path/to/waveform.vcd]` Generates a waveform of the simulation. By default, it will save it as `dump.vcd`.
 - `+commit_log[=path/to/log.txt]` Generates a log of the commited instructions. By default, it will save it as `signature.txt`.
 - `+konata_dump[=path/to/konata.txt]` Generates a dump of the pipeline to later be visualized as a pipeline diagram using konata. By default, it will save it as `konata.txt`.
+- `+checkpoint_Mcycles=N` Generates a snapshot of the design model every N million cycles. It saves the last 2 checkpoints (suffixed with _1 and _2) and overwrites the oldest one when creating a third one. Only enabled when using **Verilator**.
+- `+checkpoint_name=path/to/checkpoint` Change the file name and path of the verilator checkpoint to save. By default, it is `verilator_model`. You should not include a file extension as the simulation suffixes the name with `_1.bin` and `_2.bin`. Only enabled when using **Verilator**.
+- `+checkpoint_restore_ON` Resumes simulation from the model checkpoint file. By default, it is `verilator_model_1.bin`. Only enabled when using **Verilator**.
+- `+checkpoint_restore_name=path/to/checkpoint.bin` Change the file name and path of the verilator checkpoint to resume from. Only enabled when using **Verilator**.
 
 The output of all the optional parameters can be overriden by appending `=` and the path of the desired output.
 
