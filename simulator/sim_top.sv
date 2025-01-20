@@ -586,8 +586,9 @@ module sim_top #(
         checkpoint_cycles = 0;
         checkpointFile1 = 1'b1;
         if (!$value$plusargs("checkpoint_Mcycles=%d", checkpoint_cycles)) checkpoint_cycles = 0;
+        if (checkpoint_cycles != 0) $display("Checkpoint saving enabled");
         if (!$value$plusargs("checkpoint_name=%s", checkpointSaveFileName)) checkpointSaveFileName = "verilator_model";
-        checkpoint_cycles = checkpoint_cycles * 1000000;
+        checkpoint_cycles = checkpoint_cycles * 10;
 `endif
     end
 
@@ -609,9 +610,11 @@ module sim_top #(
         if ((checkpoint_cycles != 0) && ((cycles % checkpoint_cycles) == 0) && (cycles != 0)) begin
             if (checkpointFile1) begin
                 save_model({checkpointSaveFileName, "_1.bin"});
+                $display("\nCheckpoint 1 written");
                 checkpointFile1 = 1'b0;
             end else begin
                 save_model({checkpointSaveFileName, "_2.bin"});
+                $display("\nCheckpoint 2 written");
                 checkpointFile1 = 1'b1;
             end
         end

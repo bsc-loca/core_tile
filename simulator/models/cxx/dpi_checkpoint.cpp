@@ -66,6 +66,7 @@ int main(int argc, char** argv) {
 
     if (checkpoint_restore) {
         restore_model(checkpointRestoreFileName.c_str());
+        fprintf(stderr, "Checkpoint restored\n");
     }
 
     // Simulate until $finish
