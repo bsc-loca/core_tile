@@ -45,11 +45,7 @@ module dcache_interface
     output hpdcache_tag_t req_dcache_tag_o,
     output hpdcache_pma_t req_dcache_pma_o,
     input  hpdcache_rsp_t rsp_dcache_i,
-    input logic wbuf_empty_i,
-
-    // PMU
-    output logic                dmem_is_store_o,
-    output logic                dmem_is_load_o
+    input logic wbuf_empty_i
 );
 
 // Size of the offset in the request address (bits to index within the line + to index the set)
@@ -198,10 +194,6 @@ logic send, receive;
 
 assign send    = core_req_valid_o && dcache_ready_i;
 assign receive = dcache_valid_i;
-
-//-PMU
-assign dmem_is_store_o = (req_dcache_o.op == HPDCACHE_REQ_STORE) && send;
-assign dmem_is_load_o  = (req_dcache_o.op == HPDCACHE_REQ_LOAD) && send;
 
 `ifdef SIMULATION
 logic [7:0] transactions_in_flight;

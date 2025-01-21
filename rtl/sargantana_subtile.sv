@@ -303,11 +303,7 @@ dcache_interface #(
     .req_dcache_tag_o(dcache_req_tag_o[CORE_REQUESTER_SID]),
     .req_dcache_pma_o(dcache_req_pma_o[CORE_REQUESTER_SID]),
     .rsp_dcache_i(dcache_rsp_i[CORE_REQUESTER_SID]),
-    .wbuf_empty_i,
-
-    // PMU
-    .dmem_is_store_o ( /* pmu_interface.exe_store */ ),
-    .dmem_is_load_o  ( /* pmu_interface.exe_load */  )
+    .wbuf_empty_i
 );
 
 // *** MMU Interface ***
