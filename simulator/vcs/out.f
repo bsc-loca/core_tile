@@ -5,8 +5,8 @@
 +define+CONF_HPDCACHE_REQ_WORDS=8
 +define+CONF_HPDCACHE_WBUF_WORDS=1
 +define+CONF_HPDCACHE_ACCESS_WORDS=8
-+define+CONF_SARGANTANA_PHY_ADDR_SIZE=40
-+define+CONF_HPDCACHE_PA_WIDTH=40
++define+CONF_SARGANTANA_PHY_ADDR_SIZE=42
++define+CONF_HPDCACHE_PA_WIDTH=42
 +incdir+/users/mdoblas/drac/fix-linting-error/simulator/.././rtl/core/sargantana/./includes
 +incdir+/users/mdoblas/drac/fix-linting-error/simulator/.././rtl/core/sargantana/./rtl
 /users/mdoblas/drac/fix-linting-error/simulator/.././rtl/core/sargantana/./rtl/common_cells/include/common_cells/registers.svh
