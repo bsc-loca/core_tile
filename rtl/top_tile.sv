@@ -198,6 +198,18 @@ parameter HPDCACHE_NREQUESTERS = 2; // Core + PTW
 // Build the HPDC core request and response types
 `SARGANTANA_TYPEDEF_HPDC_REQ_RSP(DracCfg);
 
+// Core-dCache Interface
+logic          dcache_req_valid [HPDCACHE_NREQUESTERS];
+logic          dcache_req_ready [HPDCACHE_NREQUESTERS];
+hpdcache_req_t dcache_req       [HPDCACHE_NREQUESTERS];
+logic          dcache_req_abort [HPDCACHE_NREQUESTERS];
+hpdcache_tag_t dcache_req_tag   [HPDCACHE_NREQUESTERS];
+hpdcache_pkg::hpdcache_pma_t dcache_req_pma   [HPDCACHE_NREQUESTERS];
+
+logic           dcache_rsp_valid [HPDCACHE_NREQUESTERS];
+hpdcache_rsp_t  dcache_rsp [HPDCACHE_NREQUESTERS];
+logic wbuf_empty;
+
 // iCache
 logic                            icache_flush;
 logic                            icache_req_valid;
@@ -243,10 +255,6 @@ debug_contr_in_t                debug_contr_in;
 debug_reg_in_t                  debug_reg_in;
 debug_contr_out_t               debug_contr_out;
 debug_reg_out_t                 debug_reg_out;
-
-// *** Memory Management Unit ***
-
-//assign pmu_interface.itlb_stall = itlb_icache_comm.resp.miss && !itlb_icache_comm.tlb_ready;
 
 // *** Core Instance ***
 
@@ -450,18 +458,6 @@ sargantana_top_icache # (
     .imiss_time_pmu_o           (pmu_interface.icache_miss_time),
     .imiss_kill_pmu_o           (pmu_interface.icache_miss_kill)
 );
-
-// Core-dCache Interface
-logic          dcache_req_valid [HPDCACHE_NREQUESTERS];
-logic          dcache_req_ready [HPDCACHE_NREQUESTERS];
-hpdcache_req_t dcache_req       [HPDCACHE_NREQUESTERS];
-logic          dcache_req_abort [HPDCACHE_NREQUESTERS];
-hpdcache_tag_t dcache_req_tag   [HPDCACHE_NREQUESTERS];
-hpdcache_pkg::hpdcache_pma_t dcache_req_pma   [HPDCACHE_NREQUESTERS];
-
-logic           dcache_rsp_valid [HPDCACHE_NREQUESTERS];
-hpdcache_rsp_t  dcache_rsp [HPDCACHE_NREQUESTERS];
-logic wbuf_empty;
 
 hpdcache #(
     .HPDcacheCfg          (sargBuildHPDCCfg(DracCfg)),
