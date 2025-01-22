@@ -462,7 +462,7 @@ sargantana_top_icache # (
 
 hpdcache #(
     .HPDcacheCfg          (HPDcacheCfg),
-    .wbuf_timecnt_t       (logic [$clog2(DracCfg.DCacheWBUFTh)-1:0]),
+    .wbuf_timecnt_t       (logic [$clog2(DracCfg.DCacheWBUFTh+1)-1:0]),
     .hpdcache_tag_t       (hpdcache_tag_t),
     .hpdcache_data_word_t (hpdcache_data_word_t),
     .hpdcache_data_be_t   (hpdcache_data_be_t),
@@ -546,8 +546,8 @@ hpdcache #(
 
     // Config
     .cfg_enable_i                        (1'b1),
-    .cfg_wbuf_inhibit_write_coalescing_i (!DracCfg.DCacheCoalescing),
-    .cfg_wbuf_threshold_i                (DracCfg.DCacheWBUFTh),
+    .cfg_wbuf_inhibit_write_coalescing_i (DracCfg.DCacheCoalescing ? 1'b1 : 1'b0),
+    .cfg_wbuf_threshold_i                ($clog2(DracCfg.DCacheWBUFTh+1)'(DracCfg.DCacheWBUFTh)),
     .cfg_wbuf_reset_timecnt_on_write_i   (1'b1),
     .cfg_wbuf_sequential_waw_i           (1'b0),
     .cfg_prefetch_updt_plru_i            (1'b1),

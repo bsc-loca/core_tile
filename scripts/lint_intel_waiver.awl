@@ -38,33 +38,39 @@ waive -rule {  {AvoidAsync} } -comment {"Asynchronous signal used at flop"}
 waive -rule {  {W240}  }  -comment {"Input '[Signal]' declared but not read."}
 
 
-waive -du {  {hpdcache_sram_wmask_1rw} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_cmo} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_memctrl} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_miss_handler} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_rtab} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_wbuf} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_wbuf_wrapper} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_rrarb} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_memarray} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_mshr} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_plru} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_demux} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_mux} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_uncached} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_typedef} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_fifo_reg} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_fxarb} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_prio_1hot_encoder} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_sram} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_sram_wmask} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_sram_1rw} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_amo} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_ctrl_pe} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_ctrl} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_mshr_to_cache_set} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache} } -comment {"HPDC Will be changed in future drop"}
-waive -du {  {hpdcache_core_arbiter} } -comment {"HPDC Will be changed in future drop"}
+waive -du {  {hpdcache_sram_wmask_1rw} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_cmo} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_memctrl} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_miss_handler} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_rtab} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_wbuf} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_wbuf_wrapper} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_rrarb} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_memarray} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_mshr} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_plru} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_demux} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_mux} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_uncached} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_typedef} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_fifo_reg} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_fxarb} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_prio_1hot_encoder} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_sram} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_sram_wmask} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_sram_1rw} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_amo} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_ctrl_pe} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_ctrl} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_mshr_to_cache_set} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_core_arbiter} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_sram_wbyteenable_1rw} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_1hot_to_binary} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_victim_plru} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_data_resize} } -comment {"HPDC is an external component"}
+waive -du {  {hpdcache_victim_sel} } -comment {"HPDC is an external component"}
+waive -file {hpdcache_pkg.sv} -comment {"HPDC is an external component"}
 
 waive -file {fpnew_pkg.sv} -regexp -comment {"FPU package errors"}
 waive -rule { {W175} } -file {defs_div_sqrt_mvp.sv} -regexp -comment {"Allow unused parameters in FPU package"}
@@ -106,3 +112,7 @@ waive -rule { {AlwaysFalseTrueCond-ML} } -file {def_pkg.sv} -comment {"Allow alw
 waive -rule { {AlwaysFalseTrueCond-ML} } -file {drac_pkg.sv} -comment {"Allow always false/true conditions that depend on parameters"}
 
 waive -rule {  {OneModule-ML} } -file {alu_count_zeros.sv} -ignore
+
+waive -rule { {ArrayIndex} } -file {top_tile.sv} -comment {"HPDC Interface -- Not Important"}
+waive -rule { {ArrayIndex} } -file {sargantana_subtile.sv} -comment {"HPDC Interface -- Not Important"}
+waive -rule { {ArrayIndex} } -file {top_tile.sv} -comment {"HPDC Interface -- Not Important"}

@@ -145,6 +145,7 @@ req_cpu_icache_t req_datapath_icache_interface;
 
 // Response Interface dcache to datapath
 resp_dcache_cpu_t resp_dcache_interface_datapath;
+logic req_icache_ready;
 
 // Request Datapath to Dcache interface
 req_cpu_dcache_t req_datapath_dcache_interface;
