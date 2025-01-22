@@ -462,6 +462,7 @@ sargantana_top_icache # (
 
 hpdcache #(
     .HPDcacheCfg          (HPDcacheCfg),
+    .wbuf_timecnt_t       (logic [$clog2(DracCfg.DCacheWBUFTh)-1:0]),
     .hpdcache_tag_t       (hpdcache_tag_t),
     .hpdcache_data_word_t (hpdcache_data_word_t),
     .hpdcache_data_be_t   (hpdcache_data_be_t),
