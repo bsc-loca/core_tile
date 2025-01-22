@@ -13,7 +13,7 @@
 * -----------------------------------------------
 */
 
-`include "hpdcache_typedef.svh"
+`include "sargantana_typedef.svh"
 
 module top_tile
     import drac_pkg::*, sargantana_icache_pkg::*, mmu_pkg::*;
@@ -195,78 +195,8 @@ localparam int unsigned ICACHE_VPN_SIZE = PHY_VIRT_MAX_ADDR_SIZE - ICACHE_INDEX_
 // *** dCache ***
 parameter HPDCACHE_NREQUESTERS = 2; // Core + PTW
 
-localparam hpdcache_pkg::hpdcache_user_cfg_t HPDcacheUserCfg = '{
-    // 2 requesters: Core and MMU
-    nRequesters: HPDCACHE_NREQUESTERS,
-    // Address and word size as configured in drac_pkg
-    paWidth: drac_pkg::PHY_ADDR_SIZE,
-    wordWidth: riscv_pkg::XLEN,
-    // Configure size, associativity and cacheline size via config parameter
-    sets: DracCfg.DCacheNumSets,
-    ways: DracCfg.DCacheNumWays,
-    clWords: DracCfg.DCacheLineWidth / riscv_pkg::XLEN,
-    // Configure the request to access the whole cacheline
-    reqWords: DracCfg.DCacheLineWidth / riscv_pkg::XLEN,
-    // Core is configured to support 7 bit IDs, currently hardcoded!
-    reqTransIdWidth: 7,
-    // Up to 8 requesters
-    reqSrcIdWidth: 3,
-    // Use Pseudo-LRU
-    victimSel: hpdcache_pkg::HPDCACHE_VICTIM_PLRU,
-    // Put two ways side-by-side on an SRAM line
-    dataWaysPerRamWord: 2,
-    // Put all the sets in the same SRAM (TODO: Confirm with Cesar)
-    dataSetsPerRam: DracCfg.DCacheNumSets,
-    // Use byte-enable SRAMs
-    dataRamByteEnable: 1'b1,
-    // Access the whole cacheline in a single cycle, for request & refills
-    accessWords: DracCfg.DCacheLineWidth / riscv_pkg::XLEN,
-    // Configure the MSHRs via the config parameter
-    mshrSets: DracCfg.DCacheMSHRSets,
-    mshrWays: DracCfg.DCacheMSHRWays,
-    // Store 2 ways per SRAM line
-    mshrWaysPerRamWord: 2,
-    mshrSetsPerRam: DracCfg.DCacheMSHRSets,
-    mshrRamByteEnable: 1'b1,
-    // Use SRAMs for the MSHRs
-    mshrUseRegbank: 0,
-    // Bypass data to the core when refilling
-    refillCoreRspFeedthrough: 1'b1,
-    refillFifoDepth: 2,
-    // Configure the write buffer entries via the config parameter
-    wbufDirEntries: DracCfg.DCacheWBUFSize,
-    wbufDataEntries: DracCfg.DCacheWBUFSize,
-    // Have a whole cacheline in each write buffer entry.
-    // Caution! It says words, but really it's the width of the core request!
-    wbufWords: 1,
-    wbufTimecntWidth: 3,
-    // Number of replay table entries
-    rtabEntries: 8,
-    // Number of invalidation entries
-    flushEntries: 4,
-    flushFifoDepth: 2,
-    // Memory interface parameters, configured via the config parameter
-    memAddrWidth: DracCfg.MemAddrWidth,
-    memIdWidth: DracCfg.MemIDWidth,
-    memDataWidth: DracCfg.MemDataWidth,
-    // Write-through or Write-back configuration, depending on config parameter
-    // Only allows one or the other
-    wtEn: DracCfg.DCacheWTNotWB ? 1'b1 : 1'b0,
-    wbEn: DracCfg.DCacheWTNotWB ? 1'b0 : 1'b1
-};
-
-  localparam hpdcache_pkg::hpdcache_cfg_t HPDcacheCfg = hpdcache_pkg::hpdcacheBuildConfig(
-      HPDcacheUserCfg
-  );
-
-  `HPDCACHE_TYPEDEF_REQ_ATTR_T(hpdcache_req_offset_t, hpdcache_data_word_t, hpdcache_data_be_t,
-                               hpdcache_req_data_t, hpdcache_req_be_t, hpdcache_req_sid_t,
-                               hpdcache_req_tid_t, hpdcache_tag_t, HPDcacheCfg);
-  `HPDCACHE_TYPEDEF_REQ_T(hpdcache_req_t, hpdcache_req_offset_t, hpdcache_req_data_t,
-                          hpdcache_req_be_t, hpdcache_req_sid_t, hpdcache_req_tid_t,
-                          hpdcache_tag_t);
-  `HPDCACHE_TYPEDEF_RSP_T(hpdcache_rsp_t, hpdcache_req_data_t, hpdcache_req_sid_t,
-                          hpdcache_req_tid_t);
+// Build the HPDC core request and response types
+`SARGANTANA_TYPEDEF_HPDC_REQ_RSP(DracCfg);
 
 // iCache
 logic                            icache_flush;
@@ -534,7 +464,7 @@ hpdcache_rsp_t  dcache_rsp [HPDCACHE_NREQUESTERS];
 logic wbuf_empty;
 
 hpdcache #(
-    .HPDcacheCfg          (HPDcacheCfg),
+    .HPDcacheCfg          (sargBuildHPDCCfg(DracCfg)),
     .hpdcache_tag_t       (hpdcache_tag_t),
     .hpdcache_data_word_t (hpdcache_data_word_t),
     .hpdcache_data_be_t   (hpdcache_data_be_t),
