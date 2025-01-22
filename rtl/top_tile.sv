@@ -196,7 +196,8 @@ localparam int unsigned ICACHE_VPN_SIZE = PHY_VIRT_MAX_ADDR_SIZE - ICACHE_INDEX_
 parameter HPDCACHE_NREQUESTERS = 2; // Core + PTW
 
 // Build the HPDC core request and response types
-`SARGANTANA_TYPEDEF_HPDC_REQ_RSP(DracCfg);
+localparam hpdcache_pkg::hpdcache_cfg_t HPDcacheCfg = sargBuildHPDCCfg(DracCfg);
+`SARGANTANA_TYPEDEF_HPDC_REQ_RSP(HPDcacheCfg);
 
 // Core-dCache Interface
 logic          dcache_req_valid [HPDCACHE_NREQUESTERS];
@@ -460,7 +461,7 @@ sargantana_top_icache # (
 );
 
 hpdcache #(
-    .HPDcacheCfg          (sargBuildHPDCCfg(DracCfg)),
+    .HPDcacheCfg          (HPDcacheCfg),
     .hpdcache_tag_t       (hpdcache_tag_t),
     .hpdcache_data_word_t (hpdcache_data_word_t),
     .hpdcache_data_be_t   (hpdcache_data_be_t),

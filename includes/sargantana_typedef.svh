@@ -74,11 +74,12 @@ function automatic hpdcache_pkg::hpdcache_cfg_t sargBuildHPDCCfg(input drac_pkg:
     return hpdcache_pkg::hpdcacheBuildConfig(HPDcacheUserCfg);
 endfunction
 
-// Builds the HPDC core request and response types based on the Drac Cfg core configuration
-`define SARGANTANA_TYPEDEF_HPDC_REQ_RSP(__drac_cfg) \
+// Builds the HPDC core request and response types based on the HPDC configuration
+// See `sargBuildHPDCCfg` on how to build the HPDC config from the Core config
+`define SARGANTANA_TYPEDEF_HPDC_REQ_RSP(__hpdc_cfg) \
     `HPDCACHE_TYPEDEF_REQ_ATTR_T(hpdcache_req_offset_t, hpdcache_data_word_t, hpdcache_data_be_t, \
                                 hpdcache_req_data_t, hpdcache_req_be_t, hpdcache_req_sid_t, \
-                                hpdcache_req_tid_t, hpdcache_tag_t, sargBuildHPDCCfg(__drac_cfg)); \
+                                hpdcache_req_tid_t, hpdcache_tag_t, __hpdc_cfg); \
     `HPDCACHE_TYPEDEF_REQ_T(hpdcache_req_t, hpdcache_req_offset_t, hpdcache_req_data_t, \
                             hpdcache_req_be_t, hpdcache_req_sid_t, hpdcache_req_tid_t, \
                             hpdcache_tag_t); \
