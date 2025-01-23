@@ -246,10 +246,11 @@ logic core_fetch_req_valid;
 
 //--PMU
 pmu_interface_t pmu_interface;
-// TODO!!!
-//assign pmu_interface.icache_req = lagarto_ireq.valid;
-//assign pmu_interface.icache_kill = lagarto_ireq.kill;
-//assign pmu_interface.icache_busy = !icache_resp.ready;
+assign pmu_interface.icache_req = icache_req_valid;
+assign pmu_interface.icache_kill = icache_req_kill;
+assign pmu_interface.icache_busy = ~icache_resp_ready;
+assign pmu_interface.icache_miss_l2_hit = io_mem_grant_valid & (&io_mem_grant_bits_addr_beat) & io_core_pmu_l2_hit_i;
+assign pmu_interface.itlb_stall = icache_tlb_resp_miss & ~icache_tlb_resp_ptw_v;
 
 // Debug wires
 debug_contr_in_t                debug_contr_in;
@@ -460,9 +461,16 @@ sargantana_top_icache # (
     .imiss_kill_pmu_o           (pmu_interface.icache_miss_kill)
 );
 
+// WBUF time counter type size set to smallest counter that can hold the config value
+typedef logic [$clog2(DracCfg.DCacheWBUFTh+1)-1:0] wbuf_timecnt_t;
+
+function wbuf_timecnt_t trunc_wbuf_timecnt(input [31:0] val_in);
+    trunc_wbuf_timecnt = val_in[$clog2(DracCfg.DCacheWBUFTh+1)-1:0];
+endfunction
+
 hpdcache #(
     .HPDcacheCfg          (HPDcacheCfg),
-    .wbuf_timecnt_t       (logic [$clog2(DracCfg.DCacheWBUFTh+1)-1:0]),
+    .wbuf_timecnt_t       (wbuf_timecnt_t),
     .hpdcache_tag_t       (hpdcache_tag_t),
     .hpdcache_data_word_t (hpdcache_data_word_t),
     .hpdcache_data_be_t   (hpdcache_data_be_t),
@@ -547,7 +555,7 @@ hpdcache #(
     // Config
     .cfg_enable_i                        (1'b1),
     .cfg_wbuf_inhibit_write_coalescing_i (DracCfg.DCacheCoalescing ? 1'b1 : 1'b0),
-    .cfg_wbuf_threshold_i                ($clog2(DracCfg.DCacheWBUFTh+1)'(DracCfg.DCacheWBUFTh)),
+    .cfg_wbuf_threshold_i                (trunc_wbuf_timecnt(DracCfg.DCacheWBUFTh)),
     .cfg_wbuf_reset_timecnt_on_write_i   (1'b1),
     .cfg_wbuf_sequential_waw_i           (1'b0),
     .cfg_prefetch_updt_plru_i            (1'b1),
@@ -556,8 +564,5 @@ hpdcache #(
     .cfg_default_wb_i                    (1'b0)  // Disable writeback mode
 
 );
-
-//PMU
-//TODO!!! assign pmu_interface.icache_miss_l2_hit = ifill_resp.ack & io_core_pmu_l2_hit_i;
 
 endmodule
