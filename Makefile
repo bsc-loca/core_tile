@@ -8,7 +8,7 @@ CORE_UVM_REPO = git@gitlab-internal.bsc.es:hwdesign/verification/core-uvm.git
 CORE_UVM_BRANCH ?= master
 
 DC_REPO = git@gitlab-internal.bsc.es:hwdesign/spd/dc-scripts.git
-DC_BRANCH = sargantana_syn
+DC_BRANCH = main
 DC_DIR =$(PROJECT_DIR)/dc-scripts
 
 SRAM_WRAPPER_REPO = git@gitlab-internal.bsc.es:hwdesign/chips/cincoranch.git
