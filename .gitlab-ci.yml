@@ -107,7 +107,9 @@ lint-dc-elab:
   extends: .dc_shell
   stage: linting
   rules:
-    !reference [.rules_merge_request]
+    - if: ($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME != "main") # If not merging to main, skip this
+      when: never
+    - !reference [.rules_merge_request]
   timeout: 1 hrs
   variables:
     RUNNER_SCRIPT_TIMEOUT: 50m
