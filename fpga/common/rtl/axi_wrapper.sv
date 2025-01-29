@@ -10,6 +10,8 @@
  *  History      :
  */
 
+`include "hpdcache_typedef.svh"
+
 import fpga_pkg::*, hpdcache_pkg::*;
 
 module axi_wrapper

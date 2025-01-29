@@ -28,6 +28,7 @@
  */
 
 `include "defines.svh"
+`include "hpdcache_typedef.svh"
 
 import fpga_pkg::*;
 
