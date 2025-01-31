@@ -48,8 +48,7 @@ module axi_arbiter
     parameter type hpdcache_mem_req_w_t =
         `HPDCACHE_DECL_MEM_REQ_W_T(hpdcache_mem_data_t, hpdcache_mem_be_t),
     parameter type hpdcache_mem_resp_w_t =
-        `HPDCACHE_DECL_MEM_RESP_W_T(hpdcache_mem_id_t),
-    parameter type hpdcache_nline_t = logic [PHY_ADDR_SIZE-$clog2(DracCfg.DCacheLineWidth / 8)-1:0]
+        `HPDCACHE_DECL_MEM_RESP_W_T(hpdcache_mem_id_t)
 )
 (
   input  wire logic                               clk_i,
