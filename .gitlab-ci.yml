@@ -3,6 +3,7 @@ include:
     ref: $GENERIC_CI_BRANCH
     file:
       - jobs_template.yml
+      - badges.yml
 
 ## This workflow avoids duplicate pipelines when there is an open merge request (commit_branch + merge_request) 
 ## so only the open merge request will be executed and not the commit_branch. PIPELINE_BRANCH will be used to refer to
@@ -13,6 +14,8 @@ workflow:
     - !reference [.rules, global_std]
 
 .rules_default:
+    - if: (($CI_PIPELINE_SOURCE == 'web' || $CI_PIPELINE_SOURCE == 'schedule') && $do_gen_bitstream_pkg)
+      when: never
     - if: ($do_synthesis && ($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web"))
       when: never
     - if: (($CI_PIPELINE_SOURCE == 'web' || $CI_PIPELINE_SOURCE == 'schedule') && $OPERATION == "boot")
@@ -31,9 +34,10 @@ workflow:
 .rules_uvm_smoke:
     - if: '$CI_PIPELINE_SOURCE == "pipeline"'
       when: always
+    - if: '$do_test_uvm || $CI_COMMIT_MESSAGE =~ /#do_test_uvm/'
+      when: always
     - !reference [.rules_uvm_scheduled]
     - !reference [.rules_merge_request]
-    - !reference [.rules_default]
 
 .rules_uvm_scheduled:
   - if: (($CI_PIPELINE_SOURCE == "schedule" || 
@@ -60,6 +64,10 @@ workflow:
 .rules_fpga:
     - if:  $CI_PIPELINE_SOURCE == "pipeline"
       when: never
+    - if: ($CI_COMMIT_TAG || 
+          ($CI_PIPELINE_SOURCE == 'web' || $CI_PIPELINE_SOURCE == 'schedule') && $do_gen_bitstream_pkg)
+      variables:
+        GEN_BITSTREAM_PKG: "true"
     - if: (($CI_PIPELINE_SOURCE == 'web' || $CI_PIPELINE_SOURCE == 'schedule') && $OPERATION == "boot")
 
 stages:
@@ -368,47 +376,48 @@ dc-synthesis:
     paths:
       - dc_syn.$CI_PIPELINE_ID.log
 
+#fpga-prepare:
+#  extends: .basic_no_clone
+#  stage: fpga
+#  rules:
+#    - !reference [.rules_merge_request]
+#    - !reference [.rules_fpga]
+#  needs: []
+#  artifacts:
+#    reports:
+#      dotenv: vars.env
+#  script:
+#    - echo boot_bsc_linux_url=$BOOT_BSC_LINUX_URL > vars.env
+#    - cat vars.env
+
 fpga:
   stage: fpga
   rules:
     - !reference [.rules_merge_request]
     - !reference [.rules_fpga]
+  #needs: [fpga-prepare]
+  needs: []
   variables:
     COMMIT_SHA: $CI_COMMIT_SHA
     COMMIT_REF: $CI_COMMIT_REF_NAME
+    BSC_LINUX_URL: $boot_bsc_linux_url
+    #GEN_BITSTREAM_PKG: defined in  rules_fpga
   trigger:
     project: hwdesign/fpga/integration-lab/fpga-shell
-    branch: ft/ci_for_sargantana
+    branch: ${BRANCH_FPGA_SHELL}
     strategy: depend
 
-publish-badges:
+publish_badges:
+  extends: .publish_badges
   stage: upload
   rules:
     - !reference [.rules_uvm_scheduled]
     - !reference [.rules_uvm_smoke]
-  variables:
-    JOB_STATUS: >-
-      ${uvm_regression_isa_tests_status}
-      ${uvm_regression_rvv_tests_status}
-      ${uvm_random_regression_riscv_total_random_test_status}
-      ${uvm_random_regression_base_scalar_status}
-      ${uvm_random_regression_base_rvv_status}
-
-  trigger:
-    project: hwdesign/ci/generic_ci 
-    branch: $GENERIC_CI_BRANCH
 
 coverage-report:
   extends: .coverage-report
   stage: coverage
   variables:
-    JOB_ALLOW_TRIGGER: "true"  
-    LIST_UCDB: >-
-      verif/core_uvm/regress/results/sargantana_isa_check/merged.ucdb
-      verif/core_uvm/regress/results/sargantana_rvv_check/merged.ucdb
-      verif/core_uvm/regress/results/sargantana_random_riscvdv_riscv_total_random_test/merged.ucdb
-      verif/core_uvm/regress/results/sargantana_random_riscvdv_base_scalar/merged.ucdb
-      verif/core_uvm/regress/results/sargantana_random_riscvdv_base_rvv/merged.ucdb
     ARGS_OVERALL_COVERAGE: -f ./verif/core_uvm/regress/results/html_report/files/z1.js -d /top_tb/ka_th
     CI_SCRIPTS_PATH: verif/core_uvm/ci_scripts
     RESULTS_PATH: verif/core_uvm/regress/results
