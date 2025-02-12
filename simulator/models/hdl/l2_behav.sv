@@ -376,6 +376,7 @@ module l2_behav #(
 
     logic  write_channel_rsp_valid;
     logic  write_channel_rsp_ready;
+    logic  write_channel_req_ready;
     data_t write_channel_rsp_data; // Only used in responses to atomic requests
     id_t   write_channel_rsp_id;
 
@@ -386,7 +387,7 @@ module l2_behav #(
         .clk_i,
         .rstn_i,
 
-        .req_ready_o(dc_write_req_ready_o),
+        .req_ready_o(write_channel_req_ready),
         .req_valid_i(dc_write_req_valid_i & dc_write_req_data_valid_i),
         .req_addr_i(dc_write_req_addr_i),
         .req_size_i(dc_write_req_size_i),
@@ -403,6 +404,8 @@ module l2_behav #(
         .rsp_ready_i(write_channel_rsp_ready)
     );
 
+    // Wait for the write req & data to be available before signaling as ready
+    assign dc_write_req_ready_o = write_channel_req_ready & dc_write_req_valid_i & dc_write_req_data_valid_i;
     assign dc_write_req_data_ready_o = dc_write_req_ready_o;
 
     assign dc_write_resp_error_o = hpdcache_pkg::HPDCACHE_MEM_RESP_OK;
