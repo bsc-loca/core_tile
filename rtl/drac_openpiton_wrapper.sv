@@ -86,6 +86,8 @@
 
 // Instantiate core configuration
 
+localparam int unsigned L1D_MSHR_WAYS = 2;
+
 localparam drac_cfg_t DracOpenPitonCfg = '{
     NIOSections: NIOSections, // number of IO space sections
     InitIOBase:  InitIOBase, // IO base 0 address after reset
@@ -101,16 +103,16 @@ localparam drac_cfg_t DracOpenPitonCfg = '{
     DebugProgramBufferBase: InitDMBase,
     DebugProgramBufferEnd: InitDMEnd,
 
-    // TODO: parametrize this properly
-
     // DCache Config
-    DCacheNumSets: 128,
-    DCacheNumWays: 4,
-    DCacheLineWidth: 512,
-    DCacheMSHRSets: 32,
-    DCacheMSHRWays: 2,
+    DCacheNumSets: (`CONFIG_L1D_SIZE/`CONFIG_L1D_ASSOCIATIVITY)/(`CONFIG_L1D_CACHELINE_WIDTH/8),
+    DCacheNumWays: `CONFIG_L1D_ASSOCIATIVITY,
+    DCacheLineWidth: `CONFIG_L1D_CACHELINE_WIDTH,
+    DCacheMSHRSets: `L15_NUM_THREADS/L1D_MSHR_WAYS,
+    DCacheMSHRWays: L1D_MSHR_WAYS,
     DCacheWBUFSize: 16,
     DCacheWTNotWB: 1,
+    DCacheCoalescing: WriteCoalescingEn,
+    DCacheWBUFTh: WriteCoalescingTh,
 
     // Memory Interface Config
     MemAddrWidth: 40,
