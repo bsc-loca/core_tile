@@ -184,7 +184,6 @@ build-uvm:
     - !reference [.rules_uvm_smoke]
   variables:
     CORE_TYPE: sargantana
-    SPIKE_URL_BASE: https://gitlab.bsc.es/api/v4/projects/1982/packages/generic/master_bsc/0.0.1/spike
   script:
     - make clone_dv
     - make clone_ci_scripts
