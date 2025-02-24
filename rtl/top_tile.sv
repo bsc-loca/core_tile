@@ -153,7 +153,7 @@ module top_tile
 //-----------------------------------------------------------------------------
 // BOOTROM CONTROLER INTERFACE
 //-----------------------------------------------------------------------------
-    output logic [39:0]         brom_req_address_o  ,
+    output logic [41:0]         brom_req_address_o  ,
     output logic                brom_req_valid_o    ,
 
 `ifdef CONF_SARGANTANA_ENABLE_PCR

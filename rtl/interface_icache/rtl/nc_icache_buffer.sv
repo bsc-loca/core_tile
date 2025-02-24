@@ -46,7 +46,7 @@ module nc_icache_buffer
 
     // L2 Request (L1 Bypass)
     output logic                              req_nc_valid_o,
-    output logic  [39:0]                      req_nc_vaddr_o,
+    output logic  [41:0]                      req_nc_vaddr_o,
 
     // L2 Response
     input  logic                              l2_grant_valid_i,
@@ -61,8 +61,8 @@ logic same_addr_req         ;
 logic waiting               ;
 logic is_in_buffer          ;
 
-logic [39:0] buffer_paddr_d  , buffer_paddr_q  ;
-logic [39:0] paddr_infly_d   , paddr_infly_q   ;
+logic [41:0] buffer_paddr_d  , buffer_paddr_q  ;
+logic [41:0] paddr_infly_d   , paddr_infly_q   ;
 logic [L2_NC_DATA_WIDTH-1:0] icache_ncline_d , icache_ncline_q ;
 
 logic req_nc_valid_d , req_nc_valid_q ;
@@ -110,7 +110,7 @@ assign nc_kill_d = core_req_kill_i | core_req_invalidate_i ;
 //------------------------------------------
 
 // the instruction is in the buffer
-assign same_addr_req  = paddr_infly_q[39:3] == buffer_paddr_q[39:3] ;
+assign same_addr_req  = paddr_infly_q[41:3] == buffer_paddr_q[41:3] ;
 assign is_in_buffer   = req_nc_valid_q & same_addr_req ;
 
 // non-cachable register buffer
@@ -149,7 +149,7 @@ end
 
 
 // non-cacheable request valid to L2
-assign req_nc_vaddr_o  = {paddr_infly_q[39:3],3'b0};
+assign req_nc_vaddr_o  = {paddr_infly_q[41:3],3'b0};
 
 // req cached to the instruction cache
 assign icache_req_valid_o            = req_icache_valid                 ;
