@@ -10,12 +10,12 @@
  #(
     // IO addresses
     parameter int unsigned               NIOSections           =  1,
-    parameter logic [NrMaxRules*64-1:0]  InitIOBase            = {{(NrMaxRules-1)*64}0'b0, 64'h00C0000000},
-    parameter logic [NrMaxRules*64-1:0]  InitIOEnd             = {{(NrMaxRules-1)*64}1'b0, 64'hFFFFFFFFFF},
+    parameter logic [NrMaxRules*64-1:0]  InitIOBase            = {{(NrMaxRules-1)*64{1'b0}}, 64'h00C0000000},
+    parameter logic [NrMaxRules*64-1:0]  InitIOEnd             = {{(NrMaxRules-1)*64{1'b1}}, 64'hFFFFFFFFFF},
     // Mapped addresses (IO and cached)
     parameter int unsigned               NMappedSections       =  1,
-    parameter logic [NrMaxRules*64-1:0]  InitMappedBase        = {{(NrMaxRules-1)*64}0'b0, 64'h00C0000000},
-    parameter logic [NrMaxRules*64-1:0]  InitMappedEnd         = {{(NrMaxRules-1)*64}1'b0, 64'hFFFFFFFFFF},
+    parameter logic [NrMaxRules*64-1:0]  InitMappedBase        = {{(NrMaxRules-1)*64{1'b0}}, 64'h00C0000000},
+    parameter logic [NrMaxRules*64-1:0]  InitMappedEnd         = {{(NrMaxRules-1)*64{1'b1}}, 64'hFFFFFFFFFF},
     // BROM address
     parameter logic [64-1:0]             InitBROMBase          = 64'h00C0000000,
     parameter logic [64-1:0]             InitBROMEnd           = 64'hFFFFFFFFFF,
