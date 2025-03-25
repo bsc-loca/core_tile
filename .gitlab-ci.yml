@@ -406,7 +406,7 @@ fpga:
     #GEN_BITSTREAM_PKG: defined in  rules_fpga
   trigger:
     project: hwdesign/fpga/integration-lab/fpga-shell
-    branch: ${BRANCH_FPGA_SHELL}
+    branch: ft/ci_for_sargantana_fixed
     strategy: depend
 
 publish_badges:
