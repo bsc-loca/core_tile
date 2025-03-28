@@ -201,9 +201,9 @@ module sim_top #(
         .brom_req_valid_o(uc_fetch_req_valid),
 
         // icache ports
-        .io_mem_acquire_valid(dut_icache_req_valid),               
-        .io_mem_acquire_bits_addr_block(dut_icache_request_paddr),   
-        .io_mem_grant_valid(dut_icache_response_valid),         
+        .io_mem_acquire_valid(dut_icache_req_valid),
+        .io_mem_acquire_bits_addr_block(dut_icache_request_paddr),
+        .io_mem_grant_valid(dut_icache_response_valid),
         .io_mem_grant_bits_data(dut_icache_response_data),
         .io_mem_grant_inval(0),
         .io_mem_grant_inval_addr(0),
@@ -233,7 +233,7 @@ module sim_top #(
         .mem_resp_write_i(mem_resp_write),
 
         // Debug Module
-        
+
         .debug_contr_halt_req_i(debug_contr_halt_req[0]),
         .debug_contr_resume_req_i(debug_contr_resume_req[0]),
         .debug_contr_progbuf_req_i(debug_contr_progbuf_req[0]),
@@ -504,6 +504,7 @@ module sim_top #(
 
     logic [63:0] cycles, max_cycles, start_cycles;
     logic [63:0] checkpoint_cycles;
+    logic [63:0] last_commit_cycle, max_commit_cycles;
     logic checkpointFile1, checkpoint_restore;
     string checkpointSaveFileName;
     string checkpointRestoreFileName;
@@ -523,6 +524,7 @@ module sim_top #(
             end
         end
         if (!$value$plusargs("max-cycles=%d", max_cycles)) max_cycles = 0;
+        if (!$value$plusargs("deadlock-cycles=%d", max_commit_cycles)) max_commit_cycles = 100;
 `ifdef VERILATOR
         checkpoint_cycles = 0;
         checkpointFile1 = 1'b1;
@@ -567,6 +569,19 @@ module sim_top #(
             jtag_enable = 1'b1;
         end else begin
             jtag_enable = 1'b0;
+        end
+    end
+
+    always @(posedge tb_clk) begin
+        if (DUT.subtile_inst.sargantana_inst.datapath_inst.commit_valid[0]) begin
+            last_commit_cycle <= cycles;
+        end
+    end
+
+    always @(posedge tb_clk) begin
+        if (max_commit_cycles > 0 && ((cycles - last_commit_cycle) >= max_commit_cycles)) begin
+            $error("%d cycles without a valid commit.", cycles - last_commit_cycle);
+            $finish;
         end
     end
 
