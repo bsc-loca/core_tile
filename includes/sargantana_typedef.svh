@@ -69,6 +69,7 @@ function automatic hpdcache_pkg::hpdcache_cfg_t sargBuildHPDCCfg(input drac_pkg:
         // Only allows one or the other
         wtEn: DracCfg.DCacheWTNotWB ? 1'b1 : 1'b0,
         wbEn: DracCfg.DCacheWTNotWB ? 1'b0 : 1'b1,
+        // Enable low-latency mode at the cost of structural hazards on load-after-stores
         lowLatency: 1'b1
     };
 
