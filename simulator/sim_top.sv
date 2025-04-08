@@ -524,7 +524,7 @@ module sim_top #(
             end
         end
         if (!$value$plusargs("max-cycles=%d", max_cycles)) max_cycles = 0;
-        if (!$value$plusargs("deadlock-cycles=%d", max_commit_cycles)) max_commit_cycles = 100;
+        if (!$value$plusargs("deadlock-cycles=%d", max_commit_cycles)) max_commit_cycles = 200;
 `ifdef VERILATOR
         checkpoint_cycles = 0;
         checkpointFile1 = 1'b1;
