@@ -53,6 +53,7 @@ workflow:
           $CI_PIPELINE_SOURCE == "pipeline") && $REGRESS_TYPE &&
          ($testname == null || 
           $testname == "base_scalar" && $TESTS_NAMES =~ "/\[base_scalar\]/" ||
+          $testname == "base_scalar_with_bitmanip" && $TESTS_NAMES =~ "/\[base_scalar_with_bitmanip\]/" ||
           $testname == "riscv_total_random_test" && $TESTS_NAMES =~ "/\[riscv_total_random_test\]/"))
     when: always
     variables:
@@ -194,7 +195,7 @@ build-uvm:
     - verilator --version
     - module load gcc
     - gcc --version
-    - make compile_all SARGANTANA=enable RTLDIR=../../ ${COVERAGE_ARG} INTERRUPTS=enable
+    - make compile_all SARGANTANA=enable RTLDIR=$(realpath ../../) ${COVERAGE_ARG} INTERRUPTS=enable
   artifacts:
     untracked: true
     paths:
@@ -310,7 +311,7 @@ vcs:
   - echo $N_ITERATIONS
   - echo $N_TESTS
   - echo $core
-  - source ci_scripts/generate_tests.sh $N_ITERATIONS "python3 -u ./riscv-dv/run.py -tn $testname -ct ./riscv-dv/BSC-targets/sargantana --isa rv64gv --mabi lp64d --gen_timeout 18000 -si questa -o ./generated_tests -i $N_TESTS -s gen,gcc_compile"
+  - source ci_scripts/generate_tests.sh $N_ITERATIONS "python3 -u ./riscv-dv/run.py -tn $testname -ct ./riscv-dv/BSC-targets/sargantana --isa rv64gv_zba_zbb_zbs --mabi lp64d --gen_timeout 18000 -si questa -o ./generated_tests -i $N_TESTS -s gen,gcc_compile"
    
 
 uvm-random-regression:
@@ -318,7 +319,7 @@ uvm-random-regression:
   stage: simulation
   parallel:
     matrix:
-      - testname: [riscv_total_random_test, base_scalar, base_rvv]
+      - testname: [riscv_total_random_test, base_scalar, base_scalar_with_bitmanip, base_rvv]
   rules:
     - !reference [ .rules_uvm_scheduled ]
   timeout: 8h
