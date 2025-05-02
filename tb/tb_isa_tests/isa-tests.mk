@@ -1,6 +1,6 @@
 TB_ISA_TEST_DIR = $(PROJECT_DIR)/tb/tb_isa_tests
 
-RISCV_TESTS_DIR = $(PROJECT_DIR)/drac-bench
+RISCV_TESTS_DIR = $(PROJECT_DIR)/riscv-tests
 
 # *** ISA Test Compilation ***
 

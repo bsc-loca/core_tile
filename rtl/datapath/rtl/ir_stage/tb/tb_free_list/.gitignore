@@ -1,6 +1,0 @@
-Makefile
-*.vcd
-transcript
-*.wlf
-lib_module/*
-modlesim.ini

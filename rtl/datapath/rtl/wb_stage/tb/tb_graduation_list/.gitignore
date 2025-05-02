@@ -1,6 +1,0 @@
-*.vcd
-*.ini
-trsnscript
-Makefile
-*.wlf
-lib_module/*

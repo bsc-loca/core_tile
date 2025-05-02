@@ -1,6 +1,6 @@
-RISCV_TESTS_DIR = $(PROJECT_DIR)/drac-bench
+RISCV_TESTS_DIR = $(PROJECT_DIR)/riscv-tests
 
-RISCV_GCC_OPTS = -march=rv64g -DPREALLOCATE=1 -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf -fno-tree-loop-distribute-patterns
+RISCV_GCC_OPTS = -march=rv64gv -DPREALLOCATE=1 -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf -fno-tree-loop-distribute-patterns
 
 # *** riscv-tests benchmark compilation ***
 

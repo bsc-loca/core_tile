@@ -1,7 +1,0 @@
-lib_ls_queue/
-lib_mem_unit/
-Makefile
-modelsim.ini
-*.vcd
-transcript
-vsim.wlf

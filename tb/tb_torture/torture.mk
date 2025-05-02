@@ -5,7 +5,7 @@ TB_TORTURE_DIR = $(PROJECT_DIR)/tb/tb_torture
 RISCV_TORTURE      = $(TB_TORTURE_DIR)/riscv-torture
 TORTURE_OUTPUT     = $(TB_TORTURE_DIR)/riscv-torture/output
 TORTURE_CONFIG     = $(TB_TORTURE_DIR)/config
-TORTURE_ENV        = $(PROJECT_DIR)/drac-bench/env
+TORTURE_ENV        = $(PROJECT_DIR)/riscv-tests/env
 TORTURE_SIGNATURES = $(TB_TORTURE_DIR)/signatures
 
 # Configs, sources, binaries, signatures...

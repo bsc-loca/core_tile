@@ -68,12 +68,12 @@ module veri_top
     logic                          mem_resp_uc_write_valid;
     hpdcache_mem_resp_w_t          mem_resp_uc_write;
 
-    top_drac DUT(
-        .CLK(clk_i),
-        .RST(rstn_i),
-        .SOFT_RST(rstn_i),
+    top_tile DUT(
+        .clk_i(clk_i),
+        .rstn_i(rstn_i),
+        .soft_rstn_i(rstn_i),
         .debug_halt_i(0),
-        .RESET_ADDRESS('h00000100),
+        .reset_addr_i('h00000100),
 
         // Bootrom ports
         .brom_ready_i(brom_ready),

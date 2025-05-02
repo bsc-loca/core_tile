@@ -1,4 +1,4 @@
-import drac_pkg::*, hpdcache_pkg::*;
+import drac_pkg::*, hpdcache_pkg::*, sargantana_hpdc_pkg::*;
 
 
 import "DPI-C" function void memory_init (input string path);

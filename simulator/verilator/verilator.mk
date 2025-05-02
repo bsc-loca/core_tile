@@ -13,8 +13,8 @@ VERI_FLAGS = \
 	+define+SIM_COMMIT_LOG \
 	+define+SIM_COMMIT_LOG_DPI \
 	+define+SIM_KONATA_DUMP \
-	+incdir+$(PROJECT_DIR)/rtl \
-	+incdir+$(PROJECT_DIR)/rtl/dcache/rtl/include \
+	-F $(FILELIST) \
+	-F $(SIM_DIR)/models/filelist.f \
 	--top-module $(TOP_MODULE) \
 	--unroll-count 256 \
 	-Wno-lint -Wno-style -Wno-STMTDLY -Wno-fatal \
@@ -36,8 +36,8 @@ VERI_OPTI_FLAGS = -O2 -CFLAGS "-O2"
 SIM_CPP_SRCS = $(wildcard $(SIM_DIR)/models/cxx/*.cpp) $(VERISIM_DIR)/veri_top.cpp
 SIM_VERILOG_SRCS = $(shell cat $(FILELIST)) $(wildcard $(SIM_DIR)/models/hdl/*.sv)
  
-$(SIMULATOR): $(SIM_VERILOG_SRCS) $(SIM_CPP_SRCS) bootrom.hex libdisasm $(VERISIM_DIR)/veri_top.sv
-		$(VERILATOR) --cc $(VERI_FLAGS) $(VERI_OPTI_FLAGS) $(SIM_VERILOG_SRCS) $(SIM_CPP_SRCS) $(VERISIM_DIR)/veri_top.sv -o $(SIMULATOR)
+$(SIMULATOR): $(SIM_CPP_SRCS) bootrom.hex libdisasm $(VERISIM_DIR)/veri_top.sv
+		HPDCACHE_DIR=./rtl/dcache $(VERILATOR) --cc $(VERI_FLAGS) $(VERI_OPTI_FLAGS) $(SIM_CPP_SRCS) $(VERISIM_DIR)/veri_top.sv -o $(SIMULATOR)
 		$(MAKE) -C $(VERISIM_DIR)/build -f V$(TOP_MODULE).mk $(SIMULATOR)
 
 clean-simulator:

@@ -28,7 +28,7 @@
 `define START_RED_PRINT $write("%c[1;31m",27);
 `define END_COLOR_PRINT $write("%c[0m",27);
 
-import drac_pkg::*;
+import drac_pkg::*, hpdcache_pkg::*, sargantana_hpdc_pkg::*;
 
 module questa_top();
 
@@ -114,11 +114,11 @@ module questa_top();
 // Module
 //-----------------------------
 
-    top_drac top_drac_inst(
-        .CLK(tb_clk_i),
-        .RST(tb_rstn_i),
-        .SOFT_RST(1'b1),
-        .RESET_ADDRESS(40'h0000000100),
+    top_tile top_tile_inst (
+        .clk_i(tb_clk_i),
+        .rstn_i(tb_rstn_i),
+        .soft_rstn_i(1'b1),
+        .reset_addr_i(40'h0000000100),
         .debug_halt_i(1'b0),
 
         // Bootrom ports
@@ -372,7 +372,7 @@ module questa_top();
             if ($test$plusargs("vcd")) begin
                 $display("*** init_dump");
                 $dumpfile("dump_file.vcd");
-                $dumpvars(0,top_drac_inst);
+                $dumpvars(0,top_tile_inst);
             end
         end
     endtask
@@ -409,9 +409,9 @@ module questa_top();
             tmp = 0;
             //$display("*** test_sim1");
             #N4000_CLK_PERIOD;
-            pr <= top_drac_inst.datapath_inst.rename_table_inst.commit_table_q[3];
+            pr <= top_tile_inst.sargantana_inst.datapath_inst.rename_table_inst.commit_table_q[3];
             #CLK_PERIOD;
-            if (top_drac_inst.datapath_inst.regfile_inst.registers[pr] == 1) begin
+            if (top_tile_inst.sargantana_inst.datapath_inst.regfile_inst.registers[pr] == 1) begin
                 //FAIL
                 tmp = 0;
             end else begin
