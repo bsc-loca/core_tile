@@ -43,12 +43,12 @@ function automatic hpdcache_pkg::hpdcache_cfg_t sargBuildHPDCCfg(input drac_pkg:
         // Store 2 ways per SRAM line
         mshrWaysPerRamWord: 2,
         mshrSetsPerRam: DracCfg.DCacheMSHRSets,
-        mshrRamByteEnable: 1'b1,
+        mshrRamByteEnable: 1'b0,
         // Use SRAMs for the MSHRs
         mshrUseRegbank: 0,
         // Bypass data to the core when refilling
         refillCoreRspFeedthrough: 1'b1,
-        refillFifoDepth: 2,
+        refillFifoDepth: DracCfg.DCacheRefillFIFODepth,
         // Configure the write buffer entries via the config parameter
         wbufDirEntries: DracCfg.DCacheWBUFSize,
         wbufDataEntries: DracCfg.DCacheWBUFSize,
@@ -68,7 +68,8 @@ function automatic hpdcache_pkg::hpdcache_cfg_t sargBuildHPDCCfg(input drac_pkg:
         // Write-through or Write-back configuration, depending on config parameter
         // Only allows one or the other
         wtEn: DracCfg.DCacheWTNotWB ? 1'b1 : 1'b0,
-        wbEn: DracCfg.DCacheWTNotWB ? 1'b0 : 1'b1
+        wbEn: DracCfg.DCacheWTNotWB ? 1'b0 : 1'b1,
+        lowLatency: 1'b1
     };
 
     return hpdcache_pkg::hpdcacheBuildConfig(HPDcacheUserCfg);

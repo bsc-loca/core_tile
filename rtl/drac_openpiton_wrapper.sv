@@ -24,7 +24,7 @@
     parameter logic [64-1:0]             InitDMEnd             = 64'hFFFFFFFFFF,
     // HPDC Write coalescing
     parameter logic                      WriteCoalescingEn     =  0,
-    parameter int unsigned               WriteCoalescingTh     =  0
+    parameter int unsigned               WriteCoalescingTh     =  2
 
 ) (
  `ifdef INTEL_PHYSICAL_MEM_CTRL
@@ -113,6 +113,7 @@ localparam drac_cfg_t DracOpenPitonCfg = '{
     DCacheWTNotWB: 1,
     DCacheCoalescing: WriteCoalescingEn,
     DCacheWBUFTh: WriteCoalescingTh,
+    DCacheRefillFIFODepth: `L15_NUM_THREADS + 32'd10,
 
     // Memory Interface Config
     MemAddrWidth: 40,

@@ -236,7 +236,9 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
          
   //Read
   assign dcache_read_ready_o                  = mem_req_ready[DcacheReadPort],
-         mem_req_valid[DcacheReadPort]            = dcache_read_valid_i,
+         mem_req_valid[DcacheReadPort]            = (dcache_read_i.mem_req_command == hpdcache_pkg::HPDCACHE_MEM_ATOMIC &&
+                                                     dcache_read_i.mem_req_atomic == hpdcache_pkg::HPDCACHE_MEM_ATOMIC_LDEX)
+                                                     ? dcache_read_valid_i & sc_backoff_over : dcache_read_valid_i,
          mem_req_pid[DcacheReadPort]              = DcacheReadPort,
          mem_req[DcacheReadPort]                  = dcache_read_i,
          mem_req_data_valid[DcacheReadPort]       = 1'b1, //There is no data for this request -> always valid
@@ -359,7 +361,7 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
   // L1.5 Invalidation request to dcache 
   assign inval_ready = dcache_read_resp_ready_i, // Refill ready declares if hpdc is ready to receive an invalidation
          inval_valid = mem_resp.mem_inval_dcache_valid,
-         inval       = mem_resp.mem_inval[$clog2(HPDcacheMemDataWidth/8) +: HPDcacheMemDataWidth]; // Convert address to cacheline number
+         inval       = mem_resp.mem_inval[$bits(hpdcache_mem_addr_t)-1:$clog2(HPDcacheMemDataWidth/8)]; // Convert address to cacheline number
 
   //  }}}
 
