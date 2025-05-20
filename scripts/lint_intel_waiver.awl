@@ -80,6 +80,7 @@ waive -rule { {ImproperRangeIndex-ML} } -du {vagu} -regexp -msg {+:} -comment {"
 waive -rule { {ImproperRangeIndex-ML} } -du {mem_unit} -regexp -msg {+:} -comment {"Allow larger indices than required for max value when using indexed part select"}
 waive -rule { {W468} } -du {vagu} -regexp -msg {mask_buffer.+velem_cnt_q} -comment {"Allow indexing mask_buffer with velem_cnt_q in vagu"}
 waive -rule { {W164a_a} } -du {mem_unit} -regexp -msg {deadcode} -comment {"Allow width missmatch in code for other values of a parameter"}
+waive -rule { {SignedUnsignedExpr-ML} } -du {score_board_simd} -regexp -msg {DIV_STAGES} -comment {"Allow signed to unsigned parameter conversion"}
 
 waive -rule { {W164a_b} } -du {alu_shift} -regexp -msg {shamt_sll} -comment {"Allow width missmatch in shift"}
 waive -rule { {W164a_b} } -du {alu_shift} -regexp -msg {shamt_srl} -comment {"Allow width missmatch in shift"}
@@ -108,6 +109,7 @@ waive -rule {  {STARC05-1.1.1.3} } -file {sp_ram_asic.v} -comment {"Waive errors
 waive -rule {  {UseSVAlways-ML} } -file {sp_ram.v} -comment {"Waive errors in external memory library"}
 waive -rule {  {UseSVAlways-ML} } -file {sp_ram_model.v} -comment {"Waive errors in external memory library"}
 waive -rule {  {AlwaysFalseTrueCond-ML} } -file {sp_ram.v} -comment {"Waive errors in external memory library"}
+waive -rule { {W415} } -file {sp_ram_model.v} -comment {"Waive errors in external memory library"}
 waive -rule { {AlwaysFalseTrueCond-ML} } -file {def_pkg.sv} -comment {"Allow always false/true conditions that depend on parameters"}
 waive -rule { {AlwaysFalseTrueCond-ML} } -file {drac_pkg.sv} -comment {"Allow always false/true conditions that depend on parameters"}
 
