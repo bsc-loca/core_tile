@@ -313,6 +313,7 @@ module sim_top #(
         .dc_read_resp_valid_o(mem_resp_read_valid),
         .dc_read_resp_tag_o(mem_resp_read.mem_resp_r_id),
         .dc_read_resp_last_o(mem_resp_read.mem_resp_r_last),
+        .dc_read_resp_error_o(mem_resp_read.mem_resp_r_error),
 
         // *** dCache Write Interface ***
         .dc_write_req_ready_o(mem_req_write_ready),

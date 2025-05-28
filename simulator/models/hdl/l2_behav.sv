@@ -254,6 +254,7 @@ module l2_behav #(
     output data_t dc_read_resp_data_o,
     output id_t   dc_read_resp_tag_o,
     output logic  dc_read_resp_last_o,
+    output hpdcache_pkg::hpdcache_mem_error_e dc_read_resp_error_o,
 
     // Write
     output logic  dc_write_req_ready_o,
@@ -371,6 +372,7 @@ module l2_behav #(
     );
 
     assign dc_read_resp_last_o = dc_read_resp_valid_o;
+    assign dc_read_resp_error_o = hpdcache_pkg::HPDCACHE_MEM_RESP_OK;
 
     // *** dCache writeback channel ***
 
