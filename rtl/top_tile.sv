@@ -554,7 +554,7 @@ hpdcache #(
 
     // Config
     .cfg_enable_i                        (1'b1),
-    .cfg_wbuf_inhibit_write_coalescing_i (DracCfg.DCacheCoalescing ? 1'b1 : 1'b0),
+    .cfg_wbuf_inhibit_write_coalescing_i (DracCfg.DCacheCoalescing ? 1'b0 : 1'b1),
     .cfg_wbuf_threshold_i                (trunc_wbuf_timecnt(DracCfg.DCacheWBUFTh)),
     .cfg_wbuf_reset_timecnt_on_write_i   (1'b1),
     .cfg_wbuf_sequential_waw_i           (1'b0),
