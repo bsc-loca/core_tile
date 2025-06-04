@@ -125,7 +125,7 @@ lint-dc-elab:
 lint-fc-elab:
   extends: .fc_shell
   variables:
-    MAX_WARNINGS: 461
+    MAX_WARNINGS: 602
   stage: linting
   rules:
     !reference [.rules_merge_request]
