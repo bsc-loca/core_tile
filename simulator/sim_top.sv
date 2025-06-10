@@ -205,6 +205,7 @@ module sim_top #(
         .io_mem_acquire_bits_addr_block(dut_icache_request_paddr),
         .io_mem_grant_valid(dut_icache_response_valid),
         .io_mem_grant_bits_data(dut_icache_response_data),
+        .io_mem_grant_bits_addr_beat(2'b0),
         .io_mem_grant_inval(0),
         .io_mem_grant_inval_addr(0),
 
@@ -265,7 +266,7 @@ module sim_top #(
         .irq_i(1'b0),
         .soft_irq_i(1'b0),
         .time_irq_i(1'b0),
-        .io_core_pmu_l2_hit_i()
+        .io_core_pmu_l2_hit_i(1'b0)
     );
 
     // *** Bootrom ***
