@@ -46,7 +46,8 @@ void konata_dump (unsigned long long if1_valid,
                             unsigned long long id_flush,
                             unsigned long long ir_flush,
                             unsigned long long rr_flush,
-                            unsigned long long exe_flush, 
+                            unsigned long long exe_flush,
+                            unsigned long long exe_kill,
                             unsigned long long id_pc,
                             unsigned long long id_inst,
                             unsigned long long if1_id,
@@ -54,7 +55,7 @@ void konata_dump (unsigned long long if1_valid,
                             unsigned long long id_id,
                             unsigned long long ir_id,
                             unsigned long long rr_id,
-                            unsigned long long exe_id, 
+                            unsigned long long exe_id,
                             unsigned long long exe_unit,
                             unsigned long long wb1_id,
                             unsigned long long wb2_id,
@@ -66,9 +67,9 @@ void konata_dump (unsigned long long if1_valid,
                             unsigned long long wb2_simd_id,
                             unsigned long long wb_store_id){
 
-    konata_signature->dump_file(if1_valid, if2_valid, id_valid, rr_valid, ir_valid, exe_valid, 
+    konata_signature->dump_file(if1_valid, if2_valid, id_valid, rr_valid, ir_valid, exe_valid,
                                 wb1_valid, wb2_valid, wb3_valid, wb4_valid, wb1_fp_valid, wb2_fp_valid, wb1_simd_valid, wb2_simd_valid, wb_store_valid, if1_stall, if2_stall, id_stall, ir_stall,
-                                rr_stall, exe_stall, if1_flush, if2_flush, id_flush, ir_flush, rr_flush, exe_flush, id_pc,
+                                rr_stall, exe_stall, if1_flush, if2_flush, id_flush, ir_flush, rr_flush, exe_flush, exe_kill, id_pc,
                                 id_inst, if1_id, if2_id, id_id, ir_id, rr_id, exe_id, exe_unit, wb1_id, wb2_id, wb3_id, wb4_id, wb1_fp_id, wb2_fp_id, wb1_simd_id, wb2_simd_id, wb_store_id);
 }
 
@@ -113,7 +114,8 @@ void konataSignature::dump_file(unsigned long long if1_valid,
                             unsigned long long id_flush,
                             unsigned long long ir_flush,
                             unsigned long long rr_flush,
-                            unsigned long long exe_flush, 
+                            unsigned long long exe_flush,
+                            unsigned long long exe_kill,
                             unsigned long long id_pc,
                             unsigned long long id_inst,
                             unsigned long long if1_id,
@@ -121,7 +123,7 @@ void konataSignature::dump_file(unsigned long long if1_valid,
                             unsigned long long id_id,
                             unsigned long long ir_id,
                             unsigned long long rr_id,
-                            unsigned long long exe_id, 
+                            unsigned long long exe_id,
                             unsigned long long exe_unit,
                             unsigned long long wb1_id,
                             unsigned long long wb2_id,
@@ -140,8 +142,8 @@ void konataSignature::dump_file(unsigned long long if1_valid,
 
     if(!((if1_valid && !if1_stall) || (if2_valid && !if2_stall) || (id_valid && !id_stall) ||
          (exe_valid && !exe_stall) || (ir_valid  && !ir_stall) || (rr_valid  && !rr_stall) || wb1_valid || wb2_valid || wb3_valid || wb4_valid || wb1_fp_valid || wb2_fp_valid || wb1_simd_valid || wb2_simd_valid ||
-         if1_flush || if2_flush || id_flush || 
-         ir_flush || rr_flush || exe_flush)){
+         if1_flush || if2_flush || id_flush ||
+         ir_flush || rr_flush || exe_flush || exe_kill)){
         cycles++;
     }else{
         signatureFile << "C\t" << std::dec << cycles << "\n";
@@ -178,7 +180,7 @@ void konataSignature::dump_file(unsigned long long if1_valid,
             signatureFile << "E\t" << std::dec << rr_id << "\t" << std::dec << 0 << "\tI" << "\n";
             signatureFile << "S\t" << std::dec << rr_id << "\t" << std::dec << 0 << "\tR" << "\n";
         }
-        if(exe_flush){
+        if(exe_flush || exe_kill){
             signatureFile << "R\t" << std::dec << exe_id << "\t" << std::dec << exe_id << "\t" << 1 << "\n";
         }else if(exe_valid && !exe_stall){
             signatureFile << "E\t" << std::dec << exe_id << "\t" << std::dec << 0 << "\tR" << "\n";
