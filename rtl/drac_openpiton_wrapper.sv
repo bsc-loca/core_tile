@@ -359,6 +359,7 @@ cinco_ranch_hpdcache_subsystem_l15_adapter #(
  .hpdcache_mem_resp_w_t  (hpdcache_mem_resp_w_t),
  .hpdcache_mem_id_t      (hpdcache_mem_id_t),
  .hpdcache_mem_addr_t    (hpdcache_mem_addr_t),
+ .hpdcache_nline_t       (hpdcache_nline_t),
  .req_portid_t           (req_portid_t)
 ) l15_adapter_inst(
 
