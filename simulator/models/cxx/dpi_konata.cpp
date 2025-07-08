@@ -17,7 +17,11 @@ disassembler_t *disassembler;
 isa_parser_t *isa;
 
 // Global Variables
-uint64_t last_pc=0, cycles=1, last_if1_id=1, last_if2_id=1;
+uint64_t last_pc=0, cycles=1, last_if1_id=1, last_if2_id=1, last_id_id = 1, last_ir_id = 0, last_rr_id = 0, last_exe_id = 0;
+uint64_t last_id_valid = 0;
+uint64_t last_id_flush = 0;
+uint64_t last_id_stall = 0;
+
 
 // System Verilog DPI
 void konata_dump (unsigned long long if1_valid,
@@ -86,6 +90,8 @@ konataSignature::konataSignature(const char *dumpfile) {
     signatureFileName = dumpfile;
     signatureFile.open(signatureFileName, std::ios::out);
     signatureFile << "Kanata\t0004\n";
+
+    enqueuedInsts = std::set<unsigned long long>();
 }
 
 void konataSignature::dump_file(unsigned long long if1_valid,
@@ -163,26 +169,45 @@ void konataSignature::dump_file(unsigned long long if1_valid,
         }
         if(id_flush){
             signatureFile << "R\t" << std::dec << id_id << "\t" << std::dec << id_id << "\t" << 1 << "\n";
-        }else if(id_valid && !id_stall){
+        }else if(id_valid && id_id != last_id_id){
             signatureFile << "L\t" << std::dec << id_id << "\t" << std::dec << 0 << "\t" << HEX_PC( signedPC ) << ": " << disassembler->disassemble(insn_t(id_inst)) << "\n";
             signatureFile << "E\t" << std::dec << id_id << "\t" << std::dec << 0 << "\tF2" << "\n";
             signatureFile << "S\t" << std::dec << id_id << "\t" << std::dec << 0 << "\tD" << "\n";
         }
+
+        // Previous decoded instruction sent to instruction queue
+        if (last_id_valid && !last_id_stall && !last_id_flush && !ir_flush) {
+            signatureFile << "E\t" << std::dec << last_id_id << "\t" << std::dec << 0 << "\tD" << "\n";
+            signatureFile << "S\t" << std::dec << last_id_id << "\t" << std::dec << 0 << "\tQ" << "\n";
+            enqueuedInsts.insert(last_id_id);
+        }
+
         if(ir_flush){
             signatureFile << "R\t" << std::dec << ir_id << "\t" << std::dec << ir_id << "\t" << 1 << "\n";
+            for (auto it = enqueuedInsts.begin(); it != enqueuedInsts.end();) {
+                signatureFile << "R\t" << std::dec << *it << "\t" << std::dec << *it << "\t" << 1 << "\n";
+
+                it = enqueuedInsts.erase(it);
+            }
         }else if(ir_valid && !ir_stall){
-            signatureFile << "E\t" << std::dec << ir_id << "\t" << std::dec << 0 << "\tD" << "\n";
+            signatureFile << "E\t" << std::dec << ir_id << "\t" << std::dec << 0 << "\tQ" << "\n";
+            enqueuedInsts.erase(ir_id);
             signatureFile << "S\t" << std::dec << ir_id << "\t" << std::dec << 0 << "\tI" << "\n";
         }
+
+        /*if (last_id_id != ir_id || last_ir_id != rr_id) {
+            signatureFile << "E\t" << std::dec << last_id_id << "\t" << std::dec << 0 << "\tI" << "\n";
+            }*/
+
         if(rr_flush){
             signatureFile << "R\t" << std::dec << rr_id << "\t" << std::dec << rr_id << "\t" << 1 << "\n";
-        }else if(rr_valid && !rr_stall){
+        }else if(rr_valid && !ir_stall){
             signatureFile << "E\t" << std::dec << rr_id << "\t" << std::dec << 0 << "\tI" << "\n";
             signatureFile << "S\t" << std::dec << rr_id << "\t" << std::dec << 0 << "\tR" << "\n";
         }
         if(exe_flush || exe_kill){
             signatureFile << "R\t" << std::dec << exe_id << "\t" << std::dec << exe_id << "\t" << 1 << "\n";
-        }else if(exe_valid && !exe_stall){
+        }else if(exe_valid && !rr_stall){
             signatureFile << "E\t" << std::dec << exe_id << "\t" << std::dec << 0 << "\tR" << "\n";
             switch (exe_unit) {
                 case 0: //ALU
@@ -243,4 +268,12 @@ void konataSignature::dump_file(unsigned long long if1_valid,
     }
     last_if1_id = if1_id;
     if (if2_valid) last_if2_id = if2_id;
+    if (id_valid) last_id_id = id_id;
+    if (ir_valid) last_ir_id = ir_id;
+    if (rr_valid) last_rr_id = rr_id;
+    if (exe_valid) last_exe_id = exe_id;
+
+    last_id_valid = id_valid;
+    last_id_flush = id_flush;
+    last_id_stall = id_stall;
 }

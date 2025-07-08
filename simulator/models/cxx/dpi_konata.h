@@ -3,7 +3,6 @@
 #ifndef DPI_KONATA_H
 #define DPI_KONATA_H
 
-#include <map>
 #include <svdpi.h>
 #include <iostream>
 #include <fstream>
@@ -70,6 +69,7 @@ class konataSignature {
     uint64_t * signature; // vector to hold the register file status
     std::ofstream signatureFile; // file where the info is dumped
     std::string signatureFileName;
+    std::set<unsigned long long> enqueuedInsts;
 
 public:
     konataSignature(const char *dumpfile);
