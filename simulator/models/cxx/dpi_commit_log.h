@@ -65,6 +65,7 @@ typedef struct {
     unsigned long long dst;
     unsigned long long inst;
     unsigned long long pc;
+    unsigned long long core;
 } commit_data_t;
 
 // Initialized the commit logging

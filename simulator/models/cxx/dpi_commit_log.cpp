@@ -70,10 +70,10 @@ void CommitLog::dump_file(const commit_data_t *commit_data){
     // file dumping
 
     std::string symbol = memory_symbol_from_addr(commit_data->pc);
-    if (!symbol.empty()) signatureFile << "core   0: >>>>  " << symbol << std::endl;
+    if (!symbol.empty()) signatureFile << "core    " << commit_data->core << ":  >>>>  " << symbol << std::endl;
 
     if ( commit_data->xcpt_cause != CAUSE_INSTR_PAGE_FAULT || !commit_data->xcpt){  // Neiel-leyva
-        signatureFile << "core   0: " << HEX_PC(commit_data->pc) << " (" << HEX_INST(commit_data->inst) << ") " << disassembler->disassemble(insn_t(commit_data->inst)) << "\n";
+        signatureFile << "core   " << commit_data->core << ": " << HEX_PC(commit_data->pc) << " (" << HEX_INST(commit_data->inst) << ") " << disassembler->disassemble(insn_t(commit_data->inst)) << "\n";
     }
 
     //exceptions
@@ -102,7 +102,7 @@ void CommitLog::dump_file(const commit_data_t *commit_data){
         signedAddr = signedAddr << 24;
         signedAddr = signedAddr >> 24;
 
-        signatureFile << "core   0: " << DEC_PRIV(commit_data->csr_priv_lvl) << " " << HEX_PC(commit_data->pc) << " (" << HEX_INST(commit_data->inst) << ")";
+        signatureFile << "core    " << commit_data->core << ":  " << DEC_PRIV(commit_data->csr_priv_lvl) << " " << HEX_PC(commit_data->pc) << " (" << HEX_INST(commit_data->inst) << ")";
 
         // Print fflags
         bool fflags_found = false;
