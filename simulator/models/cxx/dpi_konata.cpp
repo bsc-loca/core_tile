@@ -180,6 +180,8 @@ void konataSignature::dump_file(unsigned long long if1_valid,
             signatureFile << "E\t" << std::dec << last_id_id << "\t" << std::dec << 0 << "\tD" << "\n";
             signatureFile << "S\t" << std::dec << last_id_id << "\t" << std::dec << 0 << "\tQ" << "\n";
             enqueuedInsts.insert(last_id_id);
+        } else if (last_id_valid && !last_id_stall && !last_id_flush) {
+            signatureFile << "R\t" << std::dec << last_id_id << "\t" << std::dec << last_id_id << "\t" << 1 << "\n";
         }
 
         if(ir_flush){
