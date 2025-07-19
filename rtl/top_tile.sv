@@ -78,11 +78,11 @@ module top_tile
 //------------------------------------------------------------------------------------
     
     //- From L2
-    input  logic                   io_mem_grant_valid,
-    input  logic [511:0]           io_mem_grant_bits_data,
-    input  logic [1:0]             io_mem_grant_bits_addr_beat,
-    input  logic                   io_mem_grant_inval,
-    input  logic [11:0]            io_mem_grant_inval_addr,
+    input  logic                       io_mem_grant_valid,
+    input  logic [ICACHELINE_SIZE-1:0] io_mem_grant_bits_data,
+    input  logic [1:0]                 io_mem_grant_bits_addr_beat,
+    input  logic                       io_mem_grant_inval,
+    input  logic [11:0]                io_mem_grant_inval_addr,
     
 
 //----------------------------------------------------------------------------------
@@ -186,11 +186,6 @@ module top_tile
 
 );
 
-// PPN Size is address size - set bits - offset bits
-localparam int unsigned ICACHE_NUM_SETS = 64;
-localparam int unsigned ICACHE_INDEX_SIZE = $clog2(ICACHE_NUM_SETS) + $clog2(ICACHELINE_SIZE/8);
-localparam int unsigned ICACHE_PPN_SIZE = PHY_VIRT_MAX_ADDR_SIZE - ICACHE_INDEX_SIZE;
-localparam int unsigned ICACHE_VPN_SIZE = PHY_VIRT_MAX_ADDR_SIZE - ICACHE_INDEX_SIZE;
 
 // *** dCache ***
 parameter HPDCACHE_NREQUESTERS = 2; // Core + PTW
@@ -388,7 +383,9 @@ assign debug_reg_rf_rdata_o         = debug_reg_out.rf_rdata;
 
 // *** iCache ***
 
-nc_icache_buffer nc_icache_bf (
+nc_icache_buffer #(
+    .DRAC_CFG (DracCfg)
+) nc_icache_bf (
     .clk_i,
     .rstn_i,
 
@@ -415,11 +412,12 @@ sargantana_top_icache # (
     .KILL_RESP          ( 1'b1          ),
     .LINES_256          ( 1'b0          ),
 
+    .ICACHE_SIZE        (ICACHE_SIZE),
     .ICACHE_MEM_BLOCK   (ICACHELINE_SIZE/8),  // In Bytes
+    .ASSOCIATIVE        (ICACHE_ASSOC),
     .PADDR_SIZE         (PHY_ADDR_SIZE),
     .ADDR_SIZE          (PHY_VIRT_MAX_ADDR_SIZE),
-    .IDX_BITS_SIZE      (12), // TODO: Where does this come from?
-    .FETCH_WIDHT        (ICACHELINE_SIZE)
+    .FETCH_WIDHT        (FETCH_WIDHT)
 ) icache (
     `ifdef INTEL_PHYSICAL_MEM_CTRL
     .hduspsr_mem_ctrl           (hduspsr_mem_ctrl),

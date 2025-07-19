@@ -381,7 +381,8 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
        .WriteByteMaskEnabled     (WriteCoalescingEn),
        .HPDcacheMemDataWidth     (HPDcacheMemDataWidth),
        .IcacheNoCachableSize     (IcacheNoCachableSize),
-       .IcacheCachableSize       (`MSG_DATA_SIZE_64B), // Hardcoded!!!
+       .IcacheCachableSize       ((IcacheMemDataWidth == 512) ?
+                                  `MSG_DATA_SIZE_64B : `MSG_DATA_SIZE_32B),
        .hpdcache_mem_req_t       (hpdcache_mem_req_t),
        .hpdcache_mem_req_w_t     (hpdcache_mem_req_w_t),
        .hpdcache_mem_id_t        (hpdcache_mem_id_t),

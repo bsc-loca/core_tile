@@ -15,6 +15,7 @@
 module icache_interface
     import drac_pkg::*;
     import riscv_pkg::*;
+    import sargantana_icache_pkg::*;
 (
     input logic              clk_i,
     input logic              rstn_i,
@@ -59,8 +60,8 @@ assign do_icache_request_int = req_fetch_icache_i.valid                &
                                icache_req_ready_i                      ;
 
 
-assign icache_req_bits_vpn_o = req_fetch_icache_i.vaddr[drac_pkg::PHY_VIRT_MAX_ADDR_SIZE-1:12];
-assign icache_req_bits_idx_o = req_fetch_icache_i.vaddr[11:0];
+assign icache_req_bits_vpn_o = req_fetch_icache_i.vaddr[PHY_VIRT_MAX_ADDR_SIZE-1:ICACHE_INDEX_SIZE];
+assign icache_req_bits_idx_o = req_fetch_icache_i.vaddr[ICACHE_INDEX_SIZE-1:0];
 
 
 assign icache_req_kill_o = req_fetch_icache_i.inval_fetch; // TODO: disabled when is_brom_access??

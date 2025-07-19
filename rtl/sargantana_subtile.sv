@@ -1,7 +1,7 @@
 `include "hpdcache_typedef.svh"
 
 module sargantana_subtile
-    import drac_pkg::*, sargantana_icache_pkg::*, mmu_pkg::*, hpdcache_pkg::*;
+    import drac_pkg::*, mmu_pkg::*, hpdcache_pkg::*;
 #(
     parameter drac_pkg::drac_cfg_t DracCfg     = drac_pkg::DracDefaultConfig,
 
