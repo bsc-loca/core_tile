@@ -23,9 +23,9 @@ module nc_icache_buffer
     import drac_pkg::*, sargantana_icache_pkg::*;
 #(
     parameter drac_pkg::drac_cfg_t DRAC_CFG     = drac_pkg::DracDefaultConfig,
-    parameter int unsigned L2_DATA_WIDTH = 512,
+    parameter int unsigned L2_DATA_WIDTH = ICACHELINE_SIZE,
     parameter int unsigned L2_NC_DATA_WIDTH = 64,
-    parameter int unsigned CORE_DATA_WIDTH = 512
+    parameter int unsigned CORE_DATA_WIDTH = ICACHELINE_SIZE
 ) (
     input  logic                              clk_i, rstn_i,
 

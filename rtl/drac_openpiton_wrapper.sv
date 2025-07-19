@@ -4,9 +4,8 @@
  *  Description   : Sargantana Wrapper to be used in OpenPiton
  *  History      :
  */
-
  module drac_openpiton_wrapper
- import drac_pkg::*; import hpdcache_pkg::*; import wt_cache_pkg::*;
+ import drac_pkg::*; import sargantana_icache_pkg::*; import hpdcache_pkg::*; import wt_cache_pkg::*;
  #(
     // IO addresses
     parameter int unsigned               NIOSections           =  1,
@@ -117,7 +116,7 @@ localparam drac_cfg_t DracOpenPitonCfg = '{
 
     // Memory Interface Config
     MemAddrWidth: 40,
-    MemDataWidth: 512,
+    MemDataWidth: DCACHE_BUS_WIDTH,
     MemIDWidth: 8
 };
 
@@ -140,13 +139,13 @@ logic   [39:0]  brom_req_address;
 logic           brom_req_valid;
 
 // icache wires
-logic                     l1_request_valid;
-logic                     l2_response_valid;
-logic [PHY_ADDR_SIZE-1:0] l1_request_paddr;
-logic [511:0]             l2_response_data; // TODO: LOCALPARAMETERS or PKG definition
-logic [1:0]               l2_response_seqnum;
-logic                     l2_inval_request;
-logic [39:0]              l2_inval_addr;
+logic                       l1_request_valid;
+logic                       l2_response_valid;
+logic [PHY_ADDR_SIZE-1:0]   l1_request_paddr;
+logic [ICACHELINE_SIZE-1:0] l2_response_data;
+logic [1:0]                 l2_response_seqnum;
+logic                       l2_inval_request;
+logic [39:0]                l2_inval_addr;
 assign l2_response_seqnum = '0;
 
 //      Miss read interface
@@ -348,7 +347,7 @@ cinco_ranch_hpdcache_subsystem_l15_adapter #(
  .DcacheReadPort         (DCACHE_READ_PORT),
  .DcacheWritePort        (DCACHE_WRITE_PORT),
  .DcacheAmoPort          (DCACHE_AMO_PORT),
- .IcacheMemDataWidth     (512), //L1I cacheline
+ .IcacheMemDataWidth     (ICACHELINE_SIZE), //L1I cacheline
  .IcacheAddrWidth        (40),
  .HPDcacheMemDataWidth   (DracOpenPitonCfg.MemDataWidth), //L1D cacheline
  .IcacheNoCachableSize   (`MSG_DATA_SIZE_8B), // 8B
@@ -359,6 +358,7 @@ cinco_ranch_hpdcache_subsystem_l15_adapter #(
  .hpdcache_mem_resp_w_t  (hpdcache_mem_resp_w_t),
  .hpdcache_mem_id_t      (hpdcache_mem_id_t),
  .hpdcache_mem_addr_t    (hpdcache_mem_addr_t),
+ .hpdcache_nline_t       (hpdcache_nline_t),
  .req_portid_t           (req_portid_t)
 ) l15_adapter_inst(
 
