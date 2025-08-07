@@ -34,3 +34,9 @@ build*
 *.key
 dc-scripts/
 cincoranch/
+0_HDL_LIBRARIES
+CLIBs
+PreFrameCheck
+elab_summary.rpt
+fc_output.txt
+parsed_filelist.f

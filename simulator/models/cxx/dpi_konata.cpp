@@ -17,7 +17,11 @@ disassembler_t *disassembler;
 isa_parser_t *isa;
 
 // Global Variables
-uint64_t last_pc=0, cycles=1, last_if1_id=1, last_if2_id=1;
+uint64_t last_pc=0, cycles=1, last_if1_id=1, last_if2_id=1, last_id_id = 1, last_ir_id = 0, last_rr_id = 0, last_exe_id = 0;
+uint64_t last_id_valid = 0;
+uint64_t last_id_flush = 0;
+uint64_t last_id_stall = 0;
+
 
 // System Verilog DPI
 void konata_dump (unsigned long long if1_valid,
@@ -46,7 +50,8 @@ void konata_dump (unsigned long long if1_valid,
                             unsigned long long id_flush,
                             unsigned long long ir_flush,
                             unsigned long long rr_flush,
-                            unsigned long long exe_flush, 
+                            unsigned long long exe_flush,
+                            unsigned long long exe_kill,
                             unsigned long long id_pc,
                             unsigned long long id_inst,
                             unsigned long long if1_id,
@@ -54,7 +59,7 @@ void konata_dump (unsigned long long if1_valid,
                             unsigned long long id_id,
                             unsigned long long ir_id,
                             unsigned long long rr_id,
-                            unsigned long long exe_id, 
+                            unsigned long long exe_id,
                             unsigned long long exe_unit,
                             unsigned long long wb1_id,
                             unsigned long long wb2_id,
@@ -66,9 +71,9 @@ void konata_dump (unsigned long long if1_valid,
                             unsigned long long wb2_simd_id,
                             unsigned long long wb_store_id){
 
-    konata_signature->dump_file(if1_valid, if2_valid, id_valid, rr_valid, ir_valid, exe_valid, 
+    konata_signature->dump_file(if1_valid, if2_valid, id_valid, rr_valid, ir_valid, exe_valid,
                                 wb1_valid, wb2_valid, wb3_valid, wb4_valid, wb1_fp_valid, wb2_fp_valid, wb1_simd_valid, wb2_simd_valid, wb_store_valid, if1_stall, if2_stall, id_stall, ir_stall,
-                                rr_stall, exe_stall, if1_flush, if2_flush, id_flush, ir_flush, rr_flush, exe_flush, id_pc,
+                                rr_stall, exe_stall, if1_flush, if2_flush, id_flush, ir_flush, rr_flush, exe_flush, exe_kill, id_pc,
                                 id_inst, if1_id, if2_id, id_id, ir_id, rr_id, exe_id, exe_unit, wb1_id, wb2_id, wb3_id, wb4_id, wb1_fp_id, wb2_fp_id, wb1_simd_id, wb2_simd_id, wb_store_id);
 }
 
@@ -85,6 +90,8 @@ konataSignature::konataSignature(const char *dumpfile) {
     signatureFileName = dumpfile;
     signatureFile.open(signatureFileName, std::ios::out);
     signatureFile << "Kanata\t0004\n";
+
+    enqueuedInsts = std::set<unsigned long long>();
 }
 
 void konataSignature::dump_file(unsigned long long if1_valid,
@@ -113,7 +120,8 @@ void konataSignature::dump_file(unsigned long long if1_valid,
                             unsigned long long id_flush,
                             unsigned long long ir_flush,
                             unsigned long long rr_flush,
-                            unsigned long long exe_flush, 
+                            unsigned long long exe_flush,
+                            unsigned long long exe_kill,
                             unsigned long long id_pc,
                             unsigned long long id_inst,
                             unsigned long long if1_id,
@@ -121,7 +129,7 @@ void konataSignature::dump_file(unsigned long long if1_valid,
                             unsigned long long id_id,
                             unsigned long long ir_id,
                             unsigned long long rr_id,
-                            unsigned long long exe_id, 
+                            unsigned long long exe_id,
                             unsigned long long exe_unit,
                             unsigned long long wb1_id,
                             unsigned long long wb2_id,
@@ -140,8 +148,8 @@ void konataSignature::dump_file(unsigned long long if1_valid,
 
     if(!((if1_valid && !if1_stall) || (if2_valid && !if2_stall) || (id_valid && !id_stall) ||
          (exe_valid && !exe_stall) || (ir_valid  && !ir_stall) || (rr_valid  && !rr_stall) || wb1_valid || wb2_valid || wb3_valid || wb4_valid || wb1_fp_valid || wb2_fp_valid || wb1_simd_valid || wb2_simd_valid ||
-         if1_flush || if2_flush || id_flush || 
-         ir_flush || rr_flush || exe_flush)){
+         if1_flush || if2_flush || id_flush ||
+         ir_flush || rr_flush || exe_flush || exe_kill)){
         cycles++;
     }else{
         signatureFile << "C\t" << std::dec << cycles << "\n";
@@ -161,26 +169,47 @@ void konataSignature::dump_file(unsigned long long if1_valid,
         }
         if(id_flush){
             signatureFile << "R\t" << std::dec << id_id << "\t" << std::dec << id_id << "\t" << 1 << "\n";
-        }else if(id_valid && !id_stall){
+        }else if(id_valid && id_id != last_id_id){
             signatureFile << "L\t" << std::dec << id_id << "\t" << std::dec << 0 << "\t" << HEX_PC( signedPC ) << ": " << disassembler->disassemble(insn_t(id_inst)) << "\n";
             signatureFile << "E\t" << std::dec << id_id << "\t" << std::dec << 0 << "\tF2" << "\n";
             signatureFile << "S\t" << std::dec << id_id << "\t" << std::dec << 0 << "\tD" << "\n";
         }
+
+        // Previous decoded instruction sent to instruction queue
+        if (last_id_valid && !last_id_stall && !last_id_flush && !ir_flush) {
+            signatureFile << "E\t" << std::dec << last_id_id << "\t" << std::dec << 0 << "\tD" << "\n";
+            signatureFile << "S\t" << std::dec << last_id_id << "\t" << std::dec << 0 << "\tQ" << "\n";
+            enqueuedInsts.insert(last_id_id);
+        } else if (last_id_valid && !last_id_stall && !last_id_flush) {
+            signatureFile << "R\t" << std::dec << last_id_id << "\t" << std::dec << last_id_id << "\t" << 1 << "\n";
+        }
+
         if(ir_flush){
             signatureFile << "R\t" << std::dec << ir_id << "\t" << std::dec << ir_id << "\t" << 1 << "\n";
+            for (auto it = enqueuedInsts.begin(); it != enqueuedInsts.end();) {
+                signatureFile << "R\t" << std::dec << *it << "\t" << std::dec << *it << "\t" << 1 << "\n";
+
+                it = enqueuedInsts.erase(it);
+            }
         }else if(ir_valid && !ir_stall){
-            signatureFile << "E\t" << std::dec << ir_id << "\t" << std::dec << 0 << "\tD" << "\n";
+            signatureFile << "E\t" << std::dec << ir_id << "\t" << std::dec << 0 << "\tQ" << "\n";
+            enqueuedInsts.erase(ir_id);
             signatureFile << "S\t" << std::dec << ir_id << "\t" << std::dec << 0 << "\tI" << "\n";
         }
+
+        /*if (last_id_id != ir_id || last_ir_id != rr_id) {
+            signatureFile << "E\t" << std::dec << last_id_id << "\t" << std::dec << 0 << "\tI" << "\n";
+            }*/
+
         if(rr_flush){
             signatureFile << "R\t" << std::dec << rr_id << "\t" << std::dec << rr_id << "\t" << 1 << "\n";
-        }else if(rr_valid && !rr_stall){
+        }else if(rr_valid && !ir_stall){
             signatureFile << "E\t" << std::dec << rr_id << "\t" << std::dec << 0 << "\tI" << "\n";
             signatureFile << "S\t" << std::dec << rr_id << "\t" << std::dec << 0 << "\tR" << "\n";
         }
-        if(exe_flush){
+        if(exe_flush || exe_kill){
             signatureFile << "R\t" << std::dec << exe_id << "\t" << std::dec << exe_id << "\t" << 1 << "\n";
-        }else if(exe_valid && !exe_stall){
+        }else if(exe_valid && !rr_stall){
             signatureFile << "E\t" << std::dec << exe_id << "\t" << std::dec << 0 << "\tR" << "\n";
             switch (exe_unit) {
                 case 0: //ALU
@@ -241,4 +270,12 @@ void konataSignature::dump_file(unsigned long long if1_valid,
     }
     last_if1_id = if1_id;
     if (if2_valid) last_if2_id = if2_id;
+    if (id_valid) last_id_id = id_id;
+    if (ir_valid) last_ir_id = ir_id;
+    if (rr_valid) last_rr_id = rr_id;
+    if (exe_valid) last_exe_id = exe_id;
+
+    last_id_valid = id_valid;
+    last_id_flush = id_flush;
+    last_id_stall = id_stall;
 }

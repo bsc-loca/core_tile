@@ -8,6 +8,7 @@
 #include <fstream>
 #include <stdlib.h>
 #include <string>
+#include <set>
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,7 +40,8 @@ extern "C" {
                             unsigned long long id_flush,
                             unsigned long long ir_flush,
                             unsigned long long rr_flush,
-                            unsigned long long exe_flush, 
+                            unsigned long long exe_flush,
+                            unsigned long long exe_kill,
                             unsigned long long id_pc,
                             unsigned long long id_inst,
                             unsigned long long if1_id,
@@ -47,7 +49,7 @@ extern "C" {
                             unsigned long long id_id,
                             unsigned long long ir_id,
                             unsigned long long rr_id,
-                            unsigned long long exe_id, 
+                            unsigned long long exe_id,
                             unsigned long long exe_unit,
                             unsigned long long wb1_id,
                             unsigned long long wb2_id,
@@ -67,6 +69,7 @@ class konataSignature {
     uint64_t * signature; // vector to hold the register file status
     std::ofstream signatureFile; // file where the info is dumped
     std::string signatureFileName;
+    std::set<unsigned long long> enqueuedInsts;
 
 public:
     konataSignature(const char *dumpfile);
@@ -99,7 +102,8 @@ public:
                                 unsigned long long id_flush,
                                 unsigned long long ir_flush,
                                 unsigned long long rr_flush,
-                                unsigned long long exe_flush, 
+                                unsigned long long exe_flush,
+                                unsigned long long exe_kill,
                                 unsigned long long id_pc,
                                 unsigned long long id_inst,
                                 unsigned long long if1_id,
@@ -107,7 +111,7 @@ public:
                                 unsigned long long id_id,
                                 unsigned long long ir_id,
                                 unsigned long long rr_id,
-                                unsigned long long exe_id, 
+                                unsigned long long exe_id,
                                 unsigned long long exe_unit,
                                 unsigned long long wb1_id,
                                 unsigned long long wb2_id,

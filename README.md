@@ -102,3 +102,22 @@ You can run all test or benchmarks using `make run-isa-tests` or `make run-bench
 The individual programs can be run individually using:
 - `<simulator> +load=<tb/tb_isa_tests/build/isa/<binary>` or
 - `<simulator> +load=<benchmarks/benchmarks/<binary>`
+
+## 5. Running linting and elaboration
+
+### 5.1 - Spyglass linting
+
+In order to make a linting with SpyGlass, just execute in the project root folder:  
+- `make lint-spyglass`
+
+The linting report will be generated inside the new `spyglass_reports` folder. It is located in `./spyglass_reports/consolidated_reports/top_tile_lint_lint_rtl/moresimple.rpt` .
+
+### 5.2 - DC Elaboration
+In order to make an elaboration with DC, just execute in the project root folder:  
+- `make dc_elab`
+
+### 5.3 - Fusion Compiler (FC) Elaboration
+In order to make an elaboration with FC, just execute in the project root folder:  
+- `make fc_elab`
+
+This will generate the report in `3_fc_log_file.log` file

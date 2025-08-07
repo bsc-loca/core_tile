@@ -70,10 +70,10 @@ void CommitLog::dump_file(const commit_data_t *commit_data){
     // file dumping
 
     std::string symbol = memory_symbol_from_addr(commit_data->pc);
-    if (!symbol.empty()) signatureFile << "core   0: >>>>  " << symbol << std::endl;
+    if (!symbol.empty()) signatureFile << "core    " << commit_data->core << ":  >>>>  " << symbol << std::endl;
 
     if ( commit_data->xcpt_cause != CAUSE_INSTR_PAGE_FAULT || !commit_data->xcpt){  // Neiel-leyva
-        signatureFile << "core   0: " << HEX_PC(commit_data->pc) << " (" << HEX_INST(commit_data->inst) << ") " << disassembler->disassemble(insn_t(commit_data->inst)) << "\n";
+        signatureFile << "core   " << commit_data->core << ": " << HEX_PC(commit_data->pc) << " (" << HEX_INST(commit_data->inst) << ") " << disassembler->disassemble(insn_t(commit_data->inst)) << "\n";
     }
 
     //exceptions
@@ -102,7 +102,7 @@ void CommitLog::dump_file(const commit_data_t *commit_data){
         signedAddr = signedAddr << 24;
         signedAddr = signedAddr >> 24;
 
-        signatureFile << "core   0: " << DEC_PRIV(commit_data->csr_priv_lvl) << " " << HEX_PC(commit_data->pc) << " (" << HEX_INST(commit_data->inst) << ")";
+        signatureFile << "core    " << commit_data->core << ":  " << DEC_PRIV(commit_data->csr_priv_lvl) << " " << HEX_PC(commit_data->pc) << " (" << HEX_INST(commit_data->inst) << ")";
 
         // Print fflags
         bool fflags_found = false;
@@ -138,18 +138,44 @@ void CommitLog::dump_file(const commit_data_t *commit_data){
         if (commit_data->vreg_wr_valid || is_vext || is_vse) {
             switch (commit_data->sew) {
                 case 0:
-                    signatureFile << " e8 m1 l16";
+                    signatureFile << " e8";
                     break;
                 case 1:
-                    signatureFile << " e16 m1 l8";
+                    signatureFile << " e16";
                     break;
                 case 2:
-                    signatureFile << " e32 m1 l4";
+                    signatureFile << " e32";
                     break;
                 case 3:
-                    signatureFile << " e64 m1 l2";
+                    signatureFile << " e64";
                     break;
             }
+            switch (commit_data->lmul) {
+                case 0b000:
+                    signatureFile << " m1";
+                    break;
+                case 0b001:
+                    signatureFile << " m2";
+                    break;
+                case 0b010:
+                    signatureFile << " m4";
+                    break;
+                case 0b011:
+                    signatureFile << " m8";
+                    break;
+                case 0b100: // reserved
+                    break;
+                case 0b101:
+                    signatureFile << " mf8";
+                    break;
+                case 0b110:
+                    signatureFile << " mf4";
+                    break;
+                case 0b111:
+                    signatureFile << " mf2";
+                    break;
+            }
+            signatureFile << " l" << commit_data->vl;
             if (commit_data->vreg_wr_valid) {
                 signatureFile << " " << DEC_VDST(commit_data->vdst) << " 0x";
                 for (int i = (VVLEN/32)-1; i >= 0; --i) {
@@ -200,7 +226,7 @@ void CommitLog::dump_file(const commit_data_t *commit_data){
             case 2: // Store
                 signatureFile << " mem " << HEX_DATA(signedAddr) << " ";
                 switch (func3) {
-                    case 0b000: 
+                    case 0b000:
                     case 0b100:
                         signatureFile << HEX_BYTE(scalar_data);
                         break;
@@ -229,7 +255,7 @@ void CommitLog::dump_file(const commit_data_t *commit_data){
         }
 	    signatureFile << "\n";
     }
-    
+
     signatureFile.flush();
 }
 

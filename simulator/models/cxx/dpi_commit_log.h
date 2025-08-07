@@ -26,7 +26,7 @@
 #define CAUSE_LD_PAGE_FAULT 0xD
 #define CAUSE_ST_AMO_PAGE_FAULT 0xF
 
-#define VVLEN 128 
+#define VVLEN 128
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,6 +52,8 @@ typedef struct {
     unsigned long long csr_priv_lvl;
     unsigned long long xcpt_cause;
     unsigned long long xcpt;
+    unsigned long long vl;
+    unsigned long long lmul;
     unsigned long long sew;
     unsigned long long csr_data;
     unsigned long long csr_dst;
@@ -65,6 +67,7 @@ typedef struct {
     unsigned long long dst;
     unsigned long long inst;
     unsigned long long pc;
+    unsigned long long core;
 } commit_data_t;
 
 // Initialized the commit logging

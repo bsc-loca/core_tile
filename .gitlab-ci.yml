@@ -122,6 +122,20 @@ lint-dc-elab:
     paths:
         - ${LOG_DC_SHELL}
 
+lint-fc-elab:
+  extends: .fc_shell
+  variables:
+    MAX_WARNINGS: 602
+  stage: linting
+  rules:
+    !reference [.rules_merge_request]
+  script:
+    - make fc_elab 2>&1 | tee ${LOG_FC_SHELL}
+    - !reference [.scripts, fc_elab_check_errors]
+  artifacts:
+    paths:
+        - ${LOG_FC_SHELL}
+
 lint-vc-static:
   extends: .vc_static  
   stage: linting
@@ -185,7 +199,7 @@ build-uvm:
     - !reference [.rules_uvm_smoke]
   variables:
     CORE_TYPE: sargantana
-    SPIKE_URL_BASE: https://gitlab.bsc.es/api/v4/projects/1982/packages/generic/ft-sarg_enable_vwredsum/0.0.1/spike
+    SPIKE_URL_BASE: https://gitlab.bsc.es/api/v4/projects/1982/packages/generic/ft-illegal-tval/0.0.1/spike
   script:
     - make clone_dv
     - make clone_ci_scripts
