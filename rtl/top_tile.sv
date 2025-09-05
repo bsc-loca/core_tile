@@ -388,7 +388,9 @@ assign debug_reg_rf_rdata_o         = debug_reg_out.rf_rdata;
 
 // *** iCache ***
 
-nc_icache_buffer nc_icache_bf (
+nc_icache_buffer #(
+    .DRAC_CFG(DracCfg)
+) nc_icache_bf (
     .clk_i,
     .rstn_i,
 
