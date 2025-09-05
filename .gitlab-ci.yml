@@ -267,6 +267,17 @@ isa-tests:
   script:
     - ./tb/tb_isa_tests/run-tests.py ./sim tb/tb_isa_tests/build/isa
 
+isa-tests-questa:
+  extends: .questa_riscv
+  stage: simulation
+  rules:
+    - !reference [.rules_default]
+  dependencies:
+    - build-simulator
+    - build-isa-tests
+  script:
+    - ./tb/tb_isa_tests/run-tests.sh ./simulator/questa/sim.sh tb/tb_isa_tests/build/isa
+
 benchmarks:
   extends: .questa_riscv  
   stage: simulation
