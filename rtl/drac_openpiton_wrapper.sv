@@ -5,6 +5,8 @@
  *  History      :
  */
 
+`include "hpdcache_typedef.svh"
+
  module drac_openpiton_wrapper
  import drac_pkg::*; import hpdcache_pkg::*; import wt_cache_pkg::*;
  #(
