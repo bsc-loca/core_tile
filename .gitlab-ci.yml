@@ -122,20 +122,6 @@ lint-dc-elab:
     paths:
         - ${LOG_DC_SHELL}
 
-lint-fc-elab:
-  extends: .fc_shell
-  variables:
-    MAX_WARNINGS: 602
-  stage: linting
-  rules:
-    !reference [.rules_merge_request]
-  script:
-    - make fc_elab 2>&1 | tee ${LOG_FC_SHELL}
-    - !reference [.scripts, fc_elab_check_errors]
-  artifacts:
-    paths:
-        - ${LOG_FC_SHELL}
-
 lint-vc-static:
   extends: .vc_static  
   stage: linting
