@@ -19,7 +19,7 @@
 	branch = ft/cacheline_64b
 [submodule "rtl/icache/icache_dos"]
 	path = rtl/icache/icache_dos
-	rtl = ../l1_i-caches/instruction_cache_dos.git
+	url = ../l1_i-caches/instruction_cache_dos.git
 	branch = ni/pma-hpic
 [submodule "riscv-tests"]
 	path = riscv-tests
