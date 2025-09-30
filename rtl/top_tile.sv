@@ -19,8 +19,6 @@ module top_tile
     import drac_pkg::*, mmu_pkg::*;
     `ifdef HPIC_DISABLE
     import sargantana_icache_pkg::*;
-    `else
-      `define ICACHE_PKG_NAME instance_icache_pkg//sargantana_hpic_pkg
     `endif
 #(
     parameter drac_pkg::drac_cfg_t DracCfg     = drac_pkg::DracDefaultConfig,

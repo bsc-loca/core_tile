@@ -12,7 +12,7 @@ module sim_top #(
     `ifdef HPIC_DISABLE
         `define ICACHE_PKG sargantana_icache_pkg
     `else
-        `define ICACHE_PKG instance_icache_pkg
+        `define ICACHE_PKG sargantana_hpic_pkg
     `endif
 
     logic dut_rstn, debug_reset;
