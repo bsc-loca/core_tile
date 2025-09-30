@@ -236,12 +236,6 @@ logic                            icache_req_kill;
 logic [ICACHE_INDEX_SIZE-1:0]    icache_req_idx;
 logic [ICACHE_VPN_SIZE-1:0]      icache_req_vpn;
 
-`ifndef HPIC_DISABLE
-assign ifill_resp.id = noc2decoder_icache_id_i; 
-
-assign io_mem_acquire_id = ifill_req.id;
-assign io_mem_acquire_prefetch = ifill_req.prefetch;
-`endif // HPIC_DISABLE
 
 // To Core
 logic                            icache_resp_ready;
@@ -559,6 +553,7 @@ assign ifill_resp = '{
 assign io_mem_acquire_valid  = ifill_req.valid       ;
 assign io_mem_acquire_bits_addr_block  = ifill_req.paddr       ;
 assign io_mem_acquire_id     = ifill_req.id          ;
+assign io_mem_acquire_prefetch = '0;
 assign ifill_req_is_nc  = '0;//ifill_req.nc_req      ;
 
 top_icache_dos #(
