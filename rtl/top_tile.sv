@@ -16,7 +16,12 @@
 `include "sargantana_typedef.svh"
 
 module top_tile
-    import drac_pkg::*, sargantana_icache_pkg::*, mmu_pkg::*;
+    import drac_pkg::*, mmu_pkg::*;
+    `ifdef HPIC_DISABLE
+    import sargantana_icache_pkg::*;
+    `else
+      `define ICACHE_PKG_NAME instance_icache_pkg//sargantana_hpic_pkg
+    `endif
 #(
     parameter drac_pkg::drac_cfg_t DracCfg     = drac_pkg::DracDefaultConfig,
 
@@ -78,12 +83,17 @@ module top_tile
 //------------------------------------------------------------------------------------
     
     //- From L2
-    input  logic                     io_mem_grant_valid,
-    input  logic [511:0]             io_mem_grant_bits_data,
-    input  logic [1:0]               io_mem_grant_bits_addr_beat,
-    input  logic                     io_mem_grant_inval,
-    input  logic [PHY_ADDR_SIZE-1:0] io_mem_grant_inval_addr,
-    
+    input  logic                   io_mem_grant_valid,
+    input  logic [511:0]           io_mem_grant_bits_data,
+    input  logic [1:0]             io_mem_grant_bits_addr_beat,
+    input  logic                   io_mem_grant_inval,
+    `ifdef HPIC_DISABLE
+    input  logic [11:0]            io_mem_grant_inval_addr,
+    `else
+    input  logic[`ICACHE_PKG_NAME::FSTATUS_SIZE_IDX-1:0]  noc2decoder_icache_id_i,
+    input  logic                                          noc2decoder_icache_noc_ack_i,
+    input  `ICACHE_PKG_NAME::paddr_t                      io_mem_grant_inval_addr,
+    `endif //HPIC_DISABLE
 
 //----------------------------------------------------------------------------------
 // D-CACHE  INTERFACE
@@ -124,6 +134,10 @@ module top_tile
     //- To L2
     output logic                          io_mem_acquire_valid,
     output logic [PHY_ADDR_SIZE-1:0]      io_mem_acquire_bits_addr_block,
+    `ifndef HPIC_DISABLE
+    output logic [`ICACHE_PKG_NAME::FSTATUS_SIZE_IDX-1:0]   io_mem_acquire_id,
+    output logic                          io_mem_acquire_prefetch,
+    `endif //not HPIC_DISABLE
 
 //-----------------------------------------------------------------------------------
 // DEBUGGING MODULE SIGNALS
@@ -221,6 +235,13 @@ logic                            icache_req_valid;
 logic                            icache_req_kill;
 logic [ICACHE_INDEX_SIZE-1:0]    icache_req_idx;
 logic [ICACHE_VPN_SIZE-1:0]      icache_req_vpn;
+
+`ifndef HPIC_DISABLE
+assign ifill_resp.id = noc2decoder_icache_id_i; 
+
+assign io_mem_acquire_id = ifill_req.id;
+assign io_mem_acquire_prefetch = ifill_req.prefetch;
+`endif // HPIC_DISABLE
 
 // To Core
 logic                            icache_resp_ready;
@@ -429,6 +450,7 @@ nc_icache_buffer #(
     .l2_resp_data_i(io_mem_grant_bits_data)
 );
 
+`ifdef HPIC_DISABLE
 sargantana_top_icache # (
     .KILL_RESP          ( 1'b1          ),
     .LINES_256          ( 1'b0          ),
@@ -482,6 +504,99 @@ sargantana_top_icache # (
     .imiss_time_pmu_o           (pmu_interface.icache_miss_time),
     .imiss_kill_pmu_o           (pmu_interface.icache_miss_kill)
 );
+`else
+
+//iCache-dos / HPIC
+
+`ICACHE_PKG_NAME::dreq_t lagarto_ireq;
+assign lagarto_ireq = '{
+    valid : icache_req_valid                ,
+    kill  : icache_req_kill                 ,
+    flush : icache_flush                    ,
+    xaddr : {icache_req_vpn,icache_req_idx}
+};
+
+`ICACHE_PKG_NAME::drsp_t icache_resp;
+
+assign icache_resp_ready        = icache_resp.ready      ;
+assign icache_resp_valid        = icache_resp.valid      ;
+assign icache_resp_data         = icache_resp.data       ;
+// assign imem_cpu_resp_addr       = icache_resp.xaddr[ADDR_SIZE-1:0]; // Apparently unused
+assign icache_resp_xcpt         = icache_resp.xcpt_valid ;
+// assign imem_cpu_resp_xcpt_cause = icache_resp.xcpt_cause ; // Not implemented yet
+// assign imem_cpu_resp_pma        = icache_resp.pma        ; // Not implemented yet
+
+`ICACHE_PKG_NAME::trsp_t itlb_tresp;
+assign itlb_tresp = '{
+    miss       : icache_tlb_resp_miss        ,
+    ptw_v      : icache_tlb_resp_ptw_v   ,
+    ppn        : icache_tlb_resp_ppn     ,
+    xcpt_valid : icache_tlb_resp_xcpt  ,
+    xcpt_cause : '0/*itlb_imem_resp_xcpt_cause[0]*/  ,
+    pma        : '0/*itlb_imem_resp_phy_mem_attr[0]*/
+};
+
+`ICACHE_PKG_NAME::treq_t itlb_treq;
+assign icache_tlb_req_valid  = itlb_treq.valid   ;
+assign icache_tlb_req_vpn  = itlb_treq.xaddr[PHY_VIRT_MAX_ADDR_SIZE-1:ICACHE_INDEX_SIZE];
+
+`ICACHE_PKG_NAME::inv_t inval;
+assign inval = '{
+    valid   : io_mem_grant_inval      ,
+    paddr   : io_mem_grant_inval_addr
+};
+
+`ICACHE_PKG_NAME::frsp_t ifill_resp;
+assign ifill_resp = '{
+    valid   : io_mem_grant_valid              ,
+    data    : io_mem_grant_bits_data          ,
+    id      : noc2decoder_icache_id_i           ,
+    noc_ack : noc2decoder_icache_noc_ack_i      ,
+    inv     : inval
+};
+
+`ICACHE_PKG_NAME::freq_t ifill_req ;
+assign io_mem_acquire_valid  = ifill_req.valid       ;
+assign io_mem_acquire_bits_addr_block  = ifill_req.paddr       ;
+assign io_mem_acquire_id     = ifill_req.id          ;
+assign ifill_req_is_nc  = '0;//ifill_req.nc_req      ;
+
+top_icache_dos #(
+    // It is better not to change the values from the instantiation but from the instance_hpic_pkg.sv so that they apply also to the structures if needed.
+    // There should be as many instance_hpic_pkg.sv as different instances of the hpic, and specify all the changed parameters for each one on the instantiation.
+    
+    .ASSOCIATIVITY    ( 4                         ),
+    .CACHE_SIZE_KB    ( 16                        ),
+    .FETCH_REQ_SIZE   ( 16                        ),
+    .FSTATUS_SIZE     ( `ICACHE_PKG_NAME::FSTATUS_SIZE     ), 
+    .DEGREE           ( `ICACHE_PKG_NAME::DEGREE           ),
+    .PB_ASSOCIATIVITY ( `ICACHE_PKG_NAME::PB_ASSOCIATIVITY ),
+    .N_PB_DBLOCK      ( `ICACHE_PKG_NAME::N_PB_DBLOCK      ),
+    .ITLB_CYCLE       ( 0                  ),
+    .NC_LINE_WIDTH    ( 1                   ),
+    .inv_t            ( `ICACHE_PKG_NAME::inv_t            ),
+    .dreq_t           ( `ICACHE_PKG_NAME::dreq_t           ),
+    .drsp_t           ( `ICACHE_PKG_NAME::drsp_t           ),
+    .treq_t           ( `ICACHE_PKG_NAME::treq_t           ),
+    .trsp_t           ( `ICACHE_PKG_NAME::trsp_t           ),
+    .freq_t           ( `ICACHE_PKG_NAME::freq_t           ),
+    .frsp_t           ( `ICACHE_PKG_NAME::frsp_t           ),
+    .preq_t           ( `ICACHE_PKG_NAME::preq_t           ),
+    .freq_status_t    ( `ICACHE_PKG_NAME::freq_status_t    )
+) icache (
+    .clk_i              ( clk_i         ),
+    .rstn_i             ( rstn_i        ),                              
+    .dreq_i             ( lagarto_ireq  ),  
+    .dresp_o            ( icache_resp   ),          
+    .tresp_i            ( itlb_tresp    ), 
+    .treq_o             ( itlb_treq     ),                 
+    .fresp_i            ( ifill_resp    ),
+    .freq_o             ( ifill_req     )
+);
+assign hpm_event_icache_miss = (io_mem_acquire_valid & noc2decoder_icache_noc_ack_i);
+assign hpm_event_icache_imiss_kill = '0;
+
+`endif // HPIC_DISABLE
 
 // WBUF time counter type size set to smallest counter that can hold the config value
 typedef logic [$clog2(DracCfg.DCacheWBUFTh+1)-1:0] wbuf_timecnt_t;

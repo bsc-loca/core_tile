@@ -1,3 +1,4 @@
+//+define+HPIC_DISABLE
 -F ./rtl/core/sargantana/filelist.f
 ./rtl/dcache/rtl/src/target/cinco_ranch/cinco_ranch_hpdcache_params_pkg.sv
 -f ./rtl/dcache/rtl/hpdcache.Flist
@@ -5,6 +6,9 @@
 ./rtl/dcache/rtl/src/common/macros/behav/hpdcache_sram_wbyteenable_1rw.sv
 ./rtl/dcache/rtl/src/common/macros/behav/hpdcache_sram_wmask_1rw.sv
 -F ./rtl/icache/icache/filelist.f
+./rtl/icache/icache_dos/includes/drac_icache_pkg.sv
+./rtl/icache/icache_dos/includes/sargantana_hpic_pkg.sv
+-F ./rtl/icache/icache_dos/filelist.f
 +incdir+./includes
 
 ./rtl/interface_dcache/rtl/dcache_interface.sv

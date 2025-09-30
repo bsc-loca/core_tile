@@ -209,10 +209,170 @@ module mem_channel #(
 
 endmodule
 
+
+`ifndef HPIC_DISABLE
+
+module i_mem_channel #(
+    parameter FSTATUS_SIZE = 64,
+    parameter SIZE = FSTATUS_SIZE,
+    parameter DELAY = 20,
+    parameter ADDR_WIDTH = 49,
+    parameter DATA_WIDTH = 512,
+    parameter TAG_WIDTH = 8,
+    parameter ID_SIZE = $clog2(SIZE)
+)(
+    input logic clk_i,
+    input logic rstn_i,
+
+    output logic                        req_ready_o,
+    input logic                         req_valid_i,
+    input logic [ADDR_WIDTH-1:0]        req_addr_i,
+    input logic [ID_SIZE-1:0]           req_id_i,
+
+    output logic                        rsp_valid_o,
+    output logic [ID_SIZE-1:0]          rsp_id_o,
+    output logic [DATA_WIDTH-1:0]       rsp_data_o
+);
+
+
+    // *** iCache memory channel logic ***
+
+    //      Adaptation to iCache_dos made by Joaquin Borras (joaquim.borras@bsc.es)
+
+    // *** Time reference ***
+
+    logic [63:0] cycles;
+
+    always_ff @(posedge clk_i) begin
+        if(~rstn_i) begin
+            cycles <= 0;
+        end else begin
+            cycles <= cycles + 1;
+        end
+    end
+
+    // *** FIFO structure ***
+
+    typedef struct packed {
+        logic [ADDR_WIDTH-1:0]      addr;
+        logic [ID_SIZE-1:0]         id;
+        logic [63:0]                timestamp;
+    } i_req_t;
+
+    i_req_t memory [0:SIZE-1];
+    logic [$clog2(SIZE)-1:0] write_ptr, read_ptr;
+    logic [$clog2(SIZE):0] count;
+
+    logic empty, full;
+
+    assign empty = count == 0;
+    assign full  = count == SIZE;
+
+    i_req_t head, new_data;
+    assign head = memory[read_ptr];
+
+    always_comb begin
+        new_data.addr       = req_addr_i;
+        new_data.id         = req_id_i  ;
+        new_data.timestamp  = cycles    ;
+    end
+
+    logic fifo_write, fifo_read; // FIFO Controls
+
+    assign fifo_write = req_valid_i & ~full;
+
+    always_ff @(posedge clk_i) begin
+        if (fifo_write) memory[write_ptr] <= new_data;
+    end
+
+    always_ff @(posedge clk_i) begin
+        if(~rstn_i) begin
+            write_ptr <= 0;
+            read_ptr <= 0;
+            count <= 0;
+        end else begin
+            if (fifo_write) write_ptr <= write_ptr + 1'b1;
+            if (fifo_read && ~empty) read_ptr <= read_ptr + 1'b1;
+            case({fifo_write,fifo_read})
+                2'b00, 2'b11: count <= count;
+                2'b01: count <= count - 1'b1;
+                2'b10: count <= count + 1'b1;
+            endcase
+        end
+    end
+
+    // *** Control Logic ***
+
+    typedef enum logic [1:0] {
+        S_WAIT_DELAY, S_MEM_INTERFACE
+    } state_t;
+
+    state_t state;
+
+    // Next-state logic
+    always_ff @(posedge clk_i) begin
+        if(~rstn_i) begin
+            state <= S_WAIT_DELAY;
+        end else begin
+            case(state)
+                S_WAIT_DELAY: // Waiting for the next memory op. to be "ready"
+                    if (!empty && (cycles >= (head.timestamp + DELAY))) state <= S_MEM_INTERFACE;
+                    else state <= S_WAIT_DELAY;
+                S_MEM_INTERFACE:  // Interface with memory DPI
+                    state <= S_WAIT_DELAY;
+            endcase
+        end
+    end
+
+    // Interface with memory DPI
+    logic [ID_SIZE-1:0]  next_id;
+    logic [DATA_WIDTH-1:0] next_data;
+    always_ff @(posedge clk_i) begin
+        logic [511:0] readed_data; // From DPI
+        if(~rstn_i) begin
+            next_id <= 0;
+            next_data <= 0;
+        end else begin
+            if (state == S_MEM_INTERFACE) begin
+                next_id <= head.id;
+                memory_read(head.addr,readed_data);
+                next_data <= readed_data[head.addr[5:0]*8 +: DATA_WIDTH];
+            end
+        end
+    end
+
+    logic rsp_valid_d, rsp_valid_q;
+    assign rsp_valid_d = fifo_read;
+
+    always_ff @(posedge clk_i) begin
+      if(~rstn_i) begin
+        rsp_valid_q <= '0;
+      end else begin
+        rsp_valid_q <= rsp_valid_d;
+      end
+    end
+
+    // Pop from queue after interfacing with memory
+    assign fifo_read = state == S_MEM_INTERFACE; 
+
+    // *** Channel Outputs ***
+
+    assign req_ready_o = fifo_write;
+    assign rsp_id_o = next_id;
+    assign rsp_valid_o = rsp_valid_q;
+    assign rsp_data_o = next_data;
+
+endmodule
+
+`endif //HPIC_DISABLE
+
 module l2_behav #(
     parameter DATA_CACHE_LINE_SIZE = 512,
     parameter INST_CACHE_LINE_SIZE = DATA_CACHE_LINE_SIZE,
     parameter ADDR_SIZE = 32,
+    `ifndef HPIC_DISABLE
+    parameter FSTATUS_SIZE = 64,
+    `endif //HPIC_DISABLE
     parameter INST_DELAY = 20,
     parameter DATA_DELAY = 20,
     parameter SIZE_WIDTH = 4,
@@ -236,6 +396,12 @@ module l2_behav #(
     output logic                    ic_ready_o,
     output logic                    ic_valid_o,
     output logic [1:0]              ic_seq_num_o,
+
+    `ifndef HPIC_DISABLE
+    input logic [$clog2(FSTATUS_SIZE)-1:0]  ic_id_i,
+    output logic                            ic_req_ack_o,
+    output logic [$clog2(FSTATUS_SIZE)-1:0] ic_id_o,
+    `endif // HPIC_DISABLE
 
     // *** dCache Interface ***
 
@@ -293,6 +459,10 @@ module l2_behav #(
 
     // *** iCache memory channel logic ***
 
+    //      Adaptation to iCache_dos made by Joaquin Borras (joaquim.borras@bsc.es)
+
+    `ifdef HPIC_DISABLE
+
     logic [$clog2(INST_DELAY)+1:0] ic_counter;
     logic [$clog2(INST_DELAY)+1:0] ic_next_counter;
 
@@ -303,10 +473,8 @@ module l2_behav #(
     assign ic_next_counter = (ic_counter > 0) ? ic_counter-1 : 0;
     assign ic_seq_num_o = 2'b11 - ic_counter[1:0];
 
-    // Register holding the full bits from the DPI
-    logic [`DPI_DATA_SIZE-1:0] ic_line;
-
-    initial assert (INST_CACHE_LINE_SIZE == `DPI_DATA_SIZE);
+    // Register holding the full 512 bits from the DPI
+    logic [511:0] ic_line;
 
     // ic_counter procedure
     always_ff @(posedge clk_i, negedge rstn_i) begin : proc_ic_counter
@@ -321,7 +489,6 @@ module l2_behav #(
    	        ic_addr_int <= ic_addr_i;
         end else if (request_q && ic_counter > 0) begin
             ic_counter <= ic_next_counter;
-	        ic_addr_int <= ic_addr_i;
    	        request_q <= 1'b1;
 	        if (~|ic_next_counter && ~ic_valid_i) begin
                 memory_read(ic_addr_int, ic_line);
@@ -339,6 +506,25 @@ module l2_behav #(
         if (ic_valid_o) ic_line_o = ic_line[ic_addr_int[5:0]*8 +: INST_CACHE_LINE_SIZE];
         else            ic_line_o = 0      ;
     end
+
+    `else
+    
+    i_mem_channel #(
+    .DATA_WIDTH (INST_CACHE_LINE_SIZE),
+    .FSTATUS_SIZE(FSTATUS_SIZE)
+    ) im_channel(
+      .clk_i (clk_i),
+      .rstn_i (rstn_i),
+      .req_ready_o (ic_req_ack_o),
+      .req_valid_i (ic_valid_i),
+      .req_addr_i (ic_addr_i),
+      .req_id_i (ic_id_i),
+      .rsp_valid_o (ic_valid_o),
+      .rsp_id_o (ic_id_o),
+      .rsp_data_o (ic_line_o)
+    );
+
+    `endif //HPIC_DISABLE
 
     // *** dCache read channel ***
 
