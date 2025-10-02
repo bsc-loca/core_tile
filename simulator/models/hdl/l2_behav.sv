@@ -442,6 +442,7 @@ module l2_behav #(
 
     always_ff @(posedge clk_i, negedge rstn_i) begin
         logic [14:0] exit_code;
+        int failed_fd;
         if(~rstn_i) begin
         end else if (is_tohost) begin
             if (tohost(dc_write_req_data_i[63:0])) begin
@@ -456,6 +457,10 @@ module l2_behav #(
                     $write("%c[1;31m", 27);
                     $write("Simulation ended with error code %d", exit_code);
                     $write("%c[0m\n", 27);
+                    `ifdef QUESTASIM
+                    failed_fd = $fopen("lib_module/failed_test.tmp","w");
+                    $fclose(failed_fd);
+                    `endif
                     $error;
                 end
             end
