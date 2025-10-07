@@ -98,7 +98,8 @@ rtl/axi/include/axi/assign.svh
 rtl/axi/src/axi_pkg.sv
 rtl/axi/src/axi_intf.sv
 rtl/axi/src/axi_atop_filter.sv
-rtl/axi/src/axi_burst_splitter.sv
+rtl/axi/src/axi_burst_splitter_gran.sv
+rtl/axi/src/axi_burst_unwrap.sv
 rtl/axi/src/axi_bus_compare.sv
 rtl/axi/src/axi_cdc_dst.sv
 rtl/axi/src/axi_cdc_src.sv
@@ -108,6 +109,7 @@ rtl/axi/src/axi_demux_simple.sv
 rtl/axi/src/axi_dw_downsizer.sv
 rtl/axi/src/axi_dw_upsizer.sv
 rtl/axi/src/axi_fifo.sv
+rtl/axi/src/axi_fifo_delay_dyn.sv
 rtl/axi/src/axi_id_remap.sv
 rtl/axi/src/axi_id_prepend.sv
 rtl/axi/src/axi_isolate.sv
@@ -130,6 +132,7 @@ rtl/axi/src/axi_serializer.sv
 rtl/axi/src/axi_slave_compare.sv
 rtl/axi/src/axi_throttle.sv
 rtl/axi/src/axi_to_detailed_mem.sv
+rtl/axi/src/axi_burst_splitter.sv
 rtl/axi/src/axi_cdc.sv
 rtl/axi/src/axi_demux.sv
 rtl/axi/src/axi_err_slv.sv
@@ -140,12 +143,18 @@ rtl/axi/src/axi_lfsr.sv
 rtl/axi/src/axi_multicut.sv
 rtl/axi/src/axi_to_axi_lite.sv
 rtl/axi/src/axi_to_mem.sv
+rtl/axi/src/axi_zero_mem.sv
+rtl/axi/src/axi_interleaved_xbar.sv
 rtl/axi/src/axi_iw_converter.sv
 rtl/axi/src/axi_lite_xbar.sv
-rtl/axi/src/axi_xbar.sv
+rtl/axi/src/axi_xbar_unmuxed.sv
 rtl/axi/src/axi_to_mem_banked.sv
 rtl/axi/src/axi_to_mem_interleaved.sv
 rtl/axi/src/axi_to_mem_split.sv
+rtl/axi/src/axi_chan_compare.sv
+rtl/axi/src/axi_dumper.sv
+rtl/axi/src/axi_sim_mem.sv
+rtl/axi/src/axi_xbar.sv
 rtl/axi/src/axi_xp.sv
 rtl/axi_riscv_atomics/src/axi_res_tbl.sv
 rtl/axi_riscv_atomics/src/axi_riscv_amos_alu.sv
