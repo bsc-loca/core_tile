@@ -327,7 +327,7 @@ module sargantana_wrapper(
     fpga_pkg::peri_axi_resp_t mem_resp_delayed;
 
     `ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
-    localparam int unsigned DELAY_FIFO_DEPTH = 8;
+    localparam int unsigned DELAY_FIFO_DEPTH = 16; // Minimum supported by FIFO IP
 
     axi_fifo_delay_dyn #(
         .aw_chan_t(mem_axi_aw_chan_t),
