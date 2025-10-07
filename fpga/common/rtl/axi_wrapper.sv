@@ -26,6 +26,10 @@ module axi_wrapper
     input logic time_irq_i,
     input logic [63:0] time_i,
 
+`ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+    output logic [63:0]                     dyn_fpga_mem_latency_o,
+`endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+
     // JTAG
     input logic tck,
     input logic tms,
@@ -239,6 +243,10 @@ module axi_wrapper
         .mem_resp_write_ready_o(mem_resp_write_ready),
         .mem_resp_write_valid_i(mem_resp_write_valid),
         .mem_resp_write_i(mem_resp_write),
+
+`ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+        .dyn_fpga_mem_latency_o(dyn_fpga_mem_latency_o),
+`endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
 
         // Debug module
         .debug_contr_halt_req_i(debug_contr_halt_req[0]),

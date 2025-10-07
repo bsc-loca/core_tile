@@ -128,6 +128,10 @@ module sargantana_subtile
     output logic  [63:0]        pcr_req_core_id_o   // core id of the tile
 `endif // CONF_SARGANTANA_ENABLE_PCR
 
+`ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+    output logic [63:0]                     dyn_fpga_mem_latency_o,
+`endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+
 //-----------------------------------------------------------------------------
 // INTERRUPTS
 //-----------------------------------------------------------------------------
@@ -241,6 +245,10 @@ top_drac #(
     .pcr_req_we_o,       // Cmd of the petition
     .pcr_req_core_id_o,   // core id of the tile
 `endif // CONF_SARGANTANA_ENABLE_PCR
+
+`ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+    .dyn_fpga_mem_latency_o(dyn_fpga_mem_latency_o),
+`endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
 
     // Interrupts
     .time_irq_i,
