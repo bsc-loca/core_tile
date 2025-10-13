@@ -552,7 +552,7 @@ assign io_mem_acquire_valid  = ifill_req.valid       ;
 assign io_mem_acquire_bits_addr_block  = ifill_req.paddr       ;
 assign io_mem_acquire_id     = ifill_req.id          ;
 assign io_mem_acquire_prefetch = '0;
-assign ifill_req_is_nc  = '0;//ifill_req.nc_req      ;
+//assign ifill_req_is_nc  = '0;//ifill_req.nc_req      ;
 
 top_icache_dos #(
     // It is better not to change the values from the instantiation but from the instance_hpic_pkg.sv so that they apply also to the structures if needed.
@@ -586,8 +586,8 @@ top_icache_dos #(
     .fresp_i            ( ifill_resp    ),
     .freq_o             ( ifill_req     )
 );
-assign hpm_event_icache_miss = (io_mem_acquire_valid & noc2decoder_icache_noc_ack_i);
-assign hpm_event_icache_imiss_kill = '0;
+//assign hpm_event_icache_miss = (io_mem_acquire_valid & noc2decoder_icache_noc_ack_i);
+//assign hpm_event_icache_imiss_kill = '0;
 
 `endif // HPIC_DISABLE
 
