@@ -499,8 +499,8 @@ sargantana_top_icache # (
 `else
 
 // PMU not monitored in the HPIC yet
-assign pmu_inteface.icache_miss_time = '0; 
-assign pmu_inteface.icache_miss_kill = '0;
+assign pmu_interface.icache_miss_time = '0; 
+assign pmu_interface.icache_miss_kill = '0;
 
 //iCache-dos / HPIC
 
