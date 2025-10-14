@@ -498,7 +498,10 @@ sargantana_top_icache # (
 );
 `else
 
-assign pmu_inteface = '0;
+// PMU not monitored in the HPIC yet
+assign pmu_inteface.icache_miss_time = '0; 
+assign pmu_inteface.icache_miss_kill = '0;
+
 //iCache-dos / HPIC
 
 `ICACHE_PKG_NAME::dreq_t lagarto_ireq;
