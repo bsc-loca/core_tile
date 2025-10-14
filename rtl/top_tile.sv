@@ -363,7 +363,7 @@ sargantana_subtile #(
     .debug_reg_o(debug_reg_out),
 
     // PMU Interface
-    //.pmu_interface_i(pmu_interface),
+    .pmu_interface_i(pmu_interface),
 
 `ifdef CONF_SARGANTANA_ENABLE_PCR
     // PCR
@@ -498,6 +498,7 @@ sargantana_top_icache # (
 );
 `else
 
+assign pmu_inteface = '0;
 //iCache-dos / HPIC
 
 `ICACHE_PKG_NAME::dreq_t lagarto_ireq;
