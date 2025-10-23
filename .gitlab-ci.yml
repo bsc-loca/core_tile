@@ -410,7 +410,6 @@ fpga:
     - !reference [.rules_merge_request]
     - !reference [.rules_fpga]
   needs: [fpga-prepare]
-  needs: []
   variables:
     COMMIT_SHA: $CI_COMMIT_SHA
     COMMIT_REF: $CI_COMMIT_REF_NAME
