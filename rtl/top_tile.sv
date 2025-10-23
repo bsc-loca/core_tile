@@ -566,6 +566,7 @@ assign ifill_resp = '{
     inv     : inval
 };
 
+logic ifill_req_is_nc;
 `ICACHE_PKG_NAME::freq_t ifill_req ;
 assign io_mem_acquire_valid  = ifill_req.valid &~ ifill_req_is_nc      ;
 assign io_mem_acquire_bits_addr_block  = ifill_req.paddr &~ ifill_req_is_nc       ;
