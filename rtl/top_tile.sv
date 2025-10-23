@@ -417,6 +417,7 @@ assign debug_reg_rf_rdata_o         = debug_reg_out.rf_rdata;
 
 // *** iCache ***
 
+`ifdef HPIC_DISABLE
 nc_icache_buffer #(
     .DRAC_CFG(DracCfg)
 ) nc_icache_bf (
@@ -442,7 +443,6 @@ nc_icache_buffer #(
     .l2_resp_data_i(io_mem_grant_bits_data)
 );
 
-`ifdef HPIC_DISABLE
 sargantana_top_icache # (
     .KILL_RESP          ( 1'b1          ),
     .LINES_256          ( 1'b0          ),
@@ -504,6 +504,18 @@ assign pmu_interface.icache_miss_kill = '0;
 
 //iCache-dos / HPIC
 
+sargantana_hpic_pkg::pma_t ipma;
+logic addr_is_nc;
+logic[PHY_VIRT_MAX_ADDR_SIZE-1:0] ippn;
+assign ippn = icache_en_translation ? icache_tlb_resp_ppn : itlb_treq.xaddr[PHY_VIRT_MAX_ADDR_SIZE-1:0] ;
+// Checker for address non-cacheable
+assign addr_is_nc = is_inside_IO_sections(DracCfg, {{{64-drac_pkg::PHY_ADDR_SIZE}{1'b0}},ippn})
+                  | range_check(DracCfg.InitBROMBase, DracCfg.InitBROMEnd, {{{64-PHY_ADDR_SIZE}{1'b0}},ippn})
+                  | range_check(DracCfg.DebugProgramBufferBase, DracCfg.DebugProgramBufferEnd, {{{64-PHY_ADDR_SIZE}{1'b0}},ippn});
+
+assign ipma.cacheable = ((~addr_is_nc) & icache_tlb_req_valid);
+
+assign icache_req_valid = core_fetch_req_valid & icache_resp_ready; // top_tile signal
 `ICACHE_PKG_NAME::dreq_t lagarto_ireq;
 assign lagarto_ireq = '{
     valid : icache_req_valid                ,
@@ -521,6 +533,9 @@ assign icache_resp_data         = icache_resp.data       ;
 assign icache_resp_xcpt         = icache_resp.xcpt_valid ;
 // assign imem_cpu_resp_xcpt_cause = icache_resp.xcpt_cause ; // Not implemented yet
 // assign imem_cpu_resp_pma        = icache_resp.pma        ; // Not implemented yet
+assign icache_nc_valid          = icache_resp.nc_resp    ;
+
+assign icache_nc_data           = {ICACHELINE_SIZE{icache_resp_data[63:0]}};
 
 `ICACHE_PKG_NAME::trsp_t itlb_tresp;
 assign itlb_tresp = '{
@@ -528,8 +543,8 @@ assign itlb_tresp = '{
     ptw_v      : icache_tlb_resp_ptw_v   ,
     ppn        : icache_tlb_resp_ppn     ,
     xcpt_valid : icache_tlb_resp_xcpt  ,
-    xcpt_cause : '0/*itlb_imem_resp_xcpt_cause[0]*/  ,
-    pma        : '0/*itlb_imem_resp_phy_mem_attr[0]*/
+    xcpt_cause : '0/*itlb_imem_resp_xcpt_cause[0]*/,
+    pma        : ipma
 };
 
 `ICACHE_PKG_NAME::treq_t itlb_treq;
@@ -547,16 +562,25 @@ assign ifill_resp = '{
     valid   : io_mem_grant_valid              ,
     data    : io_mem_grant_bits_data          ,
     id      : noc2decoder_icache_id_i           ,
-    noc_ack : noc2decoder_icache_noc_ack_i      ,
+    noc_ack : noc2decoder_icache_noc_ack_i | brom_req_valid_o      ,
     inv     : inval
 };
 
 `ICACHE_PKG_NAME::freq_t ifill_req ;
-assign io_mem_acquire_valid  = ifill_req.valid       ;
-assign io_mem_acquire_bits_addr_block  = ifill_req.paddr       ;
-assign io_mem_acquire_id     = ifill_req.id          ;
+assign io_mem_acquire_valid  = ifill_req.valid &~ ifill_req_is_nc      ;
+assign io_mem_acquire_bits_addr_block  = ifill_req.paddr &~ ifill_req_is_nc       ;
+assign io_mem_acquire_id     = ifill_req.id &~ ifill_req_is_nc          ;
 assign io_mem_acquire_prefetch = '0;
-//assign ifill_req_is_nc  = '0;//ifill_req.nc_req      ;
+assign ifill_req_is_nc  = ifill_req.nc_req      ;
+logic[39:0] brom_req_address_d;
+logic[39:0] brom_req_address_q;
+assign brom_req_address_d   = ifill_req_is_nc ? ifill_req.paddr : '0;
+always_ff @(posedge clk_i or negedge rstn_i) begin: ff_brom_req_addr
+  if(!rstn_i | io_mem_acquire_valid) brom_req_address_q <= '0;
+  else                               brom_req_address_q <=  brom_req_valid_o ? brom_req_address_d : brom_req_address_q;
+end
+assign brom_req_address_o = brom_req_valid_o ? brom_req_address_d : brom_req_address_q ;
+assign brom_req_valid_o   = ifill_req_is_nc & ifill_req.valid;
 
 top_icache_dos #(
     // It is better not to change the values from the instantiation but from the instance_hpic_pkg.sv so that they apply also to the structures if needed.
@@ -570,7 +594,7 @@ top_icache_dos #(
     .PB_ASSOCIATIVITY ( `ICACHE_PKG_NAME::PB_ASSOCIATIVITY ),
     .N_PB_DBLOCK      ( `ICACHE_PKG_NAME::N_PB_DBLOCK      ),
     .ITLB_CYCLE       ( 0                  ),
-    .NC_LINE_WIDTH    ( 1                   ),
+    .NC_LINE_WIDTH    ( 64                   ),
     .inv_t            ( `ICACHE_PKG_NAME::inv_t            ),
     .dreq_t           ( `ICACHE_PKG_NAME::dreq_t           ),
     .drsp_t           ( `ICACHE_PKG_NAME::drsp_t           ),
