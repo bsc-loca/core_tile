@@ -390,26 +390,26 @@ dc-synthesis:
     paths:
       - dc_syn.$CI_PIPELINE_ID.log
 
-#fpga-prepare:
-#  extends: .basic_no_clone
-#  stage: fpga
-#  rules:
-#    - !reference [.rules_merge_request]
-#    - !reference [.rules_fpga]
-#  needs: []
-#  artifacts:
-#    reports:
-#      dotenv: vars.env
-#  script:
-#    - echo boot_bsc_linux_url=$BOOT_BSC_LINUX_URL > vars.env
-#    - cat vars.env
+fpga-prepare:
+  extends: .basic_no_clone
+  stage: fpga
+  rules:
+    - !reference [.rules_merge_request]
+    - !reference [.rules_fpga]
+  needs: []
+  artifacts:
+    reports:
+      dotenv: vars.env
+  script:
+    - echo boot_bsc_linux_url=$BOOT_BSC_LINUX_URL > vars.env
+    - cat vars.env
 
 fpga:
   stage: fpga
   rules:
     - !reference [.rules_merge_request]
     - !reference [.rules_fpga]
-  #needs: [fpga-prepare]
+  needs: [fpga-prepare]
   needs: []
   variables:
     COMMIT_SHA: $CI_COMMIT_SHA
@@ -418,7 +418,7 @@ fpga:
     #GEN_BITSTREAM_PKG: defined in  rules_fpga
   trigger:
     project: hwdesign/fpga/integration-lab/fpga-shell
-    branch: ft/ci_for_sargantana_fixed
+    branch: ft/ci_sargantana_bsc_linux_package
     strategy: depend
 
 publish_badges:
