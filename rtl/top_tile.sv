@@ -260,11 +260,10 @@ logic [ICACHE_VPN_SIZE-1:0]      icache_tlb_req_vpn;
 
 logic icache_en_translation;
 logic icache_invalidate;
-logic icache_nc_busy;
 logic icache_nc_valid;
 logic [ICACHELINE_SIZE-1:0]      icache_nc_data;
 logic core_fetch_req_valid;
-
+`ifdef HPIC_DISABLE logic icache_nc_busy; `endif // This signal is unused when the iCache is handling the nc_requests, instead of the nc_buffer.
 //--PMU
 pmu_interface_t pmu_interface;
 assign pmu_interface.icache_req = icache_req_valid;
@@ -323,7 +322,7 @@ sargantana_subtile #(
     .icache_req_vpn_o(icache_req_vpn),
 
     // To Core
-    .icache_resp_ready_i(icache_resp_ready & ~icache_nc_busy),
+    .icache_resp_ready_i(icache_resp_ready `ifdef HPIC_DISABLE & ~icache_nc_busy `endif),
     .icache_resp_valid_i(icache_resp_valid | icache_nc_valid),
     .icache_resp_data_i(icache_nc_valid ? icache_nc_data : icache_resp_data),
     .icache_resp_xcpt_i(icache_resp_xcpt),
@@ -497,6 +496,8 @@ sargantana_top_icache # (
     .imiss_kill_pmu_o           (pmu_interface.icache_miss_kill)
 );
 `else
+
+// assign icache_nc_busy = '0; // This signal is unused when the iCache is handling the nc_requests, instead of the nc_buffer.
 
 // PMU not monitored in the HPIC yet
 assign pmu_interface.icache_miss_time = '0; 
