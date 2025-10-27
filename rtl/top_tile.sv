@@ -535,7 +535,7 @@ assign icache_resp_xcpt         = icache_resp.xcpt_valid ;
 // assign imem_cpu_resp_pma        = icache_resp.pma        ; // Not implemented yet
 assign icache_nc_valid          = icache_resp.nc_resp    ;
 
-assign icache_nc_data           = {ICACHELINE_SIZE{icache_resp_data[63:0]}};
+assign icache_nc_data           = {(ICACHELINE_SIZE/64){icache_resp_data[63:0]}}; // 64 bits is the size of the non-cacheable cache-line
 
 `ICACHE_PKG_NAME::trsp_t itlb_tresp;
 assign itlb_tresp = '{
@@ -569,16 +569,17 @@ assign ifill_resp = '{
 logic ifill_req_is_nc;
 `ICACHE_PKG_NAME::freq_t ifill_req ;
 assign io_mem_acquire_valid  = ifill_req.valid &~ ifill_req_is_nc      ;
-assign io_mem_acquire_bits_addr_block  = ifill_req.paddr &~ ifill_req_is_nc       ;
-assign io_mem_acquire_id     = ifill_req.id &~ ifill_req_is_nc          ;
+assign io_mem_acquire_bits_addr_block  = ~ifill_req_is_nc ? ifill_req.paddr: '0 ;
+assign io_mem_acquire_id     = ~ifill_req_is_nc ? ifill_req.id : '0 ;
 assign io_mem_acquire_prefetch = '0;
 assign ifill_req_is_nc  = ifill_req.nc_req      ;
 logic[39:0] brom_req_address_d;
 logic[39:0] brom_req_address_q;
 assign brom_req_address_d   = ifill_req_is_nc ? ifill_req.paddr : '0;
 always_ff @(posedge clk_i or negedge rstn_i) begin: ff_brom_req_addr
-  if(!rstn_i | io_mem_acquire_valid) brom_req_address_q <= '0;
-  else                               brom_req_address_q <=  brom_req_valid_o ? brom_req_address_d : brom_req_address_q;
+  if(!rstn_i)                   brom_req_address_q <= '0;
+  else if(io_mem_acquire_valid) brom_req_address_q <= '0; 
+  else                          brom_req_address_q <=  brom_req_valid_o ? brom_req_address_d : brom_req_address_q;
 end
 assign brom_req_address_o = brom_req_valid_o ? brom_req_address_d : brom_req_address_q ;
 assign brom_req_valid_o   = ifill_req_is_nc & ifill_req.valid;
