@@ -49,6 +49,7 @@ typedef enum logic [4:0] {
   //L15_CAS1_RQ     = 5'b00010, // compare and swap1 packet (OpenSparc atomics)
   //L15_CAS2_RQ     = 5'b00011, // compare and swap2 packet (OpenSparc atomics)
   //L15_SWAP_RQ     = 5'b00110, // swap packet (OpenSparc atomics)
+  L15_CMO_RQ      = 5'b01100, // cmo op
   L15_STRLOAD_RQ  = 5'b00100, // unused
   L15_STRST_RQ    = 5'b00101, // unused
   L15_STQ_RQ      = 5'b00111, // unused
@@ -75,7 +76,8 @@ typedef enum logic [3:0] {
   L15_FWD_RQ_RET             = 4'b1010, // unused
   L15_FWD_RPY_RET            = 4'b1011, // unused
   L15_RSVD_RET               = 4'b1111, // unused
-  L15_CPX_RESTYPE_ATOMIC_RES = 4'b1110  // custom type for atomic responses
+  L15_CPX_RESTYPE_ATOMIC_RES = 4'b1110, // custom type for atomic responses
+  L15_CMO_RET                = 4'b1001  // custom type for CMO responses
 } l15_rtrntypes_t;
 
 typedef struct packed {
@@ -95,6 +97,7 @@ typedef struct packed {
     logic [63:0]                       l15_data_next_entry;       // unused in Ariane (only used for CAS atomic requests)
     logic [L15_TLB_CSM_WIDTH-1:0]      l15_csm_data;              // unused in Ariane
     logic [3:0]                        l15_amo_op;                // atomic operation type
+    logic [1:0]                        l15_cmo_op;                // cmo operation type
     logic [L15_BYTE_MASK_WIDHT-1:0]    l15_be;                    // Byte mask
   } l15_req_t;
 
@@ -122,6 +125,7 @@ typedef struct packed {
     logic                              l15_blockinitstore;        // unused in openpiton
   } l15_rtrn_t;
 
+ 
   // --------------------
   // Atomics
   // --------------------
@@ -141,6 +145,14 @@ typedef struct packed {
       AMO_CAS1 =4'b1100, // unused, not part of riscv spec, but provided in OpenPiton
       AMO_CAS2 =4'b1101  // unused, not part of riscv spec, but provided in OpenPiton
   } amo_t;
+
+  // Support for CMO ops
+   typedef enum logic [1:0] {
+    CMO_NONE  = 2'b00,
+    CMO_CLEAN = 2'b01,
+    CMO_FLUSH = 2'b10,
+    CMO_INVAL = 2'b11
+  } cmo_t;
 
   // swap endianess in a 64bit word
   function automatic logic[63:0] swendian64(input logic[63:0] in);
