@@ -66,11 +66,13 @@ module sargantana_subtile
     input  logic [ICACHELINE_SIZE-1:0]      icache_resp_data_i,
     input  logic                            icache_resp_xcpt_i,
     input  logic                            icache_resp_guest_xcpt_i,
+    input  logic [ICACHE_PPN_SIZE-1:0]      icache_resp_guest_ppn_i,
 
     // iTLB interface
     output logic                            icache_tlb_resp_miss_o,
     output logic                            icache_tlb_resp_ptw_v_o,
     output logic [ICACHE_PPN_SIZE-1:0]      icache_tlb_resp_ppn_o,
+    output logic [ICACHE_PPN_SIZE-1:0]      icache_tlb_resp_guest_ppn_o,
     output logic                            icache_tlb_resp_xcpt_o,
     output logic                            icache_tlb_resp_guest_xcpt_o,
 
@@ -187,6 +189,7 @@ assign icache_itlb_comm.g_enable        = en_g_translation && v_mode;
 assign icache_tlb_resp_miss_o  = itlb_icache_comm.resp.miss;
 assign icache_tlb_resp_ptw_v_o = itlb_icache_comm.tlb_ready;
 assign icache_tlb_resp_ppn_o   = itlb_icache_comm.resp.ppn[ICACHE_PPN_SIZE-1:0];
+assign icache_tlb_resp_guest_ppn_o = itlb_icache_comm.resp.guest_ppn[ICACHE_PPN_SIZE-1:0];
 assign icache_tlb_resp_xcpt_o  = itlb_icache_comm.resp.xcpt.fetch;
 assign icache_tlb_resp_guest_xcpt_o = itlb_icache_comm.resp.guest_xcpt.fetch;
 
@@ -279,6 +282,7 @@ icache_interface icache_interface_inst(
     .icache_req_ready_i         ( icache_resp_ready_i ),
     .tlb_resp_xcp_if_i          ( icache_resp_xcpt_i  ),
     .tlb_resp_guest_xcp_if_i    ( icache_resp_guest_xcpt_i ),
+    .icache_req_guest_ppn_i     ( icache_resp_guest_ppn_i  ),
     .en_translation_i           ( en_translation      ),
 
     // Outputs ICache
