@@ -19,7 +19,7 @@ close $file
 
 sg_read_waiver -file ./scripts/lint_intel_waiver.awl
 sg_read_waiver -file ./scripts/lint_intel_waiver_sargantana_tile.awl
-
+sg_read_waiver -file ./rtl/icache/icache_dos/scripts/hpic_waivers.tcl
 
 set_app_var search_path "./includes/"
 
