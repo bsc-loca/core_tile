@@ -3,7 +3,7 @@
 	url = https://github.com/ucb-bar/riscv-torture.git
 [submodule "simulator/reference/riscv-isa-sim"]
 	path = simulator/reference/riscv-isa-sim
-	url = git@gitlab-internal.bsc.es:hwdesign/verification/riscv-isa-sim.git
+	url = ../../../verification/riscv-isa-sim.git
 [submodule "fpga/common/rtl/axi"]
 	path = fpga/common/rtl/axi
 	url = https://github.com/pulp-platform/axi.git
@@ -15,17 +15,17 @@
 	url = https://github.com/pulp-platform/common_cells.git
 [submodule "rtl/icache"]
 	path = rtl/icache
-	url = git@gitlab-internal.bsc.es:caos_hw/hypervision_extension/instruction_cache.git
+	url = ../l1_i-caches/instruction_cache.git
 	branch = ft/cacheline_64b
 [submodule "riscv-tests"]
 	path = riscv-tests
-	url = git@gitlab-internal.bsc.es:hwdesign/verification/riscv-tests.git
+	url = ../../../verification/riscv-tests.git
 [submodule "rtl/core/sargantana"]
 	path = rtl/core/sargantana
-	url = git@gitlab-internal.bsc.es:caos_hw/hypervision_extension/sargantana.git
+	url = ../../cores/sargantana.git
 [submodule "rtl/dcache"]
 	path = rtl/dcache
-	url = git@gitlab-internal.bsc.es:hwdesign/rtl/core-tile/l1_d-caches/hpdcache.git
+	url = ../l1_d-caches/hpdcache.git
 [submodule "simulator/bsc-dm"]
 	path = simulator/bsc-dm
-	url = git@gitlab-internal.bsc.es:hwdesign/rtl/bsc-dm.git
+	url = ../../bsc-dm.git
