@@ -282,7 +282,7 @@ icache_interface icache_interface_inst(
     .icache_req_ready_i         ( icache_resp_ready_i ),
     .tlb_resp_xcp_if_i          ( icache_resp_xcpt_i  ),
     .tlb_resp_guest_xcp_if_i    ( icache_resp_guest_xcpt_i ),
-    .icache_req_guest_ppn_i     ( icache_resp_guest_ppn_i  ),
+    .icache_req_guest_ppn_i     ( {'0, icache_resp_guest_ppn_i} ),
     .en_translation_i           ( en_translation      ),
 
     // Outputs ICache
