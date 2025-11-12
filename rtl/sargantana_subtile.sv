@@ -271,6 +271,8 @@ top_drac #(
 );
 
 // *** iCache Interface ***
+logic [drac_pkg::PPN_SIZE-1:0]      icache_resp_guest_ppn_int;
+assign icache_resp_guest_ppn_int = {'0, icache_resp_guest_ppn_i};
 
 icache_interface icache_interface_inst(
     .clk_i(clk_i),
@@ -282,7 +284,7 @@ icache_interface icache_interface_inst(
     .icache_req_ready_i         ( icache_resp_ready_i ),
     .tlb_resp_xcp_if_i          ( icache_resp_xcpt_i  ),
     .tlb_resp_guest_xcp_if_i    ( icache_resp_guest_xcpt_i ),
-    .icache_req_guest_ppn_i     ( {'0, icache_resp_guest_ppn_i} ),
+    .icache_req_guest_ppn_i     ( icache_resp_guest_ppn_int ),
     .en_translation_i           ( en_translation      ),
 
     // Outputs ICache
