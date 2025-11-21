@@ -4,5 +4,7 @@ waive -rule {  {W528}  }  -ignore -comment {"Variable x set but not read."}
 waive -rule {  {W123}  }  -ignore -comment {"Signal Usage Report file info."}
 waive -du {  {hpdcache_ctrl} } -comment {"HPDC is an external component"}
 
+waive -du {  {old_control_mvp}  }  -ignore -comment {"FPU errors"}
 waive -du {  {control_mvp}  }  -ignore -comment {"FPU errors"}
+waive -du {  {old_fpnew_opgroup_multifmt_slice}  }  -ignore -comment {"FPU errors"}
 waive -du {  {fpnew_opgroup_multifmt_slice}  }  -ignore -comment {"FPU errors"}
