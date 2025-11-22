@@ -31,6 +31,9 @@ waive -du {  {fpnew_rounding} } -comment {"FPU errors"}
 waive -du {  {fpnew_top} } -comment {"FPU errors"}
 waive -du {  {preprocess_mvp} } -comment {"FPU errors"}
 
+waive -file {fpnew_divsqrt_th_32.sv} -regexp -comment {"FPU errors"}
+waive -file {fpnew_divsqrt_multi.sv} -regexp -comment {"FPU errors"}
+
 waive -du {  {gated_clk_cell} } -comment {"FPU errors"}
 
 waive -du {  {ct_vfdsu_ctrl} } -comment {"FPU errors"}
