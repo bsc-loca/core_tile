@@ -64,7 +64,7 @@ clone_uvm:
 	git clone ${SHALLOW_CLONE} ${CORE_UVM_REPO} ${CORE_UVM_DIR} -b ${CORE_UVM_BRANCH}
 	cd ${CORE_UVM_DIR}; git rev-parse HEAD; cd -
 	make -C ${CORE_UVM_DIR} clone_spike 
-	make -C ${CORE_UVM_DIR} clone_all_tests
+	make -C ${CORE_UVM_DIR} clone_tests_all
 
 $(DC_DIR):
 	git clone ${DC_REPO} -b ${DC_BRANCH} $@
