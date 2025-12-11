@@ -264,7 +264,7 @@ top_tile #(
  .io_mem_grant_bits_data(l2_response_data),
  .io_mem_grant_bits_addr_beat(l2_response_seqnum),
  .io_mem_grant_inval(l2_inval_request),
- .io_mem_grant_inval_addr(l2_inval_addr[PHY_ADDR_SIZE-1:0]),
+ .io_mem_grant_inval_addr(l2_inval_addr),
 
  // dmem ports
 

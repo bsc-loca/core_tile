@@ -78,11 +78,11 @@ module top_tile
 //------------------------------------------------------------------------------------
     
     //- From L2
-    input  logic                   io_mem_grant_valid,
-    input  logic [511:0]           io_mem_grant_bits_data,
-    input  logic [1:0]             io_mem_grant_bits_addr_beat,
-    input  logic                   io_mem_grant_inval,
-    input  logic [11:0]            io_mem_grant_inval_addr,
+    input  logic                     io_mem_grant_valid,
+    input  logic [511:0]             io_mem_grant_bits_data,
+    input  logic [1:0]               io_mem_grant_bits_addr_beat,
+    input  logic                     io_mem_grant_inval,
+    input  logic [PHY_ADDR_SIZE-1:0] io_mem_grant_inval_addr,
     
 
 //----------------------------------------------------------------------------------
