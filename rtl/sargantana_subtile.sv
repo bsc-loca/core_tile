@@ -24,7 +24,7 @@ module sargantana_subtile
     input logic                 clk_i,
     input logic                 rstn_i,
     input logic                 soft_rstn_i,
-    input addr_t                reset_addr_i,
+    input phy_addr_t            reset_addr_i,
     input logic [63:0]          core_id_i,
 
 //------------------------------------------------------------------------------------
