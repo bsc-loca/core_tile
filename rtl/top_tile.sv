@@ -153,7 +153,7 @@ module top_tile
 //-----------------------------------------------------------------------------
 // BOOTROM CONTROLER INTERFACE
 //-----------------------------------------------------------------------------
-    output logic [41:0]         brom_req_address_o  ,
+    output phy_addr_t           brom_req_address_o  ,
     output logic                brom_req_valid_o    ,
 
 `ifdef CONF_SARGANTANA_ENABLE_PCR
@@ -423,7 +423,7 @@ nc_icache_buffer #(
     .icache_req_valid_o(icache_req_valid),
 
     .req_nc_valid_o(brom_req_valid_o),
-    .req_nc_vaddr_o(brom_req_address_o),
+    .req_nc_paddr_o(brom_req_address_o),
 
     .l2_grant_valid_i(io_mem_grant_valid & ~io_mem_grant_inval),
     .l2_resp_data_i(io_mem_grant_bits_data)
