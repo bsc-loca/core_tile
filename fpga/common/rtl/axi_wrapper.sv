@@ -11,8 +11,9 @@
  */
 
 `include "hpdcache_typedef.svh"
+`include "axi/assign.svh"
 
-import fpga_pkg::*, hpdcache_pkg::*;
+import fpga_pkg::*, hpdcache_pkg::*, drac_pkg::*;
 
 module axi_wrapper
 #(
@@ -42,6 +43,7 @@ module axi_wrapper
 
     localparam NUM_HARTS = 1;
 
+    logic                    sargantana_rstn;
     // Declare types for HPDCache memory interface
     parameter type hpdcache_mem_addr_t = logic [DracCfg.MemAddrWidth-1:0];
     parameter type hpdcache_mem_id_t = logic [DracCfg.MemIDWidth-1:0];
@@ -171,7 +173,6 @@ module axi_wrapper
     // Debug Module Interface
 
     // DM -> Core
-    logic                    sargantana_rstn;
     logic                    debug_reset;
     logic    [NUM_HARTS-1:0] debug_contr_halt_req;
     logic    [NUM_HARTS-1:0] debug_contr_resume_req;
@@ -205,7 +206,7 @@ module axi_wrapper
         .clk_i(clk_i),
         .rstn_i(sargantana_rstn),
         .soft_rstn_i(~debug_reset),
-        .reset_addr_i(40'h0000000100),
+        .reset_addr_i(40'h00000001000),
 
         // Bootrom ports
         .brom_req_address_o(uc_fetch_req_address),

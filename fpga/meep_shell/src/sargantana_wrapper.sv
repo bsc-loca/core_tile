@@ -1,4 +1,7 @@
 import fpga_pkg::*;
+`include "defines.svh"
+`include "axi/assign.svh"
+`include "axi/typedef.svh"
 
 module sargantana_wrapper(
     input            clk_i,

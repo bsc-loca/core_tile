@@ -29,6 +29,7 @@
 
 `include "defines.svh"
 `include "hpdcache_typedef.svh"
+`include "axi/typedef.svh"
 
 import fpga_pkg::*;
 
