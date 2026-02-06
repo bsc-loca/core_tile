@@ -229,7 +229,7 @@ assign resp_dcache_cpu_o.ordered = wbuf_empty_i;
 
 logic send, receive;
 
-assign send    = core_req_valid_o && dcache_ready_i;
+assign send    = ((core_req_valid_o && dcache_ready_i) && req_dcache_o.need_rsp);
 assign receive = dcache_valid_i;
 
 `ifdef SIMULATION
