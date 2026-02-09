@@ -142,14 +142,17 @@ endgenerate
 
 logic [(DracCfg.DCacheLineWidth/8)-1:0] aligned_be [MAX_SIZES-1:0];
 
+// Select write data, byte enable and request size
 always_comb begin
-    if(req_cpu_dcache_i.instr_type == CBO_ZERO) begin // Set all to zero
+    if(req_cpu_dcache_i.instr_type == CBO_ZERO) begin // Set all bytes to zero
         req_dcache_o.wdata = '0;
         req_dcache_o.be = '1;
+        req_dcache_o.size = BLOCK_OFFSET_SIZE; // Set size to maximum block size
     end
     else begin // Select the write data depending on the request size 
         req_dcache_o.wdata = aligned_data[{req_cpu_dcache_i.mem_size[3], req_cpu_dcache_i.mem_size[1:0]}];
         req_dcache_o.be = aligned_be[{req_cpu_dcache_i.mem_size[3], req_cpu_dcache_i.mem_size[1:0]}];
+        req_dcache_o.size = {req_cpu_dcache_i.mem_size[3], req_cpu_dcache_i.mem_size[1:0]}; // TODO: Core supports bigger memory sizes than HPDC!
     end
 end
 
@@ -189,7 +192,6 @@ assign req_dcache_o.addr_tag = req_cpu_dcache_i.data_rs1[PHY_ADDR_SIZE-1:OFFSET_
        
 // Request to HPDC. Pass only 2 bits as the sign extension process (see specs for LBU, LHU, LWU) is done in the mem_unit 
 // HPDC does NOT extend the sign.
-assign req_dcache_o.size = {req_cpu_dcache_i.mem_size[3], req_cpu_dcache_i.mem_size[1:0]}; // TODO: Core supports bigger memory sizes than HPDC!
 assign req_dcache_o.sid = SID;
 assign req_dcache_o.tid = req_cpu_dcache_i.rd;
 
