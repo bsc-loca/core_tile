@@ -232,8 +232,8 @@ module sargantana_wrapper(
         .AXI_USER_WIDTH(`AXI_XBAR_USER_WIDTH)
     ) addr_trans_mem_inst (
         .slv(xbar2tran_bus[`MEM_XBAR_ID]),
-        .mst_aw_addr_i(xbar2tran_bus[`MEM_XBAR_ID].aw_addr - `MEM_BASE_ADDR),
-        .mst_ar_addr_i(xbar2tran_bus[`MEM_XBAR_ID].ar_addr - `MEM_BASE_ADDR),
+        .mst_aw_addr_i(xbar2tran_bus[`MEM_XBAR_ID].aw_addr),
+        .mst_ar_addr_i(xbar2tran_bus[`MEM_XBAR_ID].ar_addr),
         .mst(xbar2peri_bus[`MEM_XBAR_ID])
     );
 
@@ -360,8 +360,10 @@ module sargantana_wrapper(
         .mst_resp_i(mem_resp_delayed)
     );
     `else
-    assign mem_req_delayed = mem_req;
-    assign mem_resp_delayed = mem_resp;
+//    assign mem_req_delayed = mem_req;
+//    assign mem_resp_delayed = mem_resp;
+    `AXI_ASSIGN_REQ_STRUCT(mem_req_delayed, mem_req)
+    `AXI_ASSIGN_RESP_STRUCT(mem_resp, mem_resp_delayed)
     `endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
 
     // Assign input/output pins
