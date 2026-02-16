@@ -14,13 +14,17 @@ module bootrom
     localparam BRAM_LINE_OFFSET = $clog2(MEM_DATA_WIDTH/8);
 
     (* ram_style = "block" *) reg [MEM_DATA_WIDTH-1:0] boot_ram [0 : BRAM_LINE-1];
-    initial begin 
-      $readmemh("/root/dev/cpu-subsystem-uvm/sargantana-tile/fpga/meep_shell/boot_rom.hex", boot_ram);
-      $display("Bootrom");
-      for (int i=0;i<16;i++) begin
-        $display("boot_ram[%d] = 0x%h", i, boot_ram[i]);
-      end
+    initial begin
+        string filename;
+        if ($value$plusargs("BOOTROM_HEX=%s", filename)) begin
+            $display("+BOOTROM_HEX=%s found", filename);
+        end else begin
+            filename="bootrom.hex";
+            $display("No +BOOTROM_HEX found, defaulting to %s", filename);
+        end
+        $readmemh(filename, boot_ram);
     end
+
     logic [MEM_DATA_WIDTH-1:0] brom_resp_data_block;
     logic [23:0] brom_req_address_d;
     logic [7:0] brom_count;
