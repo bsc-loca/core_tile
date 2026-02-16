@@ -22,6 +22,7 @@ module axi_wrapper
     input logic clk_i,
     input logic rstn_i,
 
+    input logic [63:0] core_id_i,
     AXI_BUS.Master axi_o,
 
     input logic time_irq_i,
@@ -205,6 +206,7 @@ module axi_wrapper
     top_tile core_inst (
         .clk_i(clk_i),
         .rstn_i(sargantana_rstn),
+        .core_id_i(core_id_i),
         .soft_rstn_i(~debug_reset),
         .reset_addr_i(40'h00000001000),
 

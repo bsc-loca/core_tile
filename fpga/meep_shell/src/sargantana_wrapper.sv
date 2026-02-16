@@ -7,6 +7,7 @@ module sargantana_wrapper(
     input            clk_i,
     input            rstn_i,
 
+    input logic [63:0] core_id_i,
     input  dbg_jtag_tck,
     input  dbg_jtag_tdi,
     output dbg_jtag_tdo,
@@ -275,6 +276,7 @@ module sargantana_wrapper(
         .clk_i(clk_i),
         .rstn_i(reset),
 
+        .core_id_i(core_id_i),
         .axi_o(core2xbar_bus[0]),
 
         .time_irq_i(time_irq),
@@ -360,8 +362,6 @@ module sargantana_wrapper(
         .mst_resp_i(mem_resp_delayed)
     );
     `else
-//    assign mem_req_delayed = mem_req;
-//    assign mem_resp_delayed = mem_resp;
     `AXI_ASSIGN_REQ_STRUCT(mem_req_delayed, mem_req)
     `AXI_ASSIGN_RESP_STRUCT(mem_resp, mem_resp_delayed)
     `endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
