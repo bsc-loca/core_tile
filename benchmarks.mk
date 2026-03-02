@@ -22,7 +22,7 @@ build-benchmarks: $(PROJECT_DIR)/benchmarks/Makefile
 
 # *** riscv-tests benchmark simulation ***
 
-run-benchmarks: build-benchmarks $(SIMULATOR)
+run-benchmarks: build-benchmarks $(SIM_BIN)
 		$(PROJECT_DIR)/run-benchmarks.sh
 		
 # *** Cleaning ***

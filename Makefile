@@ -5,7 +5,7 @@ FILELIST = ${PROJECT_DIR}/filelist.f
 DV_DIR = $(PROJECT_DIR)/verif
 CORE_UVM_DIR = $(DV_DIR)/core_uvm
 CORE_UVM_REPO = git@gitlab-internal.bsc.es:hwdesign/verification/core-uvm.git
-CORE_UVM_BRANCH ?= ft/cmos
+CORE_UVM_BRANCH ?= master
 
 DC_REPO = git@gitlab-internal.bsc.es:hwdesign/spd/dc-scripts.git
 DC_BRANCH = main
@@ -25,11 +25,12 @@ CI_SCRIPTS_DIR = $(CORE_UVM_DIR)/ci_scripts
 CI_SCRIPTS_BRANCH ?= main
 
 export HPDCACHE_DIR = $(PROJECT_DIR)/rtl/dcache
+SIMULATOR ?= vsim
 
 # *** Simulators ***
 include simulator/simulator.mk
 
-sim: $(SIMULATOR)
+sim: $(SIM_BIN)
 
 # *** ISA Tests ***
 include tb/tb_isa_tests/isa-tests.mk
@@ -63,8 +64,8 @@ clone_uvm:
 	mkdir -p ${CORE_UVM_DIR}
 	git clone ${SHALLOW_CLONE} ${CORE_UVM_REPO} ${CORE_UVM_DIR} -b ${CORE_UVM_BRANCH}
 	cd ${CORE_UVM_DIR}; git rev-parse HEAD; cd -
-	make -C ${CORE_UVM_DIR} clone_spike 
-	make -C ${CORE_UVM_DIR} clone_tests_all
+	make -C ${CORE_UVM_DIR} clone_spike
+	make -C ${CORE_UVM_DIR} clone_tests_all SIMULATOR=$(SIMULATOR)
 
 $(DC_DIR):
 	git clone ${DC_REPO} -b ${DC_BRANCH} $@

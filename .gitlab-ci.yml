@@ -159,6 +159,8 @@ build-simulator:
 
 build-uvm:
   extends: .uvm-build
+  variables:
+    SIMULATOR: "vsim"
   stage: building
   rules:
     - !reference [.rules_uvm_scheduled]

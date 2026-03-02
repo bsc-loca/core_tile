@@ -68,10 +68,10 @@ $(TORTURE_SIGNATURES):
 # Do not remove signature files
 .PRECIOUS: $(TORTURE_SPIKE_SIGNATURES) $(TORTURE_SIM_SIGNATURES) 
 
-$(TORTURE_SIGNATURES)/%_sim.txt: $(TORTURE_OUTPUT)/test_%.riscv $(TORTURE_SIGNATURES) $(SIMULATOR)
-		$(SIMULATOR) +load=$< +torture_dump_ON +torture_dump=$@
+$(TORTURE_SIGNATURES)/%_sim.txt: $(TORTURE_OUTPUT)/test_%.riscv $(TORTURE_SIGNATURES) $(SIM_BIN)
+		$(SIM_BIN) +load=$< +torture_dump_ON +torture_dump=$@
 
-$(TORTURE_SIGNATURES)/%_spike.txt: $(TORTURE_OUTPUT)/test_%.riscv $(TORTURE_SIGNATURES) $(SIMULATOR)
+$(TORTURE_SIGNATURES)/%_spike.txt: $(TORTURE_OUTPUT)/test_%.riscv $(TORTURE_SIGNATURES) $(SIM_BIN)
 		$(SPIKE) $(SPIKE_OPTS) --log=$@ $<
 
 $(TORTURE_SIGNATURES)/%.diff: $(TORTURE_SIGNATURES)/%_sim.txt $(TORTURE_SIGNATURES)/%_spike.txt
