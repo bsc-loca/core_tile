@@ -380,6 +380,9 @@ sargantana_subtile #(
 `ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
     .dyn_fpga_mem_latency_o(dyn_fpga_mem_latency_o),
 `endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+`ifndef HPIC_DISABLE
+    .hpic_degree_o(csr_icache_pref_degree),
+`endif
 
     // Interrupts
     .time_irq_i(time_irq_i), // timer interrupt
@@ -585,6 +588,8 @@ end
 assign brom_req_address_o = brom_req_valid_o ? brom_req_address_d : brom_req_address_q ;
 assign brom_req_valid_o   = ifill_req_is_nc & ifill_req.valid;
 
+logic[drac_icache_pkg::CSR_PREFETCHER_BITS-1:0] csr_icache_pref_degree;
+
 top_icache_dos #(
     // It is better not to change the values from the instantiation but from the instance_hpic_pkg.sv so that they apply also to the structures if needed.
     // There should be as many instance_hpic_pkg.sv as different instances of the hpic, and specify all the changed parameters for each one on the instantiation.
@@ -615,7 +620,8 @@ top_icache_dos #(
     .tresp_i            ( itlb_tresp    ), 
     .treq_o             ( itlb_treq     ),                 
     .fresp_i            ( ifill_resp    ),
-    .freq_o             ( ifill_req     )
+    .freq_o             ( ifill_req     ),
+    .csr_degree_i       ( csr_icache_pref_degree)
 );
 //assign hpm_event_icache_miss = (io_mem_acquire_valid & noc2decoder_icache_noc_ack_i);
 //assign hpm_event_icache_imiss_kill = '0;

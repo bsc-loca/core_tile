@@ -135,6 +135,9 @@ module sargantana_subtile
 `ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
     output logic [63:0]                     dyn_fpga_mem_latency_o,
 `endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+`ifndef HPIC_DISABLE
+    output logic [15:0] hpic_degree_o,
+`endif
 
 //-----------------------------------------------------------------------------
 // INTERRUPTS
@@ -262,6 +265,9 @@ top_drac #(
 `ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
     .dyn_fpga_mem_latency_o(dyn_fpga_mem_latency_o),
 `endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+`ifndef HPIC_DISABLE
+    .hpic_degree_o(hpic_degree_o),
+`endif
 
     // Interrupts
     .time_irq_i,
