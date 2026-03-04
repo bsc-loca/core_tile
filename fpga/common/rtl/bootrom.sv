@@ -14,6 +14,10 @@ module bootrom
     localparam BRAM_LINE_OFFSET = $clog2(MEM_DATA_WIDTH/8);
 
     (* ram_style = "block" *) reg [MEM_DATA_WIDTH-1:0] boot_ram [0 : BRAM_LINE-1];
+
+    `ifdef TARGET_XILINX
+    initial $readmemh("bootrom.hex", boot_ram);
+    `else
     initial begin
         string filename;
         if ($value$plusargs("BOOTROM_HEX=%s", filename)) begin
@@ -24,6 +28,7 @@ module bootrom
         end
         $readmemh(filename, boot_ram);
     end
+    `endif
 
     logic [MEM_DATA_WIDTH-1:0] brom_resp_data_block;
     logic [23:0] brom_req_address_d;
