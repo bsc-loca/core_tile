@@ -7,7 +7,9 @@ module sargantana_wrapper(
     input            clk_i,
     input            rstn_i,
 
+`ifndef TARGET_XILINX
     input logic [63:0] core_id_i,
+`endif
     input  dbg_jtag_tck,
     input  dbg_jtag_tdi,
     output dbg_jtag_tdo,
@@ -268,6 +270,11 @@ module sargantana_wrapper(
     assign ar_delay = dyn_fpga_mem_latency[24 +: 12];
     assign aw_delay = dyn_fpga_mem_latency[36 +: 12];
     assign w_delay  = dyn_fpga_mem_latency[48 +: 12];
+`endif
+
+`ifdef TARGET_XILINX
+    logic core_id_i;
+    assign core_id_i = 'h0;
 `endif
 
     // *** Core Instance ***
