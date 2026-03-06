@@ -94,12 +94,8 @@ module sargantana_wrapper(
     // Reset synchronization flipflops
     logic reset_sync_q[1:0];
 
-    always_ff @(rstn_i or posedge clk_i) begin
-        if (!rstn_i) begin
-            reset_sync_q <= {1'b0, 1'b0};
-        end else begin
-            reset_sync_q <= {reset_sync_q[0], rstn_i};
-        end
+    always_ff @(posedge clk_i) begin
+        reset_sync_q <= {reset_sync_q[0], rstn_i};
     end
 
     logic reset;
