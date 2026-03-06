@@ -7,9 +7,6 @@ module sargantana_wrapper(
     input            clk_i,
     input            rstn_i,
 
-`ifndef TARGET_XILINX
-    input logic [63:0] core_id_i,
-`endif
     input  dbg_jtag_tck,
     input  dbg_jtag_tdi,
     output dbg_jtag_tdo,
@@ -97,8 +94,12 @@ module sargantana_wrapper(
     // Reset synchronization flipflops
     logic reset_sync_q[1:0];
 
-    always_ff @(posedge clk_i) begin
-        reset_sync_q <= {reset_sync_q[0], rstn_i};
+    always_ff @(rstn_i or posedge clk_i) begin
+        if (!rstn_i) begin
+            reset_sync_q <= {1'b0, 1'b0};
+        end else begin
+            reset_sync_q <= {reset_sync_q[0], rstn_i};
+        end
     end
 
     logic reset;
@@ -272,10 +273,8 @@ module sargantana_wrapper(
     assign w_delay  = dyn_fpga_mem_latency[48 +: 12];
 `endif
 
-`ifdef TARGET_XILINX
     logic core_id_i;
     assign core_id_i = 'h0;
-`endif
 
     // *** Core Instance ***
 

@@ -208,7 +208,7 @@ module axi_wrapper
         .rstn_i(sargantana_rstn),
         .core_id_i(core_id_i),
         .soft_rstn_i(~debug_reset),
-        .reset_addr_i(40'h00000001000),
+        .reset_addr_i(40'h0000000100),
 
         // Bootrom ports
         .brom_req_address_o(uc_fetch_req_address),
