@@ -143,6 +143,13 @@ logic           brom_req_valid;
 
 // icache wires
 logic                     l1_request_valid;
+`ifndef HPIC_DISABLE
+logic[instance_icache_pkg::FSTATUS_SIZE_IDX-1:0] l1_request_id;
+logic                       l1_request_prefetch;
+logic[instance_icache_pkg::FSTATUS_SIZE_IDX-1:0] l2_response_id;
+logic                       l2_req_ack;
+logic                       l2_req_wok;
+`endif
 logic                     l2_response_valid;
 logic [PHY_ADDR_SIZE-1:0] l1_request_paddr;
 logic [511:0]             l2_response_data; // TODO: LOCALPARAMETERS or PKG definition
@@ -260,6 +267,16 @@ top_tile #(
  // icache ports
  .io_mem_acquire_valid(l1_request_valid),
  .io_mem_acquire_bits_addr_block(l1_request_paddr),
+  `ifdef HPIC_DISABLE
+ .io_mem_grant_inval_addr(l2_inval_addr[15:4]),
+  `else
+ .io_mem_acquire_id(l1_request_id),
+ .io_mem_acquire_prefetch(l1_request_prefetch),
+ .io_mem_grant_inval_addr(l2_inval_addr),
+
+ .noc2decoder_icache_id_i(l2_response_id),
+ .io_mem_grant_req_ack(l2_req_ack),//Warning it might cause a combinational loop
+ `endif
  .io_mem_grant_valid(l2_response_valid),
  .io_mem_grant_bits_data(l2_response_data),
  .io_mem_grant_bits_addr_beat(l2_response_seqnum),
@@ -372,7 +389,14 @@ cinco_ranch_hpdcache_subsystem_l15_adapter #(
  // {{{
  .icache_miss_valid_i(l1_request_valid),
  .icache_miss_ready_o (/*unused*/),
- .icache_miss_paddr_i(l1_request_paddr),
+ .icache_miss_paddr_i(l1_request_paddr), 
+ `ifndef HPIC_DISABLE
+ .icache_miss_id_i(l1_request_id),
+ //.icache_miss_prefetch_i(l1_request_prefetch),
+
+ .icache_miss_resp_id_o(l2_response_id),
+ .icache_miss_req_ack_o(l2_req_ack),
+ `endif //ICACHE_DOS
 
  .icache_miss_resp_valid_o(l2_response_valid),
  .icache_miss_resp_data_o(l2_response_data),

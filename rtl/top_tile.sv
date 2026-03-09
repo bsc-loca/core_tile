@@ -278,6 +278,9 @@ debug_reg_in_t                  debug_reg_in;
 debug_contr_out_t               debug_contr_out;
 debug_reg_out_t                 debug_reg_out;
 
+// *** iCache prefetcher CSR configurability ***
+logic[drac_icache_pkg::CSR_PREFETCHER_BITS-1:0] csr_icache_pref_degree;
+
 // *** Core Instance ***
 
 sargantana_subtile #(
@@ -587,8 +590,6 @@ always_ff @(posedge clk_i or negedge rstn_i) begin: ff_brom_req_addr
 end
 assign brom_req_address_o = brom_req_valid_o ? brom_req_address_d : brom_req_address_q ;
 assign brom_req_valid_o   = ifill_req_is_nc & ifill_req.valid;
-
-logic[drac_icache_pkg::CSR_PREFETCHER_BITS-1:0] csr_icache_pref_degree;
 
 top_icache_dos #(
     // It is better not to change the values from the instantiation but from the instance_hpic_pkg.sv so that they apply also to the structures if needed.
