@@ -144,9 +144,9 @@ logic           brom_req_valid;
 // icache wires
 logic                     l1_request_valid;
 `ifndef HPIC_DISABLE
-logic[instance_icache_pkg::FSTATUS_SIZE_IDX-1:0] l1_request_id;
+logic[`ICACHE_PKG_NAME::FSTATUS_SIZE_IDX-1:0] l1_request_id;
 logic                       l1_request_prefetch;
-logic[instance_icache_pkg::FSTATUS_SIZE_IDX-1:0] l2_response_id;
+logic[`ICACHE_PKG_NAME::FSTATUS_SIZE_IDX-1:0] l2_response_id;
 logic                       l2_req_ack;
 logic                       l2_req_wok;
 `endif
@@ -267,15 +267,12 @@ top_tile #(
  // icache ports
  .io_mem_acquire_valid(l1_request_valid),
  .io_mem_acquire_bits_addr_block(l1_request_paddr),
-  `ifdef HPIC_DISABLE
- .io_mem_grant_inval_addr(l2_inval_addr[15:4]),
-  `else
+  `ifndef HPIC_DISABLE
  .io_mem_acquire_id(l1_request_id),
  .io_mem_acquire_prefetch(l1_request_prefetch),
- .io_mem_grant_inval_addr(l2_inval_addr),
 
  .noc2decoder_icache_id_i(l2_response_id),
- .io_mem_grant_req_ack(l2_req_ack),//Warning it might cause a combinational loop
+ .noc2decoder_icache_noc_ack_i(l2_req_ack),//Warning it might cause a combinational loop
  `endif
  .io_mem_grant_valid(l2_response_valid),
  .io_mem_grant_bits_data(l2_response_data),

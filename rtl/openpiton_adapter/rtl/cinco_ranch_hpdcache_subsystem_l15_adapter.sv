@@ -39,6 +39,8 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
   parameter int  HPDcacheMemDataWidth                 = 128,     // L1D cacheline
   parameter logic [2:0] IcacheNoCachableSize          = 3'b011,  // 4B default
   parameter logic WriteCoalescingEn                   = 0,
+  parameter int unsigned    P_FSTATUS_SIZE_IDX   = `ICACHE_PKG_NAME::FSTATUS_SIZE_IDX ,
+
 
   parameter type hpdcache_mem_req_t                   = logic,
   parameter type hpdcache_mem_req_w_t                 = logic,
@@ -62,7 +64,13 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
   input   logic                               icache_miss_valid_i,
   output  logic                               icache_miss_ready_o,
   input   logic [IcacheAddrWidth-1:0]         icache_miss_paddr_i,
+  `ifndef HPIC_DISABLE
+  input   logic[P_FSTATUS_SIZE_IDX-1:0]       icache_miss_id_i,
+  //input   logic                             icache_miss_prefetch_i,
 
+  output logic[P_FSTATUS_SIZE_IDX-1:0]        icache_miss_resp_id_o,
+  output logic                                icache_miss_req_ack_o,
+  `endif 
   output  logic                               icache_miss_resp_valid_o,
   output  logic [IcacheMemDataWidth-1:0]      icache_miss_resp_data_o,
   output  logic                               icache_inval_valid_o,
@@ -160,12 +168,20 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
       .rdata_o(icache_miss_req_rdata)
   );
 
-  assign icache_miss_req_w   = icache_miss_valid_i | brom_req_valid_i,
+  assign icache_miss_req_w   = icache_miss_valid_i | brom_req_valid_i,         
+         `ifndef HPIC_DISABLE
+         icache_miss_req_ack_o = icache_miss_req_wok & icache_miss_valid_i,
+         `endif
          icache_miss_ready_o = icache_miss_req_wok;
 
   assign icache_miss_req_wdata.mem_req_addr      = brom_req_valid_i ? brom_req_address_i : icache_miss_paddr_i,
          icache_miss_req_wdata.mem_req_len       = '0,
          icache_miss_req_wdata.mem_req_size      = ICACHE_MEM_REQ_CL_SIZE,
+         `ifdef HPIC_DISABLE
+         icache_miss_req_wdata.mem_req_id        = 0,
+         `else 
+         icache_miss_req_wdata.mem_req_id        = icache_miss_id_i,
+         `endif
          icache_miss_req_wdata.mem_req_id        = '0,
          icache_miss_req_wdata.mem_req_command   = hpdcache_pkg::HPDCACHE_MEM_READ,
          icache_miss_req_wdata.mem_req_atomic    = hpdcache_pkg::HPDCACHE_MEM_ATOMIC_ADD, // Field is ignored since command is HPDCACHE_MEM_READ
@@ -176,6 +192,9 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
   //    I$ response
   //    {{{
   logic                                icache_miss_resp_w, icache_miss_resp_wok;
+  `ifndef HPIC_DISABLE
+  hpdcache_mem_id_t                    icache_miss_resp_id;
+  `endif  
   hpdcache_mem_resp_t                  icache_miss_resp_wdata;
 
   icache_resp_data_t                   icache_miss_resp_data_rdata;
@@ -185,6 +204,9 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
 
   //Translate the request from HPDC format to sargantana's format
   assign icache_miss_resp_valid_o = icache_miss_resp_meta_rok,
+         `ifndef HPIC_DISABLE
+         icache_miss_resp_id_o    = icache_miss_resp_id,
+         `endif
          icache_miss_resp_data_o  = icache_miss_resp_data_rdata,
          icache_inval_addr_o      = icache_miss_resp_inval_address,
          icache_inval_valid_o     = icache_miss_resp_wdata.mem_inval_icache_valid;
@@ -330,6 +352,9 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
   // IFILL
   assign icache_miss_resp_w                             = mem_resp_valid_arb[IcachePort],
          icache_miss_resp_wdata                         = mem_resp_arb[IcachePort],
+         `ifndef HPIC_DISABLE
+         icache_miss_resp_id                            = mem_resp_arb[IcachePort].mem_resp_id,
+         `endif 
          mem_resp_ready_arb[IcachePort]                 = icache_miss_resp_wok;
   // Read & AMO responses
   assign dcache_read_resp_valid_o            = mem_resp_valid_arb[DcacheAmoPort] || mem_resp_valid_arb[DcacheReadPort] || inval_valid,
