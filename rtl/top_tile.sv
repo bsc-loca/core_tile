@@ -540,18 +540,24 @@ assign icache_resp_data         = icache_resp.data       ;
 assign icache_resp_xcpt         = icache_resp.xcpt_valid ;
 // assign imem_cpu_resp_xcpt_cause = icache_resp.xcpt_cause ; // Not implemented yet
 // assign imem_cpu_resp_pma        = icache_resp.pma        ; // Not implemented yet
-assign icache_nc_valid          = icache_resp.nc_resp    ;
+assign icache_nc_valid            = icache_resp.nc_resp    ;
+// Hypervisor implementation
+assign icache_resp_guest_ppn      = icache_resp.guest_ppn ;
+assign icache_tlb_resp_guest_xcpt = icache_resp.guest_xcpt_valid;
 
 assign icache_nc_data           = {(ICACHELINE_SIZE/64){icache_resp_data[63:0]}}; // 64 bits is the size of the non-cacheable cache-line
 
 `ICACHE_PKG_NAME::trsp_t itlb_tresp;
 assign itlb_tresp = '{
-    miss       : icache_tlb_resp_miss        ,
-    ptw_v      : icache_tlb_resp_ptw_v   ,
-    ppn        : icache_tlb_resp_ppn     ,
-    xcpt_valid : icache_tlb_resp_xcpt  ,
-    xcpt_cause : '0/*itlb_imem_resp_xcpt_cause[0]*/,
-    pma        : ipma
+    miss             : icache_tlb_resp_miss        ,
+    ptw_v            : icache_tlb_resp_ptw_v   ,
+    ppn              : icache_tlb_resp_ppn     ,
+    xcpt_valid       : icache_tlb_resp_xcpt  ,
+    xcpt_cause       : '0/*itlb_imem_resp_xcpt_cause[0]*/,
+    guest_ppn        : icache_tlb_resp_guest_ppn ,
+    guest_xcpt_valid : icache_tlb_resp_guest_xcpt,
+    guest_xcpt_cause : '0/*itlb_imem_resp_guest_xcpt_cause[0]*/,
+    pma              : ipma
 };
 
 `ICACHE_PKG_NAME::treq_t itlb_treq;
