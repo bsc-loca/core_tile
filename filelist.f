@@ -1,4 +1,3 @@
-+define+ICACHE_PKG_NAME=sargantana_hpic_pkg
 -F ./rtl/core/sargantana/filelist.f
 ./rtl/dcache/rtl/src/target/cinco_ranch/cinco_ranch_hpdcache_params_pkg.sv
 -f ./rtl/dcache/rtl/hpdcache.Flist
