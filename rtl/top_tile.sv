@@ -528,7 +528,7 @@ assign lagarto_ireq = '{
     valid : icache_req_valid                ,
     kill  : icache_req_kill                 ,
     flush : icache_flush                    ,
-    xaddr : {{(XLEN-(ICACHE_VPN_SIZE+ICACHE_INDEX_SIZE)){'0}},icache_req_vpn,icache_req_idx}
+    xaddr : {{(riscv_pkg::XLEN-(ICACHE_VPN_SIZE+ICACHE_INDEX_SIZE)){'0}},icache_req_vpn,icache_req_idx}
 };
 
 `ICACHE_PKG_NAME::drsp_t icache_resp;
