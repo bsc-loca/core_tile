@@ -542,8 +542,8 @@ assign icache_resp_xcpt         = icache_resp.xcpt_valid ;
 // assign imem_cpu_resp_pma        = icache_resp.pma        ; // Not implemented yet
 assign icache_nc_valid            = icache_resp.nc_resp    ;
 // Hypervisor implementation
-assign icache_resp_guest_ppn      = icache_resp.guest_ppn ;
-assign icache_tlb_resp_guest_xcpt = icache_resp.guest_xcpt_valid;
+assign icache_resp_guest_ppn  = icache_resp.guest_ppn ;
+assign icache_resp_guest_xcpt = icache_resp.guest_xcpt_valid;
 
 assign icache_nc_data           = {(ICACHELINE_SIZE/64){icache_resp_data[63:0]}}; // 64 bits is the size of the non-cacheable cache-line
 
