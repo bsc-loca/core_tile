@@ -628,7 +628,7 @@ top_icache_dos #(
     .treq_o             ( itlb_treq     ),                 
     .fresp_i            ( ifill_resp    ),
     .freq_o             ( ifill_req     ),
-    .csr_degree_i       ( csr_icache_pref_degree) // Prefetcher deactivated
+    .csr_degree_i       ( /*csr_icache_pref_degree*/'0) // Prefetcher deactivated
 );
 //assign hpm_event_icache_miss = (io_mem_acquire_valid & noc2decoder_icache_noc_ack_i);
 //assign hpm_event_icache_imiss_kill = '0;
