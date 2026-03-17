@@ -147,6 +147,10 @@ build-simulator:
   rules:
     - !reference [.rules_default]
   script:
+    - module load verilator/5.014
+    - module load gcc
+    - verilator --version
+    - gcc --version
     - make sim
   artifacts:
     paths:
