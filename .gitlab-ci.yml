@@ -147,7 +147,7 @@ build-simulator:
   rules:
     - !reference [.rules_default]
   script:
-    - module load verilator/5.014
+    - module load verilator
     - module load gcc
     - verilator --version
     - gcc --version
