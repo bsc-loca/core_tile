@@ -35,6 +35,7 @@ waive -file {fpnew_divsqrt_th_32.sv} -regexp -comment {"FPU errors"}
 waive -file {fpnew_divsqrt_multi.sv} -regexp -comment {"FPU errors"}
 
 waive -du {  {gated_clk_cell} } -comment {"FPU errors"}
+waive -file { {cf_math_pkg.sv}} -comment {"FPU errors"}  
 
 waive -du {  {ct_vfdsu_ctrl} } -comment {"FPU errors"}
 waive -du {  {ct_vfdsu_double} } -comment {"FPU errors"}
@@ -168,3 +169,4 @@ waive -rule { {ArrayIndex} } -file {sargantana_subtile.sv} -comment {"HPDC Inter
 waive -rule { {ArrayIndex} } -file {top_tile.sv} -comment {"HPDC Interface -- Not Important"}
 
 waive -rule { {DetectUnderAndOverFlows-ML} } -du { {vfredtree} } -regexp -msg {"clog2"} -comment {"Allow width missmatch in floor_log (never reached full size usage)"}
+waive -rule { {SYNTH_5285} } -du { {vfredtree} } -comment {"clog2 with static parameter should be synthesizable, other tools do not complain"}
