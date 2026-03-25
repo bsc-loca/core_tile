@@ -1,6 +1,6 @@
 include:
   - project: 'hwdesign/ci/generic_ci'
-    ref: $GENERIC_CI_BRANCH
+    ref: $GENERIC_CI_BRANCH_RL
     file:
       - jobs_template.yml
   - project: 'hwdesign/verification/components/core-uvm'
