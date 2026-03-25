@@ -117,7 +117,7 @@ lint-vc-static:
         - report_lint.txt
 
 build-isa-tests:
-  extends: .questa_riscv
+  extends: .questa_riscv_old
   stage: building
   rules:
     - !reference [.rules_default]
@@ -129,7 +129,7 @@ build-isa-tests:
     - tb/tb_isa_tests/build
 
 build-benchmarks:
-  extends: .questa_riscv  
+  extends: .questa_riscv_old 
   stage: building
   rules:
     - !reference [.rules_default]
@@ -141,7 +141,7 @@ build-benchmarks:
     - benchmarks
 
 build-simulator:
-  extends: .questa_riscv  
+  extends: .questa_riscv_old
   stage: building
   rules:
     - !reference [.rules_default]
@@ -208,7 +208,7 @@ build-vcs:
 #    - tb/tb_torture/riscv-torture/output
 
 isa-tests:
-  extends: .questa_riscv
+  extends: .questa_riscv_old
   stage: simulation
   rules:
     - !reference [.rules_default]
@@ -219,7 +219,7 @@ isa-tests:
     - ./tb/tb_isa_tests/run-tests.py ./sim tb/tb_isa_tests/build/isa
 
 isa-tests-questa:
-  extends: .questa_riscv
+  extends: .questa_riscv_old
   stage: simulation
   rules:
     - !reference [.rules_default]
@@ -230,7 +230,7 @@ isa-tests-questa:
     - ./tb/tb_isa_tests/run-tests.sh ./simulator/questa/sim.sh tb/tb_isa_tests/build/isa
 
 benchmarks:
-  extends: .questa_riscv  
+  extends: .questa_riscv_old
   stage: simulation
   rules:
     - !reference [.rules_default]
