@@ -142,15 +142,11 @@ build-benchmarks:
     - benchmarks
 
 build-simulator:
-  extends: .questa_riscv
+  extends: .verilator
   stage: building
   rules:
     - !reference [.rules_default]
   script:
-    - module load verilator
-    - module load gcc
-    - verilator --version
-    - gcc --version
     - make sim
   artifacts:
     paths:
