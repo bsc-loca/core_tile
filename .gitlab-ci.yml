@@ -109,6 +109,7 @@ lint-vc-static:
     !reference [.rules_merge_request]
   variables:
     LOG_VC_STATIC: vc_static.$CI_PIPELINE_ID.log
+    MAX_ERRORS: 3
   script:
     - make lint-vc 2>&1 | tee ${LOG_VC_STATIC}
     - !reference [.scripts, vc_static_check_errors]
