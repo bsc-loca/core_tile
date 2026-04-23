@@ -11,8 +11,9 @@
  */
 
 `include "hpdcache_typedef.svh"
+`include "axi/assign.svh"
 
-import fpga_pkg::*, hpdcache_pkg::*;
+import fpga_pkg::*, hpdcache_pkg::*, drac_pkg::*;
 
 module axi_wrapper
 #(
@@ -21,10 +22,15 @@ module axi_wrapper
     input logic clk_i,
     input logic rstn_i,
 
+    input logic [63:0] core_id_i,
     AXI_BUS.Master axi_o,
 
     input logic time_irq_i,
     input logic [63:0] time_i,
+
+`ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+    output logic [63:0]                     dyn_fpga_mem_latency_o,
+`endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
 
     // JTAG
     input logic tck,
@@ -38,6 +44,7 @@ module axi_wrapper
 
     localparam NUM_HARTS = 1;
 
+    logic                    sargantana_rstn;
     // Declare types for HPDCache memory interface
     parameter type hpdcache_mem_addr_t = logic [DracCfg.MemAddrWidth-1:0];
     parameter type hpdcache_mem_id_t = logic [DracCfg.MemIDWidth-1:0];
@@ -167,7 +174,6 @@ module axi_wrapper
     // Debug Module Interface
 
     // DM -> Core
-    logic                    sargantana_rstn;
     logic                    debug_reset;
     logic    [NUM_HARTS-1:0] debug_contr_halt_req;
     logic    [NUM_HARTS-1:0] debug_contr_resume_req;
@@ -200,6 +206,7 @@ module axi_wrapper
     top_tile core_inst (
         .clk_i(clk_i),
         .rstn_i(sargantana_rstn),
+        .core_id_i(core_id_i),
         .soft_rstn_i(~debug_reset),
         .reset_addr_i(40'h0000000100),
 
@@ -239,6 +246,10 @@ module axi_wrapper
         .mem_resp_write_ready_o(mem_resp_write_ready),
         .mem_resp_write_valid_i(mem_resp_write_valid),
         .mem_resp_write_i(mem_resp_write),
+
+`ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+        .dyn_fpga_mem_latency_o(dyn_fpga_mem_latency_o),
+`endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
 
         // Debug module
         .debug_contr_halt_req_i(debug_contr_halt_req[0]),

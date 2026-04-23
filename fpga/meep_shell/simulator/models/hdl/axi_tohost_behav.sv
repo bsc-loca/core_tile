@@ -50,7 +50,7 @@ module axi_tohost_behav (
             last_write_valid <= 1'b0;
         end else begin
             if (axi.w_valid && axi.w_ready) begin
-                last_write_data <= axi.w_valid;
+                last_write_data <= axi.w_data;
                 last_write_valid <= 1'b1;
             end else if (int_valid) begin
                 last_write_data <= 0;

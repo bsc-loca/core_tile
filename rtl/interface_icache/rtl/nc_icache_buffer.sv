@@ -46,7 +46,7 @@ module nc_icache_buffer
 
     // L2 Request (L1 Bypass)
     output logic                              req_nc_valid_o,
-    output logic  [39:0]                      req_nc_vaddr_o,
+    output phy_addr_t                         req_nc_paddr_o,
 
     // L2 Response
     input  logic                              l2_grant_valid_i,
@@ -61,8 +61,8 @@ logic same_addr_req         ;
 logic waiting               ;
 logic is_in_buffer          ;
 
-logic [39:0] buffer_paddr_d  , buffer_paddr_q  ;
-logic [39:0] paddr_infly_d   , paddr_infly_q   ;
+phy_addr_t buffer_paddr_d  , buffer_paddr_q  ;
+phy_addr_t paddr_infly_d   , paddr_infly_q   ;
 logic [L2_NC_DATA_WIDTH-1:0] icache_ncline_d , icache_ncline_q ;
 
 logic req_nc_valid_d , req_nc_valid_q ;
@@ -86,6 +86,9 @@ nc_state_t state_nc, next_state_nc;
 //For non-cacheable regions, we implement a bypaass directly to the NoC.
 //In the L1 instruction cache we don't save data from non-cacheable regions.
 
+// IMPORTANT: THIS MODULE ASSUMES THAT ALL UNCACHEABLE ACCESSES ARE DONE IN PHYSICAL MEMORY
+// ACCESSES TO UNCACHEABLE REGIONS USING VIRTUAL MEMORY IS NOT SUPPORTED
+
 //------------------------------------------
 // Stage 1
 //------------------------------------------
@@ -100,7 +103,7 @@ assign req_icache_valid = (addr_is_nc & (~en_translation_i)) ? 1'b0 : core_req_v
 assign req_nc_valid_d = (((addr_is_nc & (~en_translation_i)) & is_inside_mapped_sections(DRAC_CFG, {{{64-drac_pkg::PHY_ADDR_SIZE}{1'b0}},core_req_addr_i})) & (~nc_kill_d)) ? core_req_valid_i : 1'b0 ;
 
 // nc addr in-fly register buffer
-assign paddr_infly_d = req_nc_valid_d ? core_req_addr_i : paddr_infly_q ;
+assign paddr_infly_d = req_nc_valid_d ? core_req_addr_i[PHY_ADDR_SIZE-1:0] : paddr_infly_q ;
 
 // invalidate and kill requests
 assign nc_kill_d = core_req_kill_i | core_req_invalidate_i ;
@@ -110,7 +113,7 @@ assign nc_kill_d = core_req_kill_i | core_req_invalidate_i ;
 //------------------------------------------
 
 // the instruction is in the buffer
-assign same_addr_req  = paddr_infly_q[39:3] == buffer_paddr_q[39:3] ;
+assign same_addr_req  = paddr_infly_q[PHY_ADDR_SIZE-1:3] == buffer_paddr_q[PHY_ADDR_SIZE-1:3] ;
 assign is_in_buffer   = req_nc_valid_q & same_addr_req ;
 
 // non-cachable register buffer
@@ -149,7 +152,7 @@ end
 
 
 // non-cacheable request valid to L2
-assign req_nc_vaddr_o  = {paddr_infly_q[39:3],3'b0};
+assign req_nc_paddr_o  = {paddr_infly_q[PHY_ADDR_SIZE-1:3],3'b0};
 
 // req cached to the instruction cache
 assign icache_req_valid_o            = req_icache_valid                 ;

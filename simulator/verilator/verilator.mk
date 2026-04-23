@@ -3,7 +3,7 @@ VERISIM_DIR = $(SIM_DIR)/verilator
 
 TOP_MODULE = sim_top
 
-SIMULATOR = $(PROJECT_DIR)/sim
+SIM_BIN = $(PROJECT_DIR)/sim
 
 FLAGS ?= 
 
@@ -14,7 +14,7 @@ VERI_FLAGS = \
 	$(SIM_DIR)/models/cxx/dpi_checkpoint.cpp \
 	--top-module $(TOP_MODULE) \
 	--unroll-count 256 \
-	-Wno-lint -Wno-style -Wno-STMTDLY -Wno-fatal \
+	-Wno-lint -Wno-style -Wno-STMTDLY -Wno-BLKANDNBLK -Wno-fatal \
 	-CFLAGS "-std=c++14 -I$(SPIKE_DIR)/riscv-isa-sim/" \
 	-LDFLAGS "-pthread -L$(SPIKE_DIR)/build/ -Wl,-rpath=$(SPIKE_DIR)/build/ -ldisasm -ldl" \
 	--exe --savable --no-timing \
@@ -33,11 +33,11 @@ VERI_OPTI_FLAGS = -O2 -CFLAGS "-O2"
 SIM_CPP_SRCS = $(wildcard $(SIM_DIR)/models/cxx/*.cpp)
 SIM_VERILOG_SRCS = $(shell cat $(FILELIST)) $(wildcard $(SIM_DIR)/models/hdl/*.sv)
  
-$(SIMULATOR): $(SIM_CPP_SRCS) bootrom.hex libdisasm $(SIM_DIR)/sim_top.sv
-		$(VERILATOR) --cc $(VERI_FLAGS) $(VERI_OPTI_FLAGS) -o $(SIMULATOR)
-		$(MAKE) -C $(VERISIM_DIR)/build -f V$(TOP_MODULE).mk $(SIMULATOR)
+$(SIM_BIN): $(SIM_CPP_SRCS) bootrom.hex libdisasm $(SIM_DIR)/sim_top.sv
+		$(VERILATOR) --cc $(VERI_FLAGS) $(VERI_OPTI_FLAGS) -o $(SIM_BIN)
+		$(MAKE) -C $(VERISIM_DIR)/build -f V$(TOP_MODULE).mk $(SIM_BIN)
 
 clean-simulator:
-		rm -rf $(VERISIM_DIR)/build $(SIMULATOR)
+		rm -rf $(VERISIM_DIR)/build $(SIM_BIN)
 
 clean:: clean-simulator

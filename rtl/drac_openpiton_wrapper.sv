@@ -5,6 +5,8 @@
  *  History      :
  */
 
+`include "hpdcache_typedef.svh"
+
  module drac_openpiton_wrapper
  import drac_pkg::*; import hpdcache_pkg::*; import wt_cache_pkg::*;
  #(
@@ -39,7 +41,7 @@
  `ifdef PITON_CINCORANCH
  input   logic [1:0]             boot_main_id_i,
  `endif  // Custom for CincoRanch
- input addr_t                    boot_addr_i,
+ input phy_addr_t                boot_addr_i,
  `ifdef EXTERNAL_HPM_EVENT_NUM
  input logic [`EXTERNAL_HPM_EVENT_NUM-1: 0]  external_hpm_i,
  `endif
@@ -146,7 +148,7 @@ logic [PHY_ADDR_SIZE-1:0] l1_request_paddr;
 logic [511:0]             l2_response_data; // TODO: LOCALPARAMETERS or PKG definition
 logic [1:0]               l2_response_seqnum;
 logic                     l2_inval_request;
-logic [39:0]              l2_inval_addr;
+logic [PHY_ADDR_SIZE-1:0] l2_inval_addr;
 assign l2_response_seqnum = '0;
 
 //      Miss read interface
@@ -262,7 +264,7 @@ top_tile #(
  .io_mem_grant_bits_data(l2_response_data),
  .io_mem_grant_bits_addr_beat(l2_response_seqnum),
  .io_mem_grant_inval(l2_inval_request),
- .io_mem_grant_inval_addr(l2_inval_addr[15:4]),
+ .io_mem_grant_inval_addr(l2_inval_addr),
 
  // dmem ports
 

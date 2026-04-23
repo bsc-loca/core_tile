@@ -1,9 +1,12 @@
 include:
   - project: 'hwdesign/ci/generic_ci'
-    ref: $GENERIC_CI_BRANCH
+    ref: $GENERIC_CI_BRANCH_RL
     file:
       - jobs_template.yml
-      - badges.yml
+  - project: 'hwdesign/verification/components/core-uvm'
+    ref: master
+    file:
+      - script/ci/jobs.yml
 
 ## This workflow avoids duplicate pipelines when there is an open merge request (commit_branch + merge_request) 
 ## so only the open merge request will be executed and not the commit_branch. PIPELINE_BRANCH will be used to refer to
@@ -31,34 +34,6 @@ workflow:
 .rules_merge_request:
     - !reference [.rules, only_merge]
 
-.rules_uvm_smoke:
-    - if: '$CI_PIPELINE_SOURCE == "pipeline"'
-      when: always
-    - if: '$do_test_uvm || $CI_COMMIT_MESSAGE =~ /#do_test_uvm/'
-      when: always
-    - !reference [.rules_uvm_scheduled]
-    - !reference [.rules_merge_request]
-
-.rules_uvm_scheduled:
-  - if: (($CI_PIPELINE_SOURCE == "schedule" || 
-          $CI_PIPELINE_SOURCE == "web" || 
-          $CI_PIPELINE_SOURCE == "pipeline") && $REGRESS_TYPE &&
-         ($testname == null || 
-          $testname == "base_rvv" && $TESTS_NAMES =~ "/\[base_rvv\]/"))
-    when: always
-    variables:
-      N_TESTS: $GENERATED_TESTS_RVV
-  - if: (($CI_PIPELINE_SOURCE == "schedule" || 
-          $CI_PIPELINE_SOURCE == "web" || 
-          $CI_PIPELINE_SOURCE == "pipeline") && $REGRESS_TYPE &&
-         ($testname == null || 
-          $testname == "base_scalar" && $TESTS_NAMES =~ "/\[base_scalar\]/" ||
-          $testname == "base_scalar_with_bitmanip" && $TESTS_NAMES =~ "/\[base_scalar_with_bitmanip\]/" ||
-          $testname == "riscv_total_random_test" && $TESTS_NAMES =~ "/\[riscv_total_random_test\]/"))
-    when: always
-    variables:
-      N_TESTS: $GENERATED_TESTS_SCALAR
-
 .rules_synthesis:
   - if: ($do_synthesis && ($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web"))
 
@@ -79,6 +54,11 @@ stages:
   - fpga
   - coverage
   - upload
+
+variables:
+  RTL_PATH: ${CI_PROJECT_DIR}
+  DV_PATH: ${CI_PROJECT_DIR}/verif/core_uvm
+  #CORE_UVM_BRANCH: to_override_core_uvm_branch
 
 lint-verilator:
   extends: .verilator
@@ -122,20 +102,6 @@ lint-dc-elab:
     paths:
         - ${LOG_DC_SHELL}
 
-lint-fc-elab:
-  extends: .fc_shell
-  variables:
-    MAX_WARNINGS: 602
-  stage: linting
-  rules:
-    !reference [.rules_merge_request]
-  script:
-    - make fc_elab 2>&1 | tee ${LOG_FC_SHELL}
-    - !reference [.scripts, fc_elab_check_errors]
-  artifacts:
-    paths:
-        - ${LOG_FC_SHELL}
-
 lint-vc-static:
   extends: .vc_static  
   stage: linting
@@ -143,6 +109,7 @@ lint-vc-static:
     !reference [.rules_merge_request]
   variables:
     LOG_VC_STATIC: vc_static.$CI_PIPELINE_ID.log
+    MAX_ERRORS: 3
   script:
     - make lint-vc 2>&1 | tee ${LOG_VC_STATIC}
     - !reference [.scripts, vc_static_check_errors]
@@ -163,7 +130,7 @@ build-isa-tests:
     - tb/tb_isa_tests/build
 
 build-benchmarks:
-  extends: .questa_riscv  
+  extends: .questa_riscv 
   stage: building
   rules:
     - !reference [.rules_default]
@@ -175,15 +142,11 @@ build-benchmarks:
     - benchmarks
 
 build-simulator:
-  extends: .questa_riscv  
+  extends: .verilator
   stage: building
   rules:
     - !reference [.rules_default]
   script:
-    - module load verilator
-    - module load gcc
-    - verilator --version
-    - gcc --version
     - make sim
   artifacts:
     paths:
@@ -192,28 +155,13 @@ build-simulator:
     - bootrom.hex
 
 build-uvm:
-  extends: .questa_riscv
+  extends: .uvm-build
+  variables:
+    SIMULATOR: "vsim"
   stage: building
   rules:
     - !reference [.rules_uvm_scheduled]
     - !reference [.rules_uvm_smoke]
-  variables:
-    CORE_TYPE: sargantana
-    SPIKE_URL_BASE: https://gitlab.bsc.es/api/v4/projects/1982/packages/generic/ft-illegal-tval/0.0.1/spike
-  script:
-    - make clone_dv
-    - make clone_ci_scripts
-    - cd verif/core_uvm
-    - make clone_selected_tests
-    - module load verilator
-    - verilator --version
-    - module load gcc
-    - gcc --version
-    - make compile_all SARGANTANA=enable RTLDIR=$(realpath ../../) ${COVERAGE_ARG} INTERRUPTS=enable
-  artifacts:
-    untracked: true
-    paths:
-      - verif/core_uvm
 
 build-vcs:
   extends: .vcs_riscv
@@ -267,8 +215,19 @@ isa-tests:
   script:
     - ./tb/tb_isa_tests/run-tests.py ./sim tb/tb_isa_tests/build/isa
 
+isa-tests-questa:
+  extends: .questa_riscv
+  stage: simulation
+  rules:
+    - !reference [.rules_default]
+  dependencies:
+    - build-simulator
+    - build-isa-tests
+  script:
+    - ./tb/tb_isa_tests/run-tests.sh ./simulator/questa/sim.sh tb/tb_isa_tests/build/isa
+
 benchmarks:
-  extends: .questa_riscv  
+  extends: .questa_riscv
   stage: simulation
   rules:
     - !reference [.rules_default]
@@ -320,61 +279,12 @@ vcs:
 #    paths:
 #    - tb/tb_torture/signatures
 
-.riscv_dv_generate: &riscv_dv_generate
-  - echo $BASE_TESTS
-  - echo $N_ITERATIONS
-  - echo $N_TESTS
-  - echo $core
-  - source ci_scripts/generate_tests.sh $N_ITERATIONS "python3 -u ./riscv-dv/run.py -tn $testname -ct ./riscv-dv/BSC-targets/sargantana --isa rv64gv_zba_zbb_zbs --mabi lp64d --gen_timeout 18000 -si questa -o ./generated_tests -i $N_TESTS -s gen,gcc_compile"
-   
 
-uvm-random-regression:
-  extends: .questa_riscv
-  stage: simulation
-  parallel:
-    matrix:
-      - testname: [riscv_total_random_test, base_scalar, base_scalar_with_bitmanip, base_rvv]
-  rules:
-    - !reference [ .rules_uvm_scheduled ]
-  timeout: 8h
-  variables:
-    RUNNER_SCRIPT_TIMEOUT: 7h30m
-    BADGE_GEN: "true"    
-    CORE_TYPE: sargantana
-  script:
-    - cd verif/core_uvm
-    - *riscv_dv_generate
-    - python3 -u run.py -r riscv-dv_regression.yaml ${COVERAGE} --interrupts ${TIMEOUT_RANDOM} || result=$(echo $?)
-    - mv ./regress/results/sargantana_random_riscvdv_tests ./regress/results/sargantana_random_riscvdv_${testname}
-    - if [ ! -z $result ];then exit ${result}; fi
-  artifacts:
-    untracked: true
-    paths:
-        - verif/core_uvm/sim/build/comp_transcript
-        - verif/core_uvm/regress/results/sargantana_random_riscvdv_${testname}/*
-        - verif/core_uvm/generated_tests_*/*
-        - verif/core_uvm/tests/build/generated_tests/*
-                                                   
 uvm-regression:
-  extends: .questa_riscv
+  extends: .uvm-regression
   stage: simulation
-  parallel:
-    matrix:
-      - regression_type: [isa_tests, rvv_tests, selected_tests]
   rules:
     - !reference [.rules_uvm_smoke]
-  variables:
-    CORE_TYPE: sargantana
-    BADGE_GEN: "true"
-  script:
-    - cd verif/core_uvm
-    - python3 -u run.py -r ${regression_type}_sargantana.yaml ${COVERAGE} ${IGNORE_EXCLUSION} ${TIMEOUT_REGRESSION}
-  artifacts:
-    untracked: true
-    paths:
-        - verif/core_uvm/sim/build/comp_transcript
-        - verif/core_uvm/regress/results
-
 dc-synthesis:
   extends: .dc_shell
   stage: synthesis
@@ -393,27 +303,26 @@ dc-synthesis:
     paths:
       - dc_syn.$CI_PIPELINE_ID.log
 
-#fpga-prepare:
-#  extends: .basic_no_clone
-#  stage: fpga
-#  rules:
-#    - !reference [.rules_merge_request]
-#    - !reference [.rules_fpga]
-#  needs: []
-#  artifacts:
-#    reports:
-#      dotenv: vars.env
-#  script:
-#    - echo boot_bsc_linux_url=$BOOT_BSC_LINUX_URL > vars.env
-#    - cat vars.env
+fpga-prepare:
+  extends: .basic_no_clone
+  stage: fpga
+  rules:
+    - !reference [.rules_merge_request]
+    - !reference [.rules_fpga]
+  needs: []
+  artifacts:
+    reports:
+      dotenv: vars.env
+  script:
+    - echo boot_bsc_linux_url=$BOOT_BSC_LINUX_URL > vars.env
+    - cat vars.env
 
 fpga:
   stage: fpga
   rules:
     - !reference [.rules_merge_request]
     - !reference [.rules_fpga]
-  #needs: [fpga-prepare]
-  needs: []
+  needs: [fpga-prepare]
   variables:
     COMMIT_SHA: $CI_COMMIT_SHA
     COMMIT_REF: $CI_COMMIT_REF_NAME
@@ -423,22 +332,3 @@ fpga:
     project: hwdesign/fpga/integration-lab/fpga-shell
     branch: ft/ci_for_sargantana_fixed
     strategy: depend
-
-publish_badges:
-  extends: .publish_badges
-  stage: upload
-  rules:
-    - !reference [.rules_uvm_scheduled]
-    - !reference [.rules_uvm_smoke]
-
-coverage-report:
-  extends: .coverage-report
-  stage: coverage
-  variables:
-    ARGS_OVERALL_COVERAGE: -f ./verif/core_uvm/regress/results/html_report/files/z1.js -d /top_tb/ka_th
-    CI_SCRIPTS_PATH: verif/core_uvm/ci_scripts
-    RESULTS_PATH: verif/core_uvm/regress/results
-    PUBLISH_PATH: /nfs/verification/sargantana-dv
-  rules:
-    - !reference [.rules_uvm_scheduled]
-    - !reference [.rules_uvm_smoke]

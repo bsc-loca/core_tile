@@ -24,7 +24,7 @@ module sargantana_subtile
     input logic                 clk_i,
     input logic                 rstn_i,
     input logic                 soft_rstn_i,
-    input addr_t                reset_addr_i,
+    input phy_addr_t            reset_addr_i,
     input logic [63:0]          core_id_i,
 
 //------------------------------------------------------------------------------------
@@ -65,12 +65,16 @@ module sargantana_subtile
     input  logic                            icache_resp_valid_i,
     input  logic [ICACHELINE_SIZE-1:0]      icache_resp_data_i,
     input  logic                            icache_resp_xcpt_i,
+    input  logic                            icache_resp_guest_xcpt_i,
+    input  logic [ICACHE_PPN_SIZE-1:0]      icache_resp_guest_ppn_i,
 
     // iTLB interface
     output logic                            icache_tlb_resp_miss_o,
     output logic                            icache_tlb_resp_ptw_v_o,
     output logic [ICACHE_PPN_SIZE-1:0]      icache_tlb_resp_ppn_o,
+    output logic [ICACHE_PPN_SIZE-1:0]      icache_tlb_resp_guest_ppn_o,
     output logic                            icache_tlb_resp_xcpt_o,
+    output logic                            icache_tlb_resp_guest_xcpt_o,
 
     //- To MMU
     input  logic                            icache_tlb_req_valid_i,
@@ -128,6 +132,10 @@ module sargantana_subtile
     output logic  [63:0]        pcr_req_core_id_o   // core id of the tile
 `endif // CONF_SARGANTANA_ENABLE_PCR
 
+`ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+    output logic [63:0]                     dyn_fpga_mem_latency_o,
+`endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+
 //-----------------------------------------------------------------------------
 // INTERRUPTS
 //-----------------------------------------------------------------------------
@@ -152,7 +160,9 @@ req_cpu_dcache_t req_datapath_dcache_interface;
 
 // Response CSR Interface to datapath
 logic [1:0] priv_lvl;
+logic v_mode;
 logic en_translation;
+logic en_g_translation;
 
 // *** Memory Management Unit ***
 
@@ -166,17 +176,22 @@ tlb_cache_comm_t                 itlb_icache_comm;
 
 assign icache_itlb_comm.req.valid       = icache_tlb_req_valid_i;
 assign icache_itlb_comm.req.asid        = 1'b0;
+assign icache_itlb_comm.req.vmid        = 1'b0;
 assign icache_itlb_comm.req.vpn         = icache_tlb_req_vpn_i;
 assign icache_itlb_comm.req.passthrough = 1'b0;
 assign icache_itlb_comm.req.instruction = 1'b1;
 assign icache_itlb_comm.req.store       = 1'b0;
 assign icache_itlb_comm.priv_lvl        = priv_lvl;
-assign icache_itlb_comm.vm_enable       = en_translation;
+assign icache_itlb_comm.vm_enable       = en_translation | en_g_translation;
+assign icache_itlb_comm.vs_enable       = en_translation && v_mode;
+assign icache_itlb_comm.g_enable        = en_g_translation && v_mode;
 
 assign icache_tlb_resp_miss_o  = itlb_icache_comm.resp.miss;
 assign icache_tlb_resp_ptw_v_o = itlb_icache_comm.tlb_ready;
 assign icache_tlb_resp_ppn_o   = itlb_icache_comm.resp.ppn[ICACHE_PPN_SIZE-1:0];
+assign icache_tlb_resp_guest_ppn_o = itlb_icache_comm.resp.guest_ppn[ICACHE_PPN_SIZE-1:0];
 assign icache_tlb_resp_xcpt_o  = itlb_icache_comm.resp.xcpt.fetch;
+assign icache_tlb_resp_guest_xcpt_o = itlb_icache_comm.resp.guest_xcpt.fetch;
 
 // *** Core Instance ***
 
@@ -203,7 +218,9 @@ top_drac #(
     .req_icache_ready_i(req_icache_ready),
     .req_cpu_icache_o(req_datapath_icache_interface),
     .en_translation_o(en_translation),
+    .en_g_translation_o(en_g_translation),
     .priv_lvl_o(priv_lvl),
+    .v_mode_o(v_mode),
     .resp_icache_cpu_i(resp_icache_interface_datapath),
 
     // dCache Interface
@@ -242,6 +259,10 @@ top_drac #(
     .pcr_req_core_id_o,   // core id of the tile
 `endif // CONF_SARGANTANA_ENABLE_PCR
 
+`ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+    .dyn_fpga_mem_latency_o(dyn_fpga_mem_latency_o),
+`endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+
     // Interrupts
     .time_irq_i,
     .irq_i,
@@ -250,6 +271,8 @@ top_drac #(
 );
 
 // *** iCache Interface ***
+logic [drac_pkg::PPN_SIZE-1:0]      icache_resp_guest_ppn_int;
+assign icache_resp_guest_ppn_int = {'0, icache_resp_guest_ppn_i};
 
 icache_interface icache_interface_inst(
     .clk_i(clk_i),
@@ -260,6 +283,8 @@ icache_interface icache_interface_inst(
     .icache_resp_valid_i        ( icache_resp_valid_i ),
     .icache_req_ready_i         ( icache_resp_ready_i ),
     .tlb_resp_xcp_if_i          ( icache_resp_xcpt_i  ),
+    .tlb_resp_guest_xcp_if_i    ( icache_resp_guest_xcpt_i ),
+    .icache_req_guest_ppn_i     ( icache_resp_guest_ppn_int ),
     .en_translation_i           ( en_translation      ),
 
     // Outputs ICache

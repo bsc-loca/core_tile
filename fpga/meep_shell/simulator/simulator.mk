@@ -14,7 +14,7 @@ MEEP_VERI_FLAGS = \
 	-F $(MEEP_SIM_DIR)/filelist.f \
 	--top-module sim_meep_top \
 	--unroll-count 256 \
-	-Wno-lint -Wno-style -Wno-STMTDLY -Wno-fatal \
+	-Wno-lint -Wno-style -Wno-STMTDLY -Wno-BLKANDNBLK -Wno-fatal \
 	-CFLAGS "-std=c++14 -I$(SPIKE_DIR)/riscv-isa-sim/" \
 	-LDFLAGS "-pthread -L$(SPIKE_DIR)/build/ -Wl,-rpath=$(SPIKE_DIR)/build/ -ldisasm -ldl" \
 	--exe \

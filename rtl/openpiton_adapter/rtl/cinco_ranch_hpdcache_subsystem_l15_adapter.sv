@@ -47,7 +47,6 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
   parameter type hpdcache_mem_id_t                    = logic,
   parameter type hpdcache_mem_addr_t                  = logic,
   parameter type req_portid_t                         = logic,
-  parameter type hpdcache_req_addr_t                  = logic,
   parameter type hpdcache_nline_t                     = logic
 )
 //  }}}
@@ -182,7 +181,7 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
   icache_resp_data_t                   icache_miss_resp_data_rdata;
 
   logic                                icache_miss_resp_meta_rok;
-  hpdcache_req_addr_t                  icache_miss_resp_inval_address;
+  logic [IcacheAddrWidth-1:0]          icache_miss_resp_inval_address;
 
   //Translate the request from HPDC format to sargantana's format
   assign icache_miss_resp_valid_o = icache_miss_resp_meta_rok,
@@ -193,7 +192,7 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
   assign icache_miss_resp_meta_rok = icache_miss_resp_w,
          icache_miss_resp_wok = 1'b1,
          icache_miss_resp_data_rdata = icache_miss_resp_wdata.mem_resp_r_data[IcacheMemDataWidth-1:0],
-         icache_miss_resp_inval_address = hpdcache_req_addr_t'(icache_miss_resp_wdata.mem_inval);
+         icache_miss_resp_inval_address = icache_miss_resp_wdata.mem_inval[IcacheAddrWidth-1:0];
   //    }}}
   //  }}}
 

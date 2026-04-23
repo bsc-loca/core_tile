@@ -71,6 +71,8 @@ function automatic hpdcache_pkg::hpdcache_cfg_t sargBuildHPDCCfg(input drac_pkg:
         wbEn: DracCfg.DCacheWTNotWB ? 1'b0 : 1'b1,
         // Enable low-latency mode at the cost of structural hazards on load-after-stores
         lowLatency: 1'b1
+        // Executes cmo operation locally before propagating the request to next level in memory
+        //cmoLocalOp: 1'b0
     };
 
     return hpdcache_pkg::hpdcacheBuildConfig(HPDcacheUserCfg);

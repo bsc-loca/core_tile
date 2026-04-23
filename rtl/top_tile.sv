@@ -48,7 +48,7 @@ module top_tile
     `ifdef INTEL_FSCAN_CTECH
     input logic                 fscan_rstbypen,//AK
     `endif // INTEL_FSCAN_CTECH
-    input addr_t                reset_addr_i,
+    input phy_addr_t            reset_addr_i,
     input logic [63:0]          core_id_i,
     `ifdef PITON_CINCORANCH
     input logic [1:0]           boot_main_id_i,
@@ -78,11 +78,11 @@ module top_tile
 //------------------------------------------------------------------------------------
     
     //- From L2
-    input  logic                   io_mem_grant_valid,
-    input  logic [511:0]           io_mem_grant_bits_data,
-    input  logic [1:0]             io_mem_grant_bits_addr_beat,
-    input  logic                   io_mem_grant_inval,
-    input  logic [11:0]            io_mem_grant_inval_addr,
+    input  logic                     io_mem_grant_valid,
+    input  logic [511:0]             io_mem_grant_bits_data,
+    input  logic [1:0]               io_mem_grant_bits_addr_beat,
+    input  logic                     io_mem_grant_inval,
+    input  logic [PHY_ADDR_SIZE-1:0] io_mem_grant_inval_addr,
     
 
 //----------------------------------------------------------------------------------
@@ -153,7 +153,7 @@ module top_tile
 //-----------------------------------------------------------------------------
 // BOOTROM CONTROLER INTERFACE
 //-----------------------------------------------------------------------------
-    output logic [39:0]         brom_req_address_o  ,
+    output phy_addr_t           brom_req_address_o  ,
     output logic                brom_req_valid_o    ,
 
 `ifdef CONF_SARGANTANA_ENABLE_PCR
@@ -175,6 +175,10 @@ module top_tile
     output logic  [2:0]         pcr_req_we_o,       // Cmd of the petition
     output logic  [63:0]        pcr_req_core_id_o,  // core id of the tile
 `endif // CONF_SARGANTANA_ENABLE_PCR
+
+`ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+    output logic [63:0]                     dyn_fpga_mem_latency_o,
+`endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
 
 //-----------------------------------------------------------------------------
 // INTERRUPTS
@@ -223,6 +227,8 @@ logic                            icache_resp_ready;
 logic                            icache_resp_valid;
 logic [ICACHELINE_SIZE-1:0]      icache_resp_data;
 logic                            icache_resp_xcpt;
+logic                            icache_resp_guest_xcpt;
+logic [ICACHE_PPN_SIZE-1:0]      icache_resp_guest_ppn;
 
 logic                            nc_fetch_resp_valid;
 logic [ICACHELINE_SIZE-1:0]      nc_fetch_resp_data;
@@ -233,6 +239,8 @@ logic                            icache_tlb_resp_miss;
 logic                            icache_tlb_resp_ptw_v;
 logic [ICACHE_PPN_SIZE-1:0]      icache_tlb_resp_ppn;
 logic                            icache_tlb_resp_xcpt;
+logic                            icache_tlb_resp_guest_xcpt;
+logic [ICACHE_PPN_SIZE-1:0]      icache_tlb_resp_guest_ppn;
 
 logic                            icache_tlb_req_valid;
 logic [ICACHE_VPN_SIZE-1:0]      icache_tlb_req_vpn;
@@ -306,11 +314,15 @@ sargantana_subtile #(
     .icache_resp_valid_i(icache_resp_valid | icache_nc_valid),
     .icache_resp_data_i(icache_nc_valid ? icache_nc_data : icache_resp_data),
     .icache_resp_xcpt_i(icache_resp_xcpt),
+    .icache_resp_guest_xcpt_i(icache_resp_guest_xcpt),
+    .icache_resp_guest_ppn_i(icache_resp_guest_ppn),
 
     .icache_tlb_resp_miss_o(icache_tlb_resp_miss),
     .icache_tlb_resp_ptw_v_o(icache_tlb_resp_ptw_v),
     .icache_tlb_resp_ppn_o(icache_tlb_resp_ppn),
+    .icache_tlb_resp_guest_ppn_o(icache_tlb_resp_guest_ppn),
     .icache_tlb_resp_xcpt_o(icache_tlb_resp_xcpt),
+    .icache_tlb_resp_guest_xcpt_o(icache_tlb_resp_guest_xcpt),
 
     .icache_tlb_req_valid_i(icache_tlb_req_valid),
     .icache_tlb_req_vpn_i(icache_tlb_req_vpn),
@@ -353,6 +365,10 @@ sargantana_subtile #(
     .pcr_req_core_id_o(pcr_req_core_id_o),   // core id of the tile
 `endif // CONF_SARGANTANA_ENABLE_PCR
 
+`ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+    .dyn_fpga_mem_latency_o(dyn_fpga_mem_latency_o),
+`endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+
     // Interrupts
     .time_irq_i(time_irq_i), // timer interrupt
     .irq_i(irq_i),      // external interrupt in
@@ -388,7 +404,9 @@ assign debug_reg_rf_rdata_o         = debug_reg_out.rf_rdata;
 
 // *** iCache ***
 
-nc_icache_buffer nc_icache_bf (
+nc_icache_buffer #(
+    .DRAC_CFG(DracCfg)
+) nc_icache_bf (
     .clk_i,
     .rstn_i,
 
@@ -405,7 +423,7 @@ nc_icache_buffer nc_icache_bf (
     .icache_req_valid_o(icache_req_valid),
 
     .req_nc_valid_o(brom_req_valid_o),
-    .req_nc_vaddr_o(brom_req_address_o),
+    .req_nc_paddr_o(brom_req_address_o),
 
     .l2_grant_valid_i(io_mem_grant_valid & ~io_mem_grant_inval),
     .l2_resp_data_i(io_mem_grant_bits_data)
@@ -436,13 +454,17 @@ sargantana_top_icache # (
     .icache_resp_ready_o        (icache_resp_ready),
     .icache_resp_valid_o        (icache_resp_valid),
     .icache_resp_data_o         (icache_resp_data),
+    .icache_resp_guest_ppn_o    (icache_resp_guest_ppn),
     .icache_resp_xcpt_o         (icache_resp_xcpt),
     .icache_resp_vaddr_o        ( /* unused */),
+    .icache_resp_xcpt_g_o       (icache_resp_guest_xcpt),
 
     .mmu_tresp_miss_i           (icache_tlb_resp_miss),
     .mmu_tresp_ptw_v_i          (icache_tlb_resp_ptw_v),
     .mmu_tresp_ppn_i            (icache_tlb_resp_ppn),
+    .mmu_tresp_guest_ppn_i      (icache_tlb_resp_guest_ppn),
     .mmu_tresp_xcpt_i           (icache_tlb_resp_xcpt),
+    .mmu_tresp_xcpt_g_i         (icache_tlb_resp_guest_xcpt),
 
     .icache_treq_valid_o        (icache_tlb_req_valid),
     .icache_treq_vpn_o          (icache_tlb_req_vpn),

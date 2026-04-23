@@ -25,11 +25,12 @@ CI_SCRIPTS_DIR = $(CORE_UVM_DIR)/ci_scripts
 CI_SCRIPTS_BRANCH ?= main
 
 export HPDCACHE_DIR = $(PROJECT_DIR)/rtl/dcache
+SIMULATOR ?= vsim
 
 # *** Simulators ***
 include simulator/simulator.mk
 
-sim: $(SIMULATOR)
+sim: $(SIM_BIN)
 
 # *** ISA Tests ***
 include tb/tb_isa_tests/isa-tests.mk
@@ -62,8 +63,9 @@ clone_uvm:
 	mkdir -p ${DV_DIR}
 	mkdir -p ${CORE_UVM_DIR}
 	git clone ${SHALLOW_CLONE} ${CORE_UVM_REPO} ${CORE_UVM_DIR} -b ${CORE_UVM_BRANCH}
-	make -C ${CORE_UVM_DIR} clone_spike 
-	make -C ${CORE_UVM_DIR} clone_all_tests
+	cd ${CORE_UVM_DIR}; git rev-parse HEAD; cd -
+	make -C ${CORE_UVM_DIR} clone_spike
+	make -C ${CORE_UVM_DIR} clone_tests_all SIMULATOR=$(SIMULATOR)
 
 $(DC_DIR):
 	git clone ${DC_REPO} -b ${DC_BRANCH} $@

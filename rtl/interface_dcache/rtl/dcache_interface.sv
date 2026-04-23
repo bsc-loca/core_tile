@@ -53,7 +53,11 @@ module dcache_interface
 // Size of the offset in the request address (bits to index within the line + to index the set)
 localparam int unsigned OFFSET_SIZE = $clog2(DracCfg.DCacheLineWidth / 8) + $clog2(DracCfg.DCacheNumSets);
 
+// Block offset size
+localparam int unsigned BLOCK_OFFSET_SIZE = $clog2(DracCfg.DCacheLineWidth / 8);
+
 logic io_address_space;
+logic is_cmo_cbo; //CMO Cache Block Operation (Inval, flush, clean, zero)
 
 // The address is in the INPUT/OUTPUT space
 assign io_address_space = (is_inside_IO_sections(DracCfg, req_cpu_dcache_i.data_rs1));
@@ -83,8 +87,22 @@ always_comb begin
         AMO_MINWU,AMO_MINDU: req_dcache_o.op = HPDCACHE_REQ_AMO_MINU;
         AMO_MAXWU,AMO_MAXDU: req_dcache_o.op = HPDCACHE_REQ_AMO_MAXU;
         LD,LW,LWU,LH,LHU,LB,LBU,VLE,VLM,VL1R,VLEFF,VLSE,VLXE,FLD,FLW: req_dcache_o.op = HPDCACHE_REQ_LOAD;
-        SD,SW,SH,SB,VSE,VSM,VS1R,FSW,FSD: req_dcache_o.op = HPDCACHE_REQ_STORE;
+        HLV_B,HLV_BU,HLV_H,HLV_HU,HLVX_HU,HLV_W,HLVX_WU,HLV_WU,HLV_D: req_dcache_o.op = HPDCACHE_REQ_LOAD;
+        HSV_B,HSV_H,HSV_W,HSV_D: req_dcache_o.op = HPDCACHE_REQ_STORE;
+        SD,SW,SH,SB,VSE,VSM,VS1R,FSW,FSD,CBO_ZERO: req_dcache_o.op = HPDCACHE_REQ_STORE;
+        CBO_INVAL:           req_dcache_o.op  = HPDCACHE_REQ_CMO_INVAL_NLINE;
+        CBO_CLEAN:           req_dcache_o.op  = HPDCACHE_REQ_CMO_FLUSH_NLINE;
+        CBO_FLUSH:           req_dcache_o.op  = HPDCACHE_REQ_CMO_FLUSH_INVAL_NLINE;
+        CMO_PREFETCH_R, CMO_PREFETCH_W: req_dcache_o.op = HPDCACHE_REQ_CMO_PREFETCH;
         default: req_dcache_o.op = HPDCACHE_REQ_LOAD;
+    endcase
+end
+
+// CMO CBO instructions
+always_comb begin
+    case(req_cpu_dcache_i.instr_type)
+        CBO_ZERO,CBO_CLEAN,CBO_INVAL,CBO_FLUSH: is_cmo_cbo = 1;
+        default:                                is_cmo_cbo = 0;
     endcase
 end
 
@@ -120,12 +138,24 @@ generate
     end
 endgenerate
 
-// Select the write data depending on the request size
-assign req_dcache_o.wdata = aligned_data[{req_cpu_dcache_i.mem_size[3], req_cpu_dcache_i.mem_size[1:0]}];
-
 // *** Same as all of the above but for the byte enable signal ***
 
 logic [(DracCfg.DCacheLineWidth/8)-1:0] aligned_be [MAX_SIZES-1:0];
+
+// Select write data, byte enable and request size
+always_comb begin
+    if(req_cpu_dcache_i.instr_type == CBO_ZERO) begin // Set all bytes to zero
+        req_dcache_o.wdata = '0;
+        req_dcache_o.be = '1;
+        req_dcache_o.size = BLOCK_OFFSET_SIZE; // Set size to maximum block size
+    end
+    else begin // Select the write data depending on the request size 
+        req_dcache_o.wdata = aligned_data[{req_cpu_dcache_i.mem_size[3], req_cpu_dcache_i.mem_size[1:0]}];
+        req_dcache_o.be = aligned_be[{req_cpu_dcache_i.mem_size[3], req_cpu_dcache_i.mem_size[1:0]}];
+        req_dcache_o.size = {req_cpu_dcache_i.mem_size[3], req_cpu_dcache_i.mem_size[1:0]}; // TODO: Core supports bigger memory sizes than HPDC!
+    end
+end
+
 
 generate
     for (genvar gv_size = 0; gv_size < MAX_SIZES; gv_size++) begin
@@ -150,16 +180,23 @@ generate
     end
 endgenerate
 
-assign req_dcache_o.be = aligned_be[{req_cpu_dcache_i.mem_size[3], req_cpu_dcache_i.mem_size[1:0]}];
+// Set address offset
+always_comb begin
+    req_dcache_o.addr_offset[OFFSET_SIZE-1 : 0] = req_cpu_dcache_i.data_rs1[OFFSET_SIZE-1:0];
+    if(is_cmo_cbo) begin // Align CBO to base block address
+        req_dcache_o.addr_offset[BLOCK_OFFSET_SIZE -1 : 0] = '0;
+    end
+end
 
-assign req_dcache_o.addr_offset = req_cpu_dcache_i.data_rs1[OFFSET_SIZE-1:0],
-       req_dcache_o.addr_tag = req_cpu_dcache_i.data_rs1[PHY_ADDR_SIZE-1:OFFSET_SIZE];
+assign req_dcache_o.addr_tag = req_cpu_dcache_i.data_rs1[PHY_ADDR_SIZE-1:OFFSET_SIZE];
+       
 // Request to HPDC. Pass only 2 bits as the sign extension process (see specs for LBU, LHU, LWU) is done in the mem_unit 
 // HPDC does NOT extend the sign.
-assign req_dcache_o.size = {req_cpu_dcache_i.mem_size[3], req_cpu_dcache_i.mem_size[1:0]}; // TODO: Core supports bigger memory sizes than HPDC!
 assign req_dcache_o.sid = SID;
 assign req_dcache_o.tid = req_cpu_dcache_i.rd;
-assign req_dcache_o.need_rsp = 1'b1;
+
+// We don't need to wait for the response of prefetch instructions
+assign req_dcache_o.need_rsp = ((req_cpu_dcache_i.instr_type == CMO_PREFETCH_R) || (req_cpu_dcache_i.instr_type == CMO_PREFETCH_W)) ? 1'b0 : 1'b1; 
 assign req_dcache_o.phys_indexed = 1'b1;
 assign req_dcache_o.pma.io = 1'b0;
 assign req_dcache_o.pma.uncacheable = io_address_space;
@@ -194,7 +231,7 @@ assign resp_dcache_cpu_o.ordered = wbuf_empty_i;
 
 logic send, receive;
 
-assign send    = core_req_valid_o && dcache_ready_i;
+assign send    = ((core_req_valid_o && dcache_ready_i) && req_dcache_o.need_rsp);
 assign receive = dcache_valid_i;
 
 `ifdef SIMULATION

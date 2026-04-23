@@ -26,7 +26,9 @@ module icache_interface
     input icache_line_t      icache_resp_datablock_i , // ICACHE_RESP_BITS_DATABLOCK
     input logic              icache_resp_valid_i     , // ICACHE_RESP_VALID,
     input logic              icache_req_ready_i      , // ICACHE_REQ_READY,
+    input logic [PPN_SIZE-1:0] icache_req_guest_ppn_i,
     input logic              tlb_resp_xcp_if_i       , // TLB_RESP_XCPT_IF,
+    input logic              tlb_resp_guest_xcp_if_i , // TLB_RESP_GUEST_XCPT_IF,
     input logic              en_translation_i        ,
     // Request output signals to Icache                      
     output logic             icache_invalidate_o     , // ICACHE_INVALIDATE
@@ -89,7 +91,7 @@ assign old_pc_req_d = (do_icache_request_int) ? req_fetch_icache_i.vaddr : old_p
 
 // return the datablock asked
 always_comb begin
-    if(tlb_resp_xcp_if_i) begin
+    if(tlb_resp_xcp_if_i || tlb_resp_guest_xcp_if_i) begin
         resp_icache_fetch_o.data = 32'h0;
     end else begin
         case(old_pc_req_q[3:2])
@@ -112,9 +114,11 @@ always_comb begin
     end
 end
 
-assign resp_icache_fetch_valid = (tlb_resp_xcp_if_i) | icache_resp_valid_i;
+assign resp_icache_fetch_valid = (tlb_resp_xcp_if_i | tlb_resp_guest_xcp_if_i) | icache_resp_valid_i;
 assign resp_icache_fetch_o.valid =  resp_icache_fetch_valid;
+assign resp_icache_fetch_o.guest_ppn = icache_req_guest_ppn_i;
 assign resp_icache_fetch_o.instr_page_fault = tlb_resp_xcp_if_i; 
+assign resp_icache_fetch_o.instr_guest_page_fault = tlb_resp_guest_xcp_if_i; 
 assign req_fetch_ready_o = icache_req_ready_i; 
 
 endmodule

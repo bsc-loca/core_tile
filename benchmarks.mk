@@ -1,6 +1,6 @@
 RISCV_TESTS_DIR = $(PROJECT_DIR)/riscv-tests
 
-BENCHMARK_GCC_OPTS = -march=rv64g_zba_zbb_zbs -DPREALLOCATE=1 -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf -fno-tree-loop-distribute-patterns -Wno-implicit-int -Wno-implicit-function-declaration -Wno-incompatible-pointer-types
+BENCHMARK_GCC_OPTS = -march=rv64g_zba_zbb_zbs_zicond -DPREALLOCATE=1 -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf -fno-tree-loop-distribute-patterns -Wno-implicit-int -Wno-implicit-function-declaration -Wno-incompatible-pointer-types
 
 ifdef BENCHMARKS_CI
 	BENCHMARK_GCC_OPTS += -DSMALL_TESTS
@@ -22,7 +22,7 @@ build-benchmarks: $(PROJECT_DIR)/benchmarks/Makefile
 
 # *** riscv-tests benchmark simulation ***
 
-run-benchmarks: build-benchmarks $(SIMULATOR)
+run-benchmarks: build-benchmarks $(SIM_BIN)
 		$(PROJECT_DIR)/run-benchmarks.sh
 		
 # *** Cleaning ***

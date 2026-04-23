@@ -1,4 +1,7 @@
 import fpga_pkg::*;
+`include "defines.svh"
+`include "axi/assign.svh"
+`include "axi/typedef.svh"
 
 module sargantana_wrapper(
     input            clk_i,
@@ -229,8 +232,8 @@ module sargantana_wrapper(
         .AXI_USER_WIDTH(`AXI_XBAR_USER_WIDTH)
     ) addr_trans_mem_inst (
         .slv(xbar2tran_bus[`MEM_XBAR_ID]),
-        .mst_aw_addr_i(xbar2tran_bus[`MEM_XBAR_ID].aw_addr - `MEM_BASE_ADDR),
-        .mst_ar_addr_i(xbar2tran_bus[`MEM_XBAR_ID].ar_addr - `MEM_BASE_ADDR),
+        .mst_aw_addr_i(xbar2tran_bus[`MEM_XBAR_ID].aw_addr - `MEM_TRANS_ADDR),
+        .mst_ar_addr_i(xbar2tran_bus[`MEM_XBAR_ID].ar_addr - `MEM_TRANS_ADDR),
         .mst(xbar2peri_bus[`MEM_XBAR_ID])
     );
 
@@ -253,16 +256,37 @@ module sargantana_wrapper(
     logic timer_irq;
     logic [63:0] time_value;
 
+
+`ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+    typedef logic [11:0] mem_delay_t;
+    mem_delay_t aw_delay, w_delay, b_delay, ar_delay, r_delay;
+    logic [63:0] dyn_fpga_mem_latency;
+
+    assign r_delay  = dyn_fpga_mem_latency[0 +: 12];
+    assign b_delay  = dyn_fpga_mem_latency[12 +: 12];
+    assign ar_delay = dyn_fpga_mem_latency[24 +: 12];
+    assign aw_delay = dyn_fpga_mem_latency[36 +: 12];
+    assign w_delay  = dyn_fpga_mem_latency[48 +: 12];
+`endif
+
+    logic core_id_i;
+    assign core_id_i = 'h0;
+
     // *** Core Instance ***
 
     axi_wrapper #(.DracCfg(DracCfg)) core_inst (
         .clk_i(clk_i),
         .rstn_i(reset),
 
+        .core_id_i(core_id_i),
         .axi_o(core2xbar_bus[0]),
 
         .time_irq_i(time_irq),
         .time_i(time_value),
+
+`ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+        .dyn_fpga_mem_latency_o(dyn_fpga_mem_latency),
+`endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
 
         .tck(dbg_jtag_tck),
         .tms(dbg_jtag_tms),
@@ -305,9 +329,48 @@ module sargantana_wrapper(
     `AXI_ASSIGN_TO_REQ(mem_req, mem_bus)
     `AXI_ASSIGN_FROM_RESP(mem_bus, mem_resp)
 
+    // Add delay to memory bus
+    fpga_pkg::peri_axi_req_t mem_req_delayed;
+    fpga_pkg::peri_axi_resp_t mem_resp_delayed;
+
+    `ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+    localparam int unsigned DELAY_FIFO_DEPTH = 16; // Minimum supported by FIFO IP
+
+    axi_fifo_delay_dyn #(
+        .aw_chan_t(mem_axi_aw_chan_t),
+        .w_chan_t(mem_axi_w_chan_t),
+        .b_chan_t(mem_axi_b_chan_t),
+        .ar_chan_t(mem_axi_ar_chan_t),
+        .r_chan_t(mem_axi_r_chan_t),
+        .axi_req_t(fpga_pkg::peri_axi_req_t),
+        .axi_resp_t(fpga_pkg::peri_axi_resp_t),
+        .DepthAR(DELAY_FIFO_DEPTH),
+        .DepthAW(DELAY_FIFO_DEPTH),
+        .DepthR(DELAY_FIFO_DEPTH),
+        .DepthW(DELAY_FIFO_DEPTH),
+        .DepthB(DELAY_FIFO_DEPTH),
+        .MaxDelay(4096)
+    ) mem_fifo_delay_dyn_inst (
+        .clk_i(clk_i),
+        .rst_ni(reset),
+        .aw_delay_i(aw_delay),
+        .w_delay_i(w_delay),
+        .b_delay_i(b_delay),
+        .ar_delay_i(ar_delay),
+        .r_delay_i(r_delay),
+        .slv_req_i(mem_req),
+        .slv_resp_o(mem_resp),
+        .mst_req_o(mem_req_delayed),
+        .mst_resp_i(mem_resp_delayed)
+    );
+    `else
+    `AXI_ASSIGN_REQ_STRUCT(mem_req_delayed, mem_req)
+    `AXI_ASSIGN_RESP_STRUCT(mem_resp, mem_resp_delayed)
+    `endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+
     // Assign input/output pins
 
-    `AXI_ASSIGN_MASTER_TO_FLAT(mem, mem_req, mem_resp)
+    `AXI_ASSIGN_MASTER_TO_FLAT(mem, mem_req_delayed, mem_resp_delayed)
 
     // *** UART Connection ***
 

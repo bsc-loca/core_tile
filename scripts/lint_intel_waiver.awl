@@ -1,3 +1,19 @@
+waive -du {  {old_control_mvp}  }  -comment {"FPU errors"}
+waive -du {  {old_fpnew_opgroup_multifmt_slice}  }  -comment {"FPU errors"}
+waive -du {  {old_fpnew_pkg} } -comment {"FPU errors"}
+waive -du {  {old_fpnew_cast_multi} } -comment {"FPU errors"}
+waive -du {  {old_fpnew_divsqrt_multi} } -comment {"FPU errors"}
+waive -du {  {old_fpnew_fma_multi} } -comment {"FPU errors"}
+waive -du {  {old_fpnew_divsqrt_th_32} } -comment {"FPU errors"}
+waive -du {  {old_norm_div_sqrt_mvp} } -comment {"FPU errors"}
+waive -du {  {old_fpnew_classifier} } -comment {"FPU errors"}
+waive -du {  {old_fpnew_noncomp} } -comment {"FPU errors"}
+waive -du {  {old_fpnew_opgroup_block} } -comment {"FPU errors"}
+waive -du {  {old_fpnew_opgroup_fmt_slice} } -comment {"FPU errors"}
+waive -du {  {old_fpnew_rounding} } -comment {"FPU errors"}
+waive -du {  {old_fpnew_top} } -comment {"FPU errors"}
+waive -du {  {old_preprocess_mvp} } -comment {"FPU errors"}
+
 waive -du {  {control_mvp}  }  -comment {"FPU errors"}
 waive -du {  {fpnew_opgroup_multifmt_slice}  }  -comment {"FPU errors"}
 waive -du {  {fpnew_pkg} } -comment {"FPU errors"}
@@ -5,6 +21,7 @@ waive -du {  {fpnew_cast_multi} } -comment {"FPU errors"}
 waive -du {  {fpnew_divsqrt_multi} } -comment {"FPU errors"}
 waive -du {  {fpnew_fma_multi} } -comment {"FPU errors"}
 waive -du {  {fpnew_divsqrt_th_32} } -comment {"FPU errors"}
+waive -du {  {fpnew_divsqrt_th_64_multi} } -comment {"FPU errors"}
 waive -du {  {norm_div_sqrt_mvp} } -comment {"FPU errors"}
 waive -du {  {fpnew_classifier} } -comment {"FPU errors"}
 waive -du {  {fpnew_noncomp} } -comment {"FPU errors"}
@@ -13,6 +30,33 @@ waive -du {  {fpnew_opgroup_fmt_slice} } -comment {"FPU errors"}
 waive -du {  {fpnew_rounding} } -comment {"FPU errors"}
 waive -du {  {fpnew_top} } -comment {"FPU errors"}
 waive -du {  {preprocess_mvp} } -comment {"FPU errors"}
+
+waive -file {fpnew_divsqrt_th_32.sv} -regexp -comment {"FPU errors"}
+waive -file {fpnew_divsqrt_multi.sv} -regexp -comment {"FPU errors"}
+
+waive -du {  {gated_clk_cell} } -comment {"FPU errors"}
+waive -file { {cf_math_pkg.sv}} -comment {"FPU errors"}  
+
+waive -du {  {ct_vfdsu_ctrl} } -comment {"FPU errors"}
+waive -du {  {ct_vfdsu_double} } -comment {"FPU errors"}
+waive -du {  {ct_vfdsu_ff1} } -comment {"FPU errors"}
+waive -du {  {ct_vfdsu_pack} } -comment {"FPU errors"}
+waive -du {  {ct_vfdsu_prepare} } -comment {"FPU errors"}
+waive -du {  {ct_vfdsu_round} } -comment {"FPU errors"}
+waive -du {  {ct_vfdsu_scalar_dp} } -comment {"FPU errors"}
+waive -du {  {ct_vfdsu_srt_radix16_bound_table} } -comment {"FPU errors"}
+waive -du {  {ct_vfdsu_srt_radix16_with_sqrt} } -comment {"FPU errors"}
+waive -du {  {ct_vfdsu_srt} } -comment {"FPU errors"}
+waive -du {  {ct_vfdsu_top} } -comment {"FPU errors"}
+
+waive -du {  {pa_fdsu_ctrl} } -comment {"FPU errors"}
+waive -du {  {pa_fdsu_ff1} } -comment {"FPU errors"}
+waive -du {  {pa_fdsu_pack_single} } -comment {"FPU errors"}
+waive -du {  {pa_fdsu_prepare} } -comment {"FPU errors"}
+waive -du {  {pa_fdsu_round_single} } -comment {"FPU errors"}
+waive -du {  {pa_fdsu_special} } -comment {"FPU errors"}
+waive -du {  {pa_fdsu_srt_single} } -comment {"FPU errors"}
+waive -du {  {pa_fdsu_top} } -comment {"FPU errors"}
 
 waive -du {  {fifo_v3} } -comment {"Common cell errors"}
 waive -du {  {lzc} } -comment {"Common cell errors"}
@@ -38,6 +82,8 @@ waive -rule {  {ConstName} } -comment {"Constant name does not follow naming con
 waive -rule {  {AvoidAsync} } -comment {"Asynchronous signal used at flop"}
 waive -rule {  {W240}  }  -comment {"Input '[Signal]' declared but not read."}
 
+
+waive -rule { {UnInitializedReset-ML} } -regexp -msg {fp32_metadata|fp64_metadata|fp64wide_metadata} -comment {"Reset on index 0,0 on already reseted by i,j"}
 
 waive -du {  {hpdcache_sram_wmask_1rw} } -comment {"HPDC is an external component"}
 waive -du {  {hpdcache_cmo} } -comment {"HPDC is an external component"}
@@ -73,7 +119,9 @@ waive -du {  {hpdcache_data_resize} } -comment {"HPDC is an external component"}
 waive -du {  {hpdcache_victim_sel} } -comment {"HPDC is an external component"}
 waive -file {hpdcache_pkg.sv} -comment {"HPDC is an external component"}
 
+waive -file {old_fpnew_pkg.sv} -regexp -comment {"FPU package errors"}
 waive -file {fpnew_pkg.sv} -regexp -comment {"FPU package errors"}
+waive -rule { {W175} } -file {old_defs_div_sqrt_mvp.sv} -regexp -comment {"Allow unused parameters in FPU package"}
 waive -rule { {W175} } -file {defs_div_sqrt_mvp.sv} -regexp -comment {"Allow unused parameters in FPU package"}
 
 waive -rule { {AlwaysFalseTrueCond-ML} } -regexp -msg {DCACHE_RESP_DATA_WIDTH|DCACHE_MAXELEM|VLEN|VMAXELEM} -comment {"Allow always false/true conditions that depend on parameters"}
@@ -119,3 +167,6 @@ waive -rule {  {OneModule-ML} } -file {alu_count_zeros.sv} -ignore
 waive -rule { {ArrayIndex} } -file {top_tile.sv} -comment {"HPDC Interface -- Not Important"}
 waive -rule { {ArrayIndex} } -file {sargantana_subtile.sv} -comment {"HPDC Interface -- Not Important"}
 waive -rule { {ArrayIndex} } -file {top_tile.sv} -comment {"HPDC Interface -- Not Important"}
+
+waive -rule { {DetectUnderAndOverFlows-ML} } -du { {vfredtree} } -regexp -msg {"clog2"} -comment {"Allow width missmatch in floor_log (never reached full size usage)"}
+waive -rule { {SYNTH_5285} } -du { {vfredtree} } -comment {"clog2 with static parameter should be synthesizable, other tools do not complain"}
