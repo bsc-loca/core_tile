@@ -59,8 +59,8 @@ localparam int unsigned BLOCK_OFFSET_SIZE = $clog2(DracCfg.DCacheLineWidth / 8);
 logic io_address_space;
 logic is_cmo_cbo; //CMO Cache Block Operation (Inval, flush, clean, zero)
 
-// The address is in the INPUT/OUTPUT space
-assign io_address_space = (is_inside_IO_sections(DracCfg, req_cpu_dcache_i.data_rs1));
+// IO address space: PMA-based or Svpbmt IO (pbmt=10) override.
+assign io_address_space = is_inside_IO_sections(DracCfg, req_cpu_dcache_i.data_rs1) | (req_cpu_dcache_i.pbmt == 2'b10);
 
 //-------------------------------------------------------------
 // dCache Interface
@@ -198,8 +198,8 @@ assign req_dcache_o.tid = req_cpu_dcache_i.rd;
 // We don't need to wait for the response of prefetch instructions
 assign req_dcache_o.need_rsp = ((req_cpu_dcache_i.instr_type == CMO_PREFETCH_R) || (req_cpu_dcache_i.instr_type == CMO_PREFETCH_W)) ? 1'b0 : 1'b1; 
 assign req_dcache_o.phys_indexed = 1'b1;
-assign req_dcache_o.pma.io = 1'b0;
-assign req_dcache_o.pma.uncacheable = io_address_space;
+assign req_dcache_o.pma.io = (req_cpu_dcache_i.pbmt == 2'b10);
+assign req_dcache_o.pma.uncacheable = io_address_space | (req_cpu_dcache_i.pbmt == 2'b01);
 assign req_dcache_o.pma.wr_policy_hint = HPDCACHE_WR_POLICY_AUTO;
 
 // Unused signals on physically indexed requests
