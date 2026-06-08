@@ -89,7 +89,7 @@ always_comb begin
         LD,LW,LWU,LH,LHU,LB,LBU,VLE,VLM,VL1R,VLEFF,VLSE,VLXE,FLD,FLW: req_dcache_o.op = HPDCACHE_REQ_LOAD;
         HLV_B,HLV_BU,HLV_H,HLV_HU,HLVX_HU,HLV_W,HLVX_WU,HLV_WU,HLV_D: req_dcache_o.op = HPDCACHE_REQ_LOAD;
         HSV_B,HSV_H,HSV_W,HSV_D: req_dcache_o.op = HPDCACHE_REQ_STORE;
-        SD,SW,SH,SB,VSE,VSM,VS1R,FSW,FSD,CBO_ZERO: req_dcache_o.op = HPDCACHE_REQ_STORE;
+        SD,SW,SH,SB,VSE,VSM,VS1R,FSW,FSH,FSD,CBO_ZERO: req_dcache_o.op = HPDCACHE_REQ_STORE;
         CBO_INVAL:           req_dcache_o.op  = HPDCACHE_REQ_CMO_INVAL_NLINE;
         CBO_CLEAN:           req_dcache_o.op  = HPDCACHE_REQ_CMO_FLUSH_NLINE;
         CBO_FLUSH:           req_dcache_o.op  = HPDCACHE_REQ_CMO_FLUSH_INVAL_NLINE;
