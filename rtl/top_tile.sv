@@ -505,10 +505,6 @@ sargantana_top_icache # (
 
 // assign icache_nc_busy = '0; // This signal is unused when the iCache is handling the nc_requests, instead of the nc_buffer.
 
-// PMU not monitored in the HPIC yet
-assign pmu_interface.icache_miss_time = '0; 
-assign pmu_interface.icache_miss_kill = '0;
-
 //iCache-dos / HPIC
 
 sargantana_hpic_pkg::pma_t ipma;
