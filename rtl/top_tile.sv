@@ -628,6 +628,8 @@ top_icache_dos #(
     .treq_o             ( itlb_treq     ),                 
     .fresp_i            ( ifill_resp    ),
     .freq_o             ( ifill_req     ),
+    .imiss_time_pmu_o   ( pmu_interface.icache_miss_time),
+    .imiss_kill_pmu_o   ( pmu_interface.icache_miss_kill),
     .csr_degree_i       ( csr_icache_pref_degree) // Prefetcher deactivated
 );
 //assign hpm_event_icache_miss = (io_mem_acquire_valid & noc2decoder_icache_noc_ack_i);
