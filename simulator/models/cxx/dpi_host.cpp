@@ -32,10 +32,11 @@ int tohost(const svBitVecVal *svdata) {
         case SYS_write:
         {
             uint64_t length = magicmem[3];
+            uint8_t offset = magicmem[2] & 0b11;
             char buf[length];
             for (unsigned int i = 0; i < length; i++) {
-                uint32_t data = memory_dpi_read_contents(magicmem[2] + (i & ~0b11));
-                buf[i] = data >> ((i%4) * 8);
+                uint32_t data = memory_dpi_read_contents((magicmem[2] + i) & ~0b11);
+                buf[i] = data >> (((i+offset)%4) * 8);
             }
             uint64_t result = write(magicmem[1], buf, length);
             memory_dpi_write_contents(fromhostAddr, result & 0xffffffff);
