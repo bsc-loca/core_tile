@@ -542,8 +542,15 @@ module sim_top #(
     initial begin
         string dumpfile;
         start_cycles = 0;
+
+        // Configure waveform dump
         if ($test$plusargs("vcd")) begin
-            $dumpfile("dump_file.vcd");
+            if (!$value$plusargs("vcd=%s", dumpfile)) begin
+                dumpfile = "dump.vcd";
+            end
+            $dumpfile(dumpfile);
+            $display("Dumping waveforms to %s", dumpfile);
+
             if (!$value$plusargs("start-vcd-cycles=%d", start_cycles)) begin
                 $dumpvars();
             end
