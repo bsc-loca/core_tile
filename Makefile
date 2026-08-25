@@ -1,5 +1,7 @@
 PROJECT_DIR = $(abspath .)
 
+export TILE_TOP = $(PROJECT_DIR)
+
 FILELIST = ${PROJECT_DIR}/filelist.f
 
 DV_DIR = $(PROJECT_DIR)/verif

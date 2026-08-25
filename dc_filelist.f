@@ -1,2 +1,2 @@
--f ./standalone_config.f
--F ./filelist.f
+-f ${TILE_TOP}/standalone_config.f
+-F ${TILE_TOP}/filelist.f
