@@ -1,6 +1,7 @@
 #!/bin/bash
 
 export HPDCACHE_DIR=$(pwd)/rtl/dcache
+export TILE_TOP=$(pwd)
 
 # Run spyglass
 echo "Running spyglass. This will take a while..."
