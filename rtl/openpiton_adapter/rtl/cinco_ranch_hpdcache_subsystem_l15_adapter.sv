@@ -178,11 +178,10 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
          icache_miss_req_wdata.mem_req_len       = '0,
          icache_miss_req_wdata.mem_req_size      = ICACHE_MEM_REQ_CL_SIZE,
          `ifdef HPIC_DISABLE
-         icache_miss_req_wdata.mem_req_id        = 0,
+         icache_miss_req_wdata.mem_req_id        = '0,
          `else 
          icache_miss_req_wdata.mem_req_id        = icache_miss_id_i,
          `endif
-         icache_miss_req_wdata.mem_req_id        = '0,
          icache_miss_req_wdata.mem_req_command   = hpdcache_pkg::HPDCACHE_MEM_READ,
          icache_miss_req_wdata.mem_req_atomic    = hpdcache_pkg::HPDCACHE_MEM_ATOMIC_ADD, // Field is ignored since command is HPDCACHE_MEM_READ
          icache_miss_req_wdata.mem_req_cacheable = ~brom_req_valid_i;
