@@ -6,7 +6,7 @@ include:
   - project: 'hwdesign/verification/components/core-uvm'
     ref: master
     file:
-      - script/ci/jobs.yml
+      - scripts/ci/jobs.yml
 
 ## This workflow avoids duplicate pipelines when there is an open merge request (commit_branch + merge_request) 
 ## so only the open merge request will be executed and not the commit_branch. PIPELINE_BRANCH will be used to refer to
@@ -160,8 +160,6 @@ build-simulator:
 
 build-uvm:
   extends: .uvm-build
-  variables:
-    SIMULATOR: "vsim"
   stage: building
   rules:
     - !reference [.rules_uvm_scheduled]
