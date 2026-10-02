@@ -123,6 +123,7 @@ typedef struct packed {
     logic                              l15_inval_icache_inval;    // unused in openpiton
     logic [L1D_WAY_WIDTH-1:0]          l15_inval_way;             // way to invalidate
     logic                              l15_blockinitstore;        // unused in openpiton
+    logic                              l15_inval_rs_broken;       // Zawrs: inval also broke the LR/SC reservation set
   } l15_rtrn_t;
 
  

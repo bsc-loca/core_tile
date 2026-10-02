@@ -123,6 +123,8 @@ module top_tile
     //      Invalidation interface
     input  logic                          mem_inval_valid_i,
     input  hpdcache_nline_t               mem_inval_i,
+    //      Zawrs reservation-lost level (WRS wakeup, from L1.5 adapter)
+    input  logic                          rs_lost_i,
 `endif
 
 //-----------------------------------------------------------------------------------
@@ -391,7 +393,13 @@ sargantana_subtile #(
     .time_irq_i(time_irq_i), // timer interrupt
     .irq_i(irq_i),      // external interrupt in
     .soft_irq_i(soft_irq_i),
-    .time_i(time_i)     // time passed since the core is reset
+    .time_i(time_i),     // time passed since the core is reset
+`ifdef HPDCACHE_OPENPITON
+    // Zawrs reservation-lost level (WRS wakeup)
+    .rs_lost_i(rs_lost_i)
+`else
+    .rs_lost_i(1'b1)
+`endif
 );
 
 // Debug donnections

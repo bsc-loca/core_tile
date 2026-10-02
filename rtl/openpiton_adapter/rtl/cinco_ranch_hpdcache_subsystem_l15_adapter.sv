@@ -91,6 +91,8 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
   output  hpdcache_mem_resp_r_t               dcache_read_resp_o,
   output  logic                               dcache_inval_valid_o,
   output  hpdcache_nline_t                    dcache_inval_o,
+  // Zawrs: level, 1 when the LR/SC reservation is currently lost/broken
+  output  logic                               dcache_rs_lost_o,
 
   //      Write-buffer write interface
   output  logic                               dcache_write_ready_o,
@@ -130,6 +132,7 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
        logic                                     mem_inval_icache_valid;
        logic                                     mem_inval_dcache_valid;
        logic [wt_cache_pkg::L15_PADDR_WIDTH-1:0] mem_inval;
+       logic                                     mem_inval_rs_broken; // Zawrs reservation lost
   } hpdcache_mem_resp_t;
   //  }}}
 
@@ -385,6 +388,26 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
   assign inval_ready = dcache_read_resp_ready_i, // Refill ready declares if hpdc is ready to receive an invalidation
          inval_valid = mem_resp.mem_inval_dcache_valid,
          inval       = mem_resp.mem_inval[$bits(hpdcache_mem_addr_t)-1:$clog2(HPDcacheMemDataWidth/8)]; // Convert address to cacheline number
+
+  // Zawrs: sticky reservation-lost latch for WRS wakeup.
+  // Set when L1.5 reports an invalidation broke the reservation, or when the
+  // core issues an SC (reservation consumed). Cleared when the core issues an
+  // LR (new reservation). Init set: after reset there is no valid reservation.
+  // Spurious set is legal: software must loop until the waited store is seen.
+  logic rs_lost_q, rs_lost_d;
+  wire  lr_req_accepted = mem_req_valid_arb && mem_req_ready_arb &&
+      (mem_req_arb.mem_req_command == hpdcache_pkg::HPDCACHE_MEM_ATOMIC) &&
+      (mem_req_arb.mem_req_atomic == hpdcache_pkg::HPDCACHE_MEM_ATOMIC_LDEX);
+  wire  sc_req_accepted = mem_req_valid_arb && mem_req_ready_arb &&
+      (mem_req_arb.mem_req_command == hpdcache_pkg::HPDCACHE_MEM_ATOMIC) &&
+      (mem_req_arb.mem_req_atomic == hpdcache_pkg::HPDCACHE_MEM_ATOMIC_STEX);
+  assign rs_lost_d = lr_req_accepted ? 1'b0 :
+                     (sc_req_accepted || (inval_valid && mem_resp.mem_inval_rs_broken)) ? 1'b1 : rs_lost_q;
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) rs_lost_q <= 1'b1;
+    else rs_lost_q <= rs_lost_d;
+  end
+  assign dcache_rs_lost_o = rs_lost_q;
 
   //  }}}
 

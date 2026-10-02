@@ -207,6 +207,9 @@ logic                           mem_inval_valid;
 typedef logic [PHY_ADDR_SIZE-$clog2(DracOpenPitonCfg.DCacheLineWidth / 8)-1:0] hpdcache_nline_t;
 hpdcache_nline_t  mem_inval;
 
+// Zawrs: reservation-lost level from the L1.5 adapter to the core
+logic                           rs_lost;
+
 function [15:0] trunc_sum_16bits(input [16:0] val_in);
   trunc_sum_16bits = val_in[15:0];
 endfunction
@@ -304,9 +307,11 @@ top_tile #(
  .mem_resp_write_valid_i(mem_resp_write_valid),
  .mem_resp_write_i(mem_resp_write),
 
- // Invalidation interface
- .mem_inval_valid_i(mem_inval_valid),
- .mem_inval_i(mem_inval),
+  // Invalidation interface
+  .mem_inval_valid_i(mem_inval_valid),
+  .mem_inval_i(mem_inval),
+  // Zawrs: reservation-lost level to the core (WRS wakeup)
+  .rs_lost_i(rs_lost),
 
  .time_irq_i(time_irq_i),
  .irq_i(irq_i),
@@ -415,8 +420,10 @@ cinco_ranch_hpdcache_subsystem_l15_adapter #(
  .dcache_read_resp_valid_o(mem_resp_read_valid),
  .dcache_read_resp_o(mem_resp_read),
   // Invalidation interface
- .dcache_inval_valid_o(mem_inval_valid),
- .dcache_inval_o(mem_inval),
+  .dcache_inval_valid_o(mem_inval_valid),
+  .dcache_inval_o(mem_inval),
+  // Zawrs: reservation-lost level to the core (WRS wakeup)
+  .dcache_rs_lost_o(rs_lost),
 
  //      Write-buffer write interface
  .dcache_write_ready_o(mem_req_write_ready),
