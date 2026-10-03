@@ -8,8 +8,6 @@ TESTS_TO_SKIP=(
     # Core doesn't support misaligned load/stores
     rv64ui-p-ma_data
     rv64ui-v-ma_data
-
-    # TODO: Oscar is fixing this
     rv64mi-p-csr 
 )
 
@@ -23,7 +21,7 @@ print_padded() {
 failed_tests=()
 passed_tests=0
 
-for test in $ISA_DIR/{rv64u{i,m,f,d,a}-{p,v}-*,rv64mi-p-*}; do
+for test in $ISA_DIR/{rv64u{i,m,a}-{p,v}-*,rv64mi-p-*}; do
     test_name=$(basename $test)
 
     if [[ "$test_name" != *dump ]]; then

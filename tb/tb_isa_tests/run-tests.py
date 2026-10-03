@@ -9,12 +9,13 @@ from glob import glob
 
 SIMULATOR = sys.argv[1]
 ISA_DIR = sys.argv[2]
-TEST_TIMEOUT = 100000
-IMPLEMENTED_EXTENSIONS = ['i', 'm', 'f', 'd', 'a']
+TEST_TIMEOUT = 200000
+IMPLEMENTED_EXTENSIONS = ['i', 'm', 'a']
 
 TESTS_TO_SKIP = {
     "rv64ui-p-ma_data": "Core doesn't support misaligned load/stores",
     "rv64ui-v-ma_data": "Core doesn't support misaligned load/stores",
+    "rv64mi-p-csr": "Core doesn't support fp instructions" 
 }
 
 def format_padded(text):

@@ -1,10 +1,10 @@
-# Sargantana Tile
+# Drago Tile
 
-This module includes the [Sargantana](https://gitlab.bsc.es/hwdesign/rtl/cores/sargantana) core, as well as the iCache, dCache (HPDCache from OpenHardware), and MMU to make it all work.
+This module includes the [Drago](https://github.com/bsc-loca/drago) core, as well as the iCache, dCache (HPDCache from OpenHardware), and MMU to make it all work.
 
 ## Table of Contents
 
-- [Sargantana Tile](#sargantana-tile)
+- [Drago Tile](#drago-tile)
   - [Table of Contents](#table-of-contents)
   - [1. Installing the dependencies](#1-installing-the-dependencies)
   - [2. Building the simulator](#2-building-the-simulator)

@@ -1,4 +1,4 @@
--F ./rtl/core/sargantana/filelist.f
+-F ./rtl/core/drago/filelist.f
 ./rtl/dcache/rtl/src/target/cinco_ranch/cinco_ranch_hpdcache_params_pkg.sv
 -f ./rtl/dcache/rtl/hpdcache.Flist
 ./rtl/dcache/rtl/src/common/macros/behav/hpdcache_sram_1rw.sv

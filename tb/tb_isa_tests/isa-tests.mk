@@ -4,7 +4,7 @@ RISCV_TESTS_DIR = $(PROJECT_DIR)/riscv-tests
 
 ISA_TESTS_GCC_OPTS = -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles
 
-ifdef SARGANTANA_TEST_FPGA
+ifdef DRAGO_TEST_FPGA
 ISA_TESTS_GCC_OPTS += -DFPGA
 endif
 

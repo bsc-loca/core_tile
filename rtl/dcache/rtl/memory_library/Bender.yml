@@ -1,0 +1,27 @@
+package:
+  name: memory_library
+  
+  authors: ["John Doe <john@doe.si>"]
+
+  frozen: false
+
+sources:
+  - target: any(fpga, simulation, asic)
+    include_dirs:
+      - include/
+    files:
+      - rtl/sp_ram.v
+      - rtl/dp_ram.v
+
+  - target: any(fpga, simulation)
+    files:
+      - rtl/sp_ram_model.v
+      - rtl/dp_ram_model.v     
+
+  - target: asic
+    files:
+      - rtl/sp_ram_asic.v
+      - rtl/dp_ram_asic.sv
+      
+export_include_dirs:
+  - include/

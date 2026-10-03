@@ -6,7 +6,7 @@
 +define+SARG_BYPASS_LSQ
 -F ../standalone_config.f
 
-// Load Sargantana RTL
+// Load Drago RTL
 -F ../filelist.f
 
 // Load behavioral models

@@ -5,8 +5,8 @@ module commit_log_behav
 (
 // General input
 input	clk, rst,
-input logic commit_valid_i [1:0],
-input commit_data_t commit_data_i [1:0]
+input logic commit_valid_i,
+input commit_data_t commit_data_i
 );
 
     // DPI calls definition
@@ -30,10 +30,8 @@ end
 // Main always
 always @(posedge clk) begin
     if (dump_enabled) begin
-        for (int i = 0; i < 2; i++) begin
-            if (commit_valid_i[i]) begin
-                commit_log(commit_data_i[i]);
-            end
+        if (commit_valid_i) begin
+            commit_log(commit_data_i);
         end
     end
 end

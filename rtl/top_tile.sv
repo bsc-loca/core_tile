@@ -1,17 +1,13 @@
-/* -----------------------------------------------
-* Project Name   : DRAC
-* File           : datapath.sv
-* Organization   : Barcelona Supercomputing Center
-* Author(s)      : Guillem Cabo Pitarch 
-* Email(s)       : guillem.cabo@bsc.es
-* References     : 
-* -----------------------------------------------
-* Revision History
-*  Revision   | Author     | Commit | Description
-*  0.1        | Guillem.CP | 
-*  0.2        | Arnau B.   | Split core into core and core_tile
-* -----------------------------------------------
-*/
+// Copyright 2026 Barcelona Supercomputing Center.
+// Copyright and related rights are licensed under the Solderpad Hardware
+// License, Version 2.1 (the "License"); you may not use this file except in
+// compliance with the License.  You may obtain a copy of the License at
+// http://solderpad.org/licenses/SHL-0.51. Unless required by applicable law
+// or agreed to in writing, software, hardware and materials distributed under
+// this License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
+
 
 module top_tile
     import drac_pkg::*, sargantana_icache_pkg::*, mmu_pkg::*, hpdcache_pkg::*, sargantana_hpdc_pkg::*;
@@ -262,23 +258,19 @@ assign pmu_interface.itlb_stall = itlb_icache_comm.resp.miss && !itlb_icache_com
 
 // *** Core Instance ***
 
+assign visa_o = '0;
+
+
 top_drac #(
     .DracCfg(DracCfg)
-) sargantana_inst (
+) drago_inst (
     .clk_i(clk_i),
     .rstn_i(rstn_i),
-    `ifdef INTEL_FSCAN_CTECH
-    .fscan_rstbypen(fscan_rstbypen),//AK
-    `endif // INTEL_FSCAN_CTECH
     .soft_rstn_i(soft_rstn_i),
     .reset_addr_i(reset_addr_i),
-    .core_id_i(core_id_i),
-    `ifdef PITON_CINCORANCH
-    .boot_main_id_i(boot_main_id_i),
-    `endif  // Custom for CincoRanch
     `ifdef EXTERNAL_HPM_EVENT_NUM
-     .external_hpm_i(external_hpm_i),
-     `endif
+    .external_hpm_i(external_hpm_i),
+    `endif
 
     // iCache Interface
     .req_icache_ready_i(req_icache_ready),
@@ -297,7 +289,6 @@ top_drac #(
     .dtlb_comm_i(dtlb_core_comm),
 
     // Debug Module
-    .visa_o(visa_o),
     .debug_contr_i(debug_contr_in),
     .debug_reg_i(debug_reg_in),
 
@@ -306,19 +297,6 @@ top_drac #(
 
     // PMU Interface
     .pmu_interface_i(pmu_interface),
-
-`ifdef CONF_SARGANTANA_ENABLE_PCR
-    // PCR
-    .pcr_req_ready_i(pcr_req_ready_i),    // ready bit of the pcr
-    .pcr_resp_valid_i(pcr_resp_valid_i),   // ready bit of the pcr
-    .pcr_resp_data_i(pcr_resp_data_i),    // read data from performance counter module
-    .pcr_resp_core_id_i(pcr_resp_core_id_i), // core id of the tile that the date is sended
-    .pcr_req_valid_o(pcr_req_valid_o),    // valid bit to make a pcr request
-    .pcr_req_addr_o(pcr_req_addr_o),     // read/write address to performance counter module (up to 29 aux counters possible in riscv encoding.h)h
-    .pcr_req_data_o(pcr_req_data_o),     // write data to performance counter module
-    .pcr_req_we_o(pcr_req_we_o),       // Cmd of the petition
-    .pcr_req_core_id_o(pcr_req_core_id_o),   // core id of the tile
-`endif // CONF_SARGANTANA_ENABLE_PCR
 
     // Interrupts
     .time_irq_i(time_irq_i), // timer interrupt

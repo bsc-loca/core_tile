@@ -1,20 +1,13 @@
-//`default_nettype none
-//`include "drac_pkg.sv"
+// Copyright 2026 Barcelona Supercomputing Center.
+// Copyright and related rights are licensed under the Solderpad Hardware
+// License, Version 2.1 (the "License"); you may not use this file except in
+// compliance with the License.  You may obtain a copy of the License at
+// http://solderpad.org/licenses/SHL-0.51. Unless required by applicable law
+// or agreed to in writing, software, hardware and materials distributed under
+// this License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
 
-/* -----------------------------------------------
- * Project Name   : DRAC
- * File           : mem_unit.v
- * Organization   : Barcelona Supercomputing Center
- * Author(s)      : Rubén Langarita
- * Email(s)       : ruben.langarita@bsc.es
- * -----------------------------------------------
- * Revision History
- *  Revision   | Author     | Description
- *  0.1        | Ruben. L   |
- *  0.2        | Victor. SP | Improve Doc. and pass tb
- *  0.3        | Arnau B.   | Modify to work with HPDC
- * -----------------------------------------------
- */
  
 // Interface with Data Cache. Stores a Memory request until it finishes
 
@@ -75,8 +68,8 @@ always_comb begin
         AMO_MAXW,AMO_MAXD:   req_dcache_o.op = HPDCACHE_REQ_AMO_MAX;
         AMO_MINWU,AMO_MINDU: req_dcache_o.op = HPDCACHE_REQ_AMO_MINU;
         AMO_MAXWU,AMO_MAXDU: req_dcache_o.op = HPDCACHE_REQ_AMO_MAXU;
-        LD,LW,LWU,LH,LHU,LB,LBU,VLE,VLM,VL1R,VLEFF,VLSE,VLXE,FLD,FLW: req_dcache_o.op = HPDCACHE_REQ_LOAD;
-        SD,SW,SH,SB,VSE,VSM,VS1R,FSW,FSD: req_dcache_o.op = HPDCACHE_REQ_STORE;
+        LD,LW,LWU,LH,LHU,LB,LBU: req_dcache_o.op = HPDCACHE_REQ_LOAD;
+        SD,SW,SH,SB: req_dcache_o.op = HPDCACHE_REQ_STORE;
         default: req_dcache_o.op = HPDCACHE_REQ_LOAD;
     endcase
 end
