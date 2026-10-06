@@ -510,7 +510,7 @@ sargantana_top_icache # (
 sargantana_hpic_pkg::pma_t ipma;
 logic addr_is_nc;
 logic[PHY_VIRT_MAX_ADDR_SIZE-1:0] ippn;
-assign ippn = icache_en_translation ? icache_tlb_resp_ppn : itlb_treq.xaddr[PHY_VIRT_MAX_ADDR_SIZE-1:0] ;
+assign ippn = icache_en_translation ? {icache_tlb_resp_ppn,{ICACHE_INDEX_SIZE{1'b0}}} : itlb_treq.xaddr[PHY_VIRT_MAX_ADDR_SIZE-1:0] ;
 // Checker for address non-cacheable
 assign addr_is_nc = is_inside_IO_sections(DracCfg, {{{64-drac_pkg::PHY_ADDR_SIZE}{1'b0}},ippn})
                   | range_check(DracCfg.InitBROMBase, DracCfg.InitBROMEnd, {{{64-PHY_ADDR_SIZE}{1'b0}},ippn})
