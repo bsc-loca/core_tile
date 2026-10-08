@@ -2,11 +2,12 @@
 # Helper Functions                                                             #
 ################################################################################
 
-set HPDCACHE_DIR "${g_accel_dir}/rtl/dcache/"
+set TILE_TOP     "${g_accel_dir}"
+set HPDCACHE_DIR "${g_accel_dir}/rtl/dcache"
 
 # Function to parse flist files
 proc parseFlist {flistFile &_includeDirs &_sourceFiles &_defines basePath} {
-    global HPDCACHE_DIR
+    global HPDCACHE_DIR TILE_TOP
     upvar 1 ${&_includeDirs} includeDirs
     upvar 1 ${&_sourceFiles} sourceFiles
     upvar 1 ${&_defines} defines
