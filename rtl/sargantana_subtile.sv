@@ -171,11 +171,12 @@ ptw_dmem_comm_t ptw_dmem_comm;
 dmem_ptw_comm_t dmem_ptw_comm;
 
 // iTLB interface
+logic [drac_pkg::ASID_SIZE-1:0]  satp_asid;
 cache_tlb_comm_t                 icache_itlb_comm;
 tlb_cache_comm_t                 itlb_icache_comm;
 
 assign icache_itlb_comm.req.valid       = icache_tlb_req_valid_i;
-assign icache_itlb_comm.req.asid        = 1'b0;
+assign icache_itlb_comm.req.asid        = satp_asid; // tag fetches with the current address space
 assign icache_itlb_comm.req.vmid        = 1'b0;
 assign icache_itlb_comm.req.vpn         = icache_tlb_req_vpn_i;
 assign icache_itlb_comm.req.passthrough = 1'b0;
@@ -230,6 +231,7 @@ top_drac #(
     // iTLB Interface
     .icache_itlb_comm_i(icache_itlb_comm),
     .itlb_icache_comm_o(itlb_icache_comm),
+    .satp_asid_o(satp_asid),
 
     // PTW - Memory Interface
     .ptw_dmem_comm_o(ptw_dmem_comm),
