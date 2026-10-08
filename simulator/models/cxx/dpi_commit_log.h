@@ -26,7 +26,12 @@
 #define CAUSE_LD_PAGE_FAULT 0xD
 #define CAUSE_ST_AMO_PAGE_FAULT 0xF
 
+// Must match riscv_pkg::VLEN (the simulator build passes SARG_VLEN to both).
+#ifdef SARG_VLEN
+#define VVLEN SARG_VLEN
+#else
 #define VVLEN 128
+#endif
 
 #ifdef __cplusplus
 extern "C" {
