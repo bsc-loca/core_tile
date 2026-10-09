@@ -16,7 +16,7 @@
 `include "sargantana_typedef.svh"
 
 module top_tile
-    import drac_pkg::*, mmu_pkg::*;
+    import drac_pkg::*, mmu_pkg::*, riscv_pkg::*;
     `ifdef HPIC_DISABLE
     import sargantana_icache_pkg::*;
     `endif
@@ -237,11 +237,15 @@ logic [ICACHE_INDEX_SIZE-1:0]    icache_req_idx;
 logic [ICACHE_VPN_SIZE-1:0]      icache_req_vpn;
 
 
+
+
 // To Core
 logic                            icache_resp_ready;
 logic                            icache_resp_valid;
 logic [ICACHELINE_SIZE-1:0]      icache_resp_data;
 logic                            icache_resp_xcpt;
+exception_cause_t                icache_resp_xcpt_cause;
+logic                            icache_resp_access_xcpt;
 logic                            icache_resp_guest_xcpt;
 logic [ICACHE_PPN_SIZE-1:0]      icache_resp_guest_ppn;
 
@@ -254,6 +258,7 @@ logic                            icache_tlb_resp_miss;
 logic                            icache_tlb_resp_ptw_v;
 logic [ICACHE_PPN_SIZE-1:0]      icache_tlb_resp_ppn;
 logic                            icache_tlb_resp_xcpt;
+exception_cause_t                icache_tlb_resp_xcpt_cause;
 logic                            icache_tlb_resp_guest_xcpt;
 logic [ICACHE_PPN_SIZE-1:0]      icache_tlb_resp_guest_ppn;
 
@@ -265,7 +270,9 @@ logic icache_invalidate;
 logic icache_nc_valid;
 logic [ICACHELINE_SIZE-1:0]      icache_nc_data;
 logic core_fetch_req_valid;
-`ifdef HPIC_DISABLE logic icache_nc_busy; `endif // This signal is unused when the iCache is handling the nc_requests, instead of the nc_buffer.
+`ifdef HPIC_DISABLE
+logic icache_nc_busy; 
+`endif // This signal is unused when the iCache is handling the nc_requests, instead of the nc_buffer.
 //--PMU
 pmu_interface_t pmu_interface;
 assign pmu_interface.icache_req = icache_req_valid;
@@ -331,6 +338,7 @@ sargantana_subtile #(
     .icache_resp_valid_i(icache_resp_valid | icache_nc_valid),
     .icache_resp_data_i(icache_nc_valid ? icache_nc_data : icache_resp_data),
     .icache_resp_xcpt_i(icache_resp_xcpt),
+    .icache_resp_access_xcpt_i(icache_resp_access_xcpt),
     .icache_resp_guest_xcpt_i(icache_resp_guest_xcpt),
     .icache_resp_guest_ppn_i(icache_resp_guest_ppn),
 
@@ -456,6 +464,32 @@ nc_icache_buffer #(
     .l2_resp_data_i(io_mem_grant_bits_data)
 );
 
+logic [ICACHE_INDEX_SIZE-1:0] hpic_dis_idx_q;
+logic [ICACHE_INDEX_SIZE-1:0] hpic_dis_idx;
+logic                         hpic_dis_nomap;
+logic                         hpic_dis_nomap_q;
+logic                         hpic_dis_page_q;
+logic                         hpic_dis_resp_xcpt;
+
+assign hpic_dis_idx = icache_req_valid ? icache_req_idx : hpic_dis_idx_q;
+assign hpic_dis_nomap = icache_tlb_resp_ptw_v & ~icache_tlb_resp_miss &
+                        ~is_inside_mapped_sections(DracCfg, {icache_tlb_resp_ppn, hpic_dis_idx});
+assign hpic_dis_resp_xcpt = icache_tlb_resp_xcpt | hpic_dis_nomap;
+
+always_ff @(posedge clk_i or negedge rstn_i) begin
+    if (!rstn_i) begin
+        hpic_dis_idx_q   <= '0;
+        hpic_dis_nomap_q <= 1'b0;
+        hpic_dis_page_q  <= 1'b0;
+    end else begin
+        hpic_dis_idx_q   <= hpic_dis_idx;
+        hpic_dis_nomap_q <= hpic_dis_nomap;
+        hpic_dis_page_q  <= icache_tlb_resp_xcpt;
+    end
+end
+
+assign icache_resp_access_xcpt = icache_resp_xcpt & hpic_dis_nomap_q & ~hpic_dis_page_q;
+
 sargantana_top_icache # (
     .KILL_RESP          ( 1'b1          ),
     .LINES_256          ( 1'b0          ),
@@ -490,7 +524,7 @@ sargantana_top_icache # (
     .mmu_tresp_ptw_v_i          (icache_tlb_resp_ptw_v),
     .mmu_tresp_ppn_i            (icache_tlb_resp_ppn),
     .mmu_tresp_guest_ppn_i      (icache_tlb_resp_guest_ppn),
-    .mmu_tresp_xcpt_i           (icache_tlb_resp_xcpt),
+    .mmu_tresp_xcpt_i           (hpic_dis_resp_xcpt),
     .mmu_tresp_xcpt_g_i         (icache_tlb_resp_guest_xcpt),
 
     .icache_treq_valid_o        (icache_tlb_req_valid),
@@ -509,6 +543,7 @@ sargantana_top_icache # (
     .imiss_time_pmu_o           (pmu_interface.icache_miss_time),
     .imiss_kill_pmu_o           (pmu_interface.icache_miss_kill)
 );
+
 `else
 
 // assign icache_nc_busy = '0; // This signal is unused when the iCache is handling the nc_requests, instead of the nc_buffer.
@@ -542,7 +577,8 @@ assign icache_resp_valid        = icache_resp.valid      ;
 assign icache_resp_data         = icache_resp.data       ;
 // assign imem_cpu_resp_addr       = icache_resp.xaddr[ADDR_SIZE-1:0]; // Apparently unused
 assign icache_resp_xcpt         = icache_resp.xcpt_valid ;
-// assign imem_cpu_resp_xcpt_cause = icache_resp.xcpt_cause ; // Not implemented yet
+assign icache_resp_xcpt_cause   = icache_resp.xcpt_cause ;
+assign icache_resp_access_xcpt  = icache_resp_xcpt & (icache_resp_xcpt_cause == INSTR_ACCESS_FAULT);
 // assign imem_cpu_resp_pma        = icache_resp.pma        ; // Not implemented yet
 assign icache_nc_valid            = icache_resp.nc_resp    ;
 // Hypervisor implementation
@@ -551,22 +587,32 @@ assign icache_resp_guest_xcpt = icache_resp.guest_xcpt_valid;
 
 assign icache_nc_data           = {(ICACHELINE_SIZE/64){icache_resp_data[63:0]}}; // 64 bits is the size of the non-cacheable cache-line
 
+`ICACHE_PKG_NAME::treq_t itlb_treq;
+assign icache_tlb_req_valid  = itlb_treq.valid   ;
+assign icache_tlb_req_vpn  = itlb_treq.xaddr[PHY_VIRT_MAX_ADDR_SIZE-1:ICACHE_INDEX_SIZE];
+
+logic [PHY_VIRT_MAX_ADDR_SIZE-1:0] icache_tlb_resp_paddr;
+logic                              icache_tlb_resp_not_mapped;
+assign icache_tlb_resp_paddr = {icache_tlb_resp_ppn, itlb_treq.xaddr[ICACHE_INDEX_SIZE-1:0]};
+assign icache_tlb_resp_not_mapped = icache_tlb_resp_ptw_v & icache_tlb_req_valid & ~icache_tlb_resp_miss
+                                  & ~is_inside_mapped_sections(DracCfg, icache_tlb_resp_paddr);
+
+assign icache_tlb_resp_xcpt_cause = icache_tlb_resp_xcpt       ? INSTR_PAGE_FAULT   :
+                                    icache_tlb_resp_not_mapped ? INSTR_ACCESS_FAULT :
+                                                                 exception_cause_t'(0);
+
 `ICACHE_PKG_NAME::trsp_t itlb_tresp;
 assign itlb_tresp = '{
     miss             : icache_tlb_resp_miss        ,
     ptw_v            : icache_tlb_resp_ptw_v   ,
     ppn              : icache_tlb_resp_ppn     ,
-    xcpt_valid       : icache_tlb_resp_xcpt  ,
-    xcpt_cause       : '0/*itlb_imem_resp_xcpt_cause[0]*/,
+    xcpt_valid       : icache_tlb_resp_xcpt | icache_tlb_resp_not_mapped ,
+    xcpt_cause       : icache_tlb_resp_xcpt_cause,
     guest_ppn        : icache_tlb_resp_guest_ppn ,
     guest_xcpt_valid : icache_tlb_resp_guest_xcpt,
-    guest_xcpt_cause : '0/*itlb_imem_resp_guest_xcpt_cause[0]*/,
+    guest_xcpt_cause : INSTR_GUEST_PAGE_FAULT,
     pma              : ipma
 };
-
-`ICACHE_PKG_NAME::treq_t itlb_treq;
-assign icache_tlb_req_valid  = itlb_treq.valid   ;
-assign icache_tlb_req_vpn  = itlb_treq.xaddr[PHY_VIRT_MAX_ADDR_SIZE-1:ICACHE_INDEX_SIZE];
 
 `ICACHE_PKG_NAME::inv_t inval;
 assign inval = '{

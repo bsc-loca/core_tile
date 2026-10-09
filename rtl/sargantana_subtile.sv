@@ -65,6 +65,7 @@ module sargantana_subtile
     input  logic                            icache_resp_valid_i,
     input  logic [ICACHELINE_SIZE-1:0]      icache_resp_data_i,
     input  logic                            icache_resp_xcpt_i,
+    input  logic                            icache_resp_access_xcpt_i,
     input  logic                            icache_resp_guest_xcpt_i,
     input  logic [ICACHE_PPN_SIZE-1:0]      icache_resp_guest_ppn_i,
 
@@ -301,6 +302,7 @@ icache_interface icache_interface_inst(
     .icache_resp_valid_i        ( icache_resp_valid_i ),
     .icache_req_ready_i         ( icache_resp_ready_i ),
     .tlb_resp_xcp_if_i          ( icache_resp_xcpt_i  ),
+    .tlb_resp_xcp_access_i      ( icache_resp_access_xcpt_i ),
     .tlb_resp_guest_xcp_if_i    ( icache_resp_guest_xcpt_i ),
     .icache_req_guest_ppn_i     ( icache_resp_guest_ppn_int ),
     .en_translation_i           ( en_translation      ),
