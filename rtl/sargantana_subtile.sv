@@ -170,6 +170,9 @@ logic [1:0] priv_lvl;
 logic v_mode;
 logic en_translation;
 logic en_g_translation;
+logic [15:0] csr_satp_asid;
+logic [15:0] csr_vsatp_asid;
+logic [13:0] csr_hgatp_vmid;
 
 // *** Memory Management Unit ***
 
@@ -182,8 +185,8 @@ cache_tlb_comm_t                 icache_itlb_comm;
 tlb_cache_comm_t                 itlb_icache_comm;
 
 assign icache_itlb_comm.req.valid       = icache_tlb_req_valid_i;
-assign icache_itlb_comm.req.asid        = 1'b0;
-assign icache_itlb_comm.req.vmid        = 1'b0;
+assign icache_itlb_comm.req.asid        = (en_translation && v_mode) ? csr_vsatp_asid[drac_pkg::ASID_SIZE-1:0] : csr_satp_asid[drac_pkg::ASID_SIZE-1:0];
+assign icache_itlb_comm.req.vmid        = (en_g_translation && v_mode) ? csr_hgatp_vmid[drac_pkg::ASID_SIZE-2-1:0] : '0;
 assign icache_itlb_comm.req.vpn         = icache_tlb_req_vpn_i;
 assign icache_itlb_comm.req.passthrough = 1'b0;
 assign icache_itlb_comm.req.instruction = 1'b1;
@@ -226,6 +229,9 @@ top_drac #(
     .req_cpu_icache_o(req_datapath_icache_interface),
     .en_translation_o(en_translation),
     .en_g_translation_o(en_g_translation),
+    .csr_satp_asid_o(csr_satp_asid),
+    .csr_vsatp_asid_o(csr_vsatp_asid),
+    .csr_hgatp_vmid_o(csr_hgatp_vmid),
     .priv_lvl_o(priv_lvl),
     .v_mode_o(v_mode),
     .resp_icache_cpu_i(resp_icache_interface_datapath),
