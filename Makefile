@@ -6,7 +6,7 @@ FILELIST = ${PROJECT_DIR}/filelist.f
 
 DV_DIR = $(PROJECT_DIR)/verif
 CORE_UVM_DIR = $(DV_DIR)/core_uvm
-CORE_UVM_REPO = git@gitlab-internal.bsc.es:hwdesign/verification/core-uvm.git
+CORE_UVM_REPO = git@gitlab-internal.bsc.es:hwdesign/verification/components/core-uvm.git
 CORE_UVM_BRANCH ?= master
 
 DC_REPO = git@gitlab-internal.bsc.es:hwdesign/spd/dc-scripts.git
@@ -19,7 +19,7 @@ SRAM_WRAPPER_DIR =$(PROJECT_DIR)/cincoranch
 SRAM_WRAPPER =$(SRAM_WRAPPER_DIR)/piton/design/common/rtl/asic_sram_1p.v
 
 RISCV_DV_DIR = $(CORE_UVM_DIR)/riscv-dv
-RISCV_DV_REPO = git@gitlab-internal.bsc.es:hwdesign/verification/riscv-dv.git
+RISCV_DV_REPO = git@gitlab-internal.bsc.es:hwdesign/verification/tools/riscv-dv.git
 RISCV_DV_BRANCH ?= master
 
 CI_SCRIPTS_REPO = git@gitlab-internal.bsc.es:hwdesign/ci/ci_scripts.git

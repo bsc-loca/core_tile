@@ -4,7 +4,7 @@ include:
     file:
       - jobs_template.yml
   - project: 'hwdesign/verification/components/core-uvm'
-    ref: master
+    ref: ft/sargantana_ci_rework # TODO: back to master once the core-uvm CI rework is merged
     file:
       - scripts/ci/jobs.yml
 
@@ -58,7 +58,8 @@ stages:
 variables:
   RTL_PATH: ${CI_PROJECT_DIR}
   DV_PATH: ${CI_PROJECT_DIR}/verif/core_uvm
-  #CORE_UVM_BRANCH: to_override_core_uvm_branch
+  # core-uvm branch cloned by `make clone_dv` in uvm-prepare. Keep it in sync with the include ref above
+  CORE_UVM_BRANCH: ft/sargantana_ci_rework
 
 lint-verilator:
   extends: .verilator
@@ -158,12 +159,29 @@ build-simulator:
     - sim
     - bootrom.hex
 
+uvm-prepare:
+  extends: .uvm-prepare
+  stage: linting
+  rules:
+    - !reference [.rules_uvm_scheduled]
+    - !reference [.rules_uvm_smoke]
+
 build-uvm:
-  extends: .uvm-build
+  extends:
+    - .vcs_riscv
+    - .uvm-build
   stage: building
   rules:
     - !reference [.rules_uvm_scheduled]
     - !reference [.rules_uvm_smoke]
+  needs:
+    - uvm-prepare
+  variables:
+    SIMULATOR: "vcs"
+    UVM_GENERATE: "filelist bootrom"
+    COMPILE_TARGET: "rtl"
+    BUILD_COVERAGE: "true"
+    EXTRA_TAR_PATHS: "simv simv.daidir simv.vdb csrc AN.DB"
 
 build-vcs:
   extends: .vcs_riscv
@@ -283,10 +301,15 @@ vcs:
 
 
 uvm-regression:
-  extends: .uvm-regression
+  extends:
+    - .vcs_riscv
+    - .uvm-regression
   stage: simulation
   rules:
     - !reference [.rules_uvm_smoke]
+  needs:
+    - build-uvm
+
 dc-synthesis:
   extends: .dc_shell
   stage: synthesis
