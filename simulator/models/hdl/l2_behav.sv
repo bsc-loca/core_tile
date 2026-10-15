@@ -172,7 +172,7 @@ module mem_channel #(
                     2'b00: begin // Read
                         memory_read(head.addr, readed_data);
                         next_atomic <= 1'b0;
-                        next_data <= readed_data[head.addr[5:0]*8 +: DATA_WIDTH];
+                        next_data <= readed_data;
                     end
                     2'b01: begin // Write
                         memory_write(head.addr, head.be, head.data);
