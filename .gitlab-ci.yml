@@ -4,7 +4,7 @@ include:
     file:
       - jobs_template.yml
   - project: 'hwdesign/verification/components/core-uvm'
-    ref: ft/sargantana_ci_rework # TODO: back to master once the core-uvm CI rework is merged
+    ref: master
     file:
       - scripts/ci/jobs.yml
 
@@ -59,7 +59,7 @@ variables:
   RTL_PATH: ${CI_PROJECT_DIR}
   DV_PATH: ${CI_PROJECT_DIR}/verif/core_uvm
   # core-uvm branch cloned by `make clone_dv` in uvm-prepare. Keep it in sync with the include ref above
-  CORE_UVM_BRANCH: ft/sargantana_ci_rework
+  CORE_UVM_BRANCH: master
 
 lint-verilator:
   extends: .verilator
