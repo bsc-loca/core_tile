@@ -347,6 +347,7 @@ sargantana_subtile #(
     .icache_tlb_resp_ppn_o(icache_tlb_resp_ppn),
     .icache_tlb_resp_guest_ppn_o(icache_tlb_resp_guest_ppn),
     .icache_tlb_resp_xcpt_o(icache_tlb_resp_xcpt),
+    .icache_tlb_resp_access_fault_o(icache_tlb_resp_access_fault),
     .icache_tlb_resp_guest_xcpt_o(icache_tlb_resp_guest_xcpt),
 
     .icache_tlb_req_valid_i(icache_tlb_req_valid),
@@ -543,7 +544,9 @@ sargantana_top_icache # (
     .imiss_time_pmu_o           (pmu_interface.icache_miss_time),
     .imiss_kill_pmu_o           (pmu_interface.icache_miss_kill)
 );
-
+// The legacy iCache does not carry the PTW access-fault qualifier: fetch-side PTW
+// access faults are reported as instruction page faults in this configuration.
+assign icache_resp_access_fault = 1'b0;
 `else
 
 // assign icache_nc_busy = '0; // This signal is unused when the iCache is handling the nc_requests, instead of the nc_buffer.

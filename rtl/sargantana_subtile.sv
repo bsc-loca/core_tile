@@ -75,6 +75,7 @@ module sargantana_subtile
     output logic [ICACHE_PPN_SIZE-1:0]      icache_tlb_resp_ppn_o,
     output logic [ICACHE_PPN_SIZE-1:0]      icache_tlb_resp_guest_ppn_o,
     output logic                            icache_tlb_resp_xcpt_o,
+    output logic                            icache_tlb_resp_access_fault_o,
     output logic                            icache_tlb_resp_guest_xcpt_o,
 
     //- To MMU
@@ -181,6 +182,15 @@ logic [13:0] csr_hgatp_vmid;
 ptw_dmem_comm_t ptw_dmem_comm;
 dmem_ptw_comm_t dmem_ptw_comm;
 
+// A page-table read targeting an address outside the mapped sections must raise an
+// access fault rather than being walked. The check lives here because the MMU does
+// not see the address map; the PTW suppresses the read when this is asserted.
+// req.addr is driven continuously from pte_addr, so this is stable while the PTW
+// is deciding whether to issue the read.
+logic ptw_req_not_mapped;
+assign ptw_req_not_mapped = ~is_inside_mapped_sections(DracCfg,
+                                {{(64-$bits(ptw_dmem_comm.req.addr)){1'b0}}, ptw_dmem_comm.req.addr});
+
 // iTLB interface
 cache_tlb_comm_t                 icache_itlb_comm;
 tlb_cache_comm_t                 itlb_icache_comm;
@@ -202,6 +212,7 @@ assign icache_tlb_resp_ptw_v_o = itlb_icache_comm.tlb_ready;
 assign icache_tlb_resp_ppn_o   = itlb_icache_comm.resp.ppn[ICACHE_PPN_SIZE-1:0];
 assign icache_tlb_resp_guest_ppn_o = itlb_icache_comm.resp.guest_ppn[ICACHE_PPN_SIZE-1:0];
 assign icache_tlb_resp_xcpt_o  = itlb_icache_comm.resp.xcpt.fetch;
+assign icache_tlb_resp_access_fault_o = itlb_icache_comm.resp.access_fault;
 assign icache_tlb_resp_guest_xcpt_o = itlb_icache_comm.resp.guest_xcpt.fetch;
 
 // *** Core Instance ***
@@ -373,7 +384,8 @@ bsc_mmu_hpdc_adapter #(
     .req_dcache_tag_o(dcache_req_tag_o[MMU_REQUESTER_SID]),
     .req_dcache_pma_o(dcache_req_pma_o[MMU_REQUESTER_SID]),
     .rsp_dcache_valid_i(dcache_rsp_valid_i[MMU_REQUESTER_SID]),
-    .rsp_dcache_i(dcache_rsp_i[MMU_REQUESTER_SID])
+    .rsp_dcache_i(dcache_rsp_i[MMU_REQUESTER_SID]),
+    .ptw_req_not_mapped_i(ptw_req_not_mapped)
 );
 
 endmodule

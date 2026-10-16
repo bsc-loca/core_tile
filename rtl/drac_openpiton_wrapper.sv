@@ -90,14 +90,23 @@
 
 localparam int unsigned L1D_MSHR_WAYS = 2;
 
+// OpenPiton passes one 64-bit word per rule; drac_cfg_t holds PHY_ADDR_SIZE-bit
+// elements, so each rule must be truncated individually to stay aligned.
+typedef logic [NrMaxRules-1:0][PHY_ADDR_SIZE-1:0] rules_t;
+function automatic rules_t repack_rules(logic [NrMaxRules*64-1:0] rules);
+    for (int unsigned k = 0; k < NrMaxRules; k++) begin
+        repack_rules[k] = rules[k*64 +: PHY_ADDR_SIZE];
+    end
+endfunction
+
 localparam drac_cfg_t DracOpenPitonCfg = '{
     NIOSections: NIOSections, // number of IO space sections
-    InitIOBase:  InitIOBase, // IO base 0 address after reset
-    InitIOEnd:   InitIOEnd, // IO end 0 address after reset
+    InitIOBase:  repack_rules(InitIOBase), // IO base 0 address after reset
+    InitIOEnd:   repack_rules(InitIOEnd), // IO end 0 address after reset
 
     NMappedSections: NMappedSections, // number of Memory space sections
-    InitMappedBase:  InitMappedBase, // Memory base address after reset
-    InitMappedEnd:   InitMappedEnd, // Memory end 0 address after reset
+    InitMappedBase:  repack_rules(InitMappedBase), // Memory base address after reset
+    InitMappedEnd:   repack_rules(InitMappedEnd), // Memory end 0 address after reset
 
     InitBROMBase: InitBROMBase,
     InitBROMEnd: InitBROMEnd,

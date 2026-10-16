@@ -119,7 +119,7 @@ assign resp_icache_fetch_valid = (tlb_resp_xcp_if_i | tlb_resp_xcp_access_i | tl
 assign resp_icache_fetch_o.valid =  resp_icache_fetch_valid;
 assign resp_icache_fetch_o.guest_ppn = icache_req_guest_ppn_i;
 assign resp_icache_fetch_o.instr_page_fault = tlb_resp_xcp_if_i & ~tlb_resp_xcp_access_i; 
-assign resp_icache_fetch_o.instr_access_fault = tlb_resp_xcp_access_i; 
+assign resp_icache_fetch_o.instr_access_fault = tlb_resp_xcp_if_i & tlb_resp_xcp_access_i; 
 assign resp_icache_fetch_o.instr_guest_page_fault = tlb_resp_guest_xcp_if_i; 
 assign req_fetch_ready_o = icache_req_ready_i; 
 
