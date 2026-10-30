@@ -288,7 +288,7 @@ debug_contr_out_t               debug_contr_out;
 debug_reg_out_t                 debug_reg_out;
 
 // *** iCache prefetcher CSR configurability ***
-logic[drac_icache_pkg::CSR_PREFETCHER_BITS-1:0] csr_icache_pref_degree;
+logic[`ICACHE_PKG_NAME::CSR_PREFETCHER_BITS-1:0] csr_icache_pref_degree;
 
 // *** Core Instance ***
 
@@ -654,9 +654,9 @@ top_icache_dos #(
     // It is better not to change the values from the instantiation but from the instance_hpic_pkg.sv so that they apply also to the structures if needed.
     // There should be as many instance_hpic_pkg.sv as different instances of the hpic, and specify all the changed parameters for each one on the instantiation.
     
-    .ASSOCIATIVITY    ( 4                         ),
-    .CACHE_SIZE_KB    ( 16                        ),
-    .FETCH_REQ_SIZE   ( 16                        ),
+    .ASSOCIATIVITY    ( `ICACHE_PKG_NAME::ASSOCIATIVITY    ),
+    .CACHE_SIZE_KB    ( `ICACHE_PKG_NAME::CACHE_SIZE_KB    ),
+    .FETCH_REQ_SIZE   ( `ICACHE_PKG_NAME::FETCH_REQ_SIZE   ),
     .FSTATUS_SIZE     ( `ICACHE_PKG_NAME::FSTATUS_SIZE     ), 
     .DEGREE           ( `ICACHE_PKG_NAME::DEGREE           ),
     .PB_ASSOCIATIVITY ( `ICACHE_PKG_NAME::PB_ASSOCIATIVITY ),
