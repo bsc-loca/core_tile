@@ -5,9 +5,9 @@ ${HPDCACHE_DIR}/rtl/src/common/macros/behav/hpdcache_sram_1rw.sv
 ${HPDCACHE_DIR}/rtl/src/common/macros/behav/hpdcache_sram_wbyteenable_1rw.sv
 ${HPDCACHE_DIR}/rtl/src/common/macros/behav/hpdcache_sram_wmask_1rw.sv
 -F ${TILE_TOP}/rtl/icache/icache/filelist.f
-${TILE_TOP}/rtl/icache/icache_dos/includes/drac_icache_pkg.sv
-${TILE_TOP}/rtl/icache/icache_dos/includes/sargantana_vidriol_pkg.sv
--F ${TILE_TOP}/rtl/icache/icache_dos/filelist.f
+${TILE_TOP}/rtl/icache/vidriol/includes/drac_icache_pkg.sv
+${TILE_TOP}/rtl/icache/vidriol/includes/sargantana_vidriol_pkg.sv
+-F ${TILE_TOP}/rtl/icache/vidriol/filelist.f
 +incdir+${TILE_TOP}/includes
 
 ${TILE_TOP}/rtl/interface_dcache/rtl/dcache_interface.sv

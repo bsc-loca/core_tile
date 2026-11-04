@@ -18,7 +18,7 @@
 	url = ../l1_i-caches/instruction_cache.git
 	branch = ft/cacheline_64b
 [submodule "rtl/icache/icache_dos"]
-	path = rtl/icache/icache_dos
+	path = rtl/icache/vidriol
 	url = ../l1_i-caches/instruction_cache_dos.git
 	branch = main
 [submodule "riscv-tests"]
