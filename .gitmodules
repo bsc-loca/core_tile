@@ -20,7 +20,7 @@
 [submodule "rtl/icache/icache_dos"]
 	path = rtl/icache/icache_dos
 	url = ../l1_i-caches/instruction_cache_dos.git
-	branch = ni/pma-hpic
+	branch = main
 [submodule "riscv-tests"]
 	path = riscv-tests
 	url = ../../../verification/riscv-tests.git

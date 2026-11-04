@@ -59,7 +59,7 @@ module axi_arbiter
   input  wire logic                               icache_miss_valid_i,
   output wire logic                               icache_miss_ready_o,
   input  wire logic [drac_pkg::PHY_ADDR_SIZE-1:0] icache_miss_paddr_i,
-  // macro HPIC_DISABLE shall not remove the follwing three signals as the original iCache will just ignore them, thus they can be responded anyways
+  // macro VIDRIOL_DISABLE shall not remove the follwing three signals as the original iCache will just ignore them, thus they can be responded anyways
   input  wire hpdcache_mem_id_t                   icache_miss_id_i,
   output wire logic                               icache_miss_req_ack_o, 
   output wire hpdcache_mem_id_t                   icache_miss_resp_id_o,

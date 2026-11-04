@@ -1,4 +1,6 @@
 spyglass_reports/
+*.elf
+sim.*
 *.swp
 *.tmp
 lib_module/

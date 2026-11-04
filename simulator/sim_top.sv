@@ -29,10 +29,10 @@ module sim_top #(
 `endif
 );
     import drac_pkg::*;    
-    `ifdef HPIC_DISABLE
+    `ifdef VIDRIOL_DISABLE
         `define ICACHE_PKG sargantana_icache_pkg
     `else
-        `define ICACHE_PKG sargantana_hpic_pkg
+        `define ICACHE_PKG sargantana_vidriol_pkg
     `endif
 
     logic dut_rstn, debug_reset;
@@ -147,7 +147,7 @@ module sim_top #(
     assign dut_icache_response_data = uc_fetch_resp_valid ? uc_fetch_resp_data : icache_l2_response_data;
     assign dut_icache_response_valid = uc_fetch_resp_valid | icache_l2_response_valid;
 
-    `ifndef HPIC_DISABLE
+    `ifndef VIDRIOL_DISABLE
     logic [`ICACHE_PKG::FSTATUS_SIZE_IDX-1:0] dut_icache_req_id;
     logic                                     dut_icache_noc_ack;
     logic [`ICACHE_PKG::FSTATUS_SIZE_IDX-1:0] dut_icache_resp_id;
@@ -236,11 +236,11 @@ module sim_top #(
         .io_mem_grant_valid(dut_icache_response_valid),
         .io_mem_grant_bits_data(dut_icache_response_data),
         .io_mem_grant_bits_addr_beat(2'b0),
-        `ifndef HPIC_DISABLE
+        `ifndef VIDRIOL_DISABLE
         .io_mem_acquire_id(dut_icache_req_id),
         .noc2decoder_icache_noc_ack_i(dut_icache_noc_ack),
         .noc2decoder_icache_id_i(dut_icache_resp_id),
-        `endif //HPIC_DISABLE
+        `endif //VIDRIOL_DISABLE
         .io_mem_grant_inval(0),
         .io_mem_grant_inval_addr(0),
 
@@ -320,9 +320,9 @@ module sim_top #(
 
     l2_behav #(
         .DATA_CACHE_LINE_SIZE(DRAC_CFG.MemDataWidth),
-        `ifndef HPIC_DISABLE
+        `ifndef VIDRIOL_DISABLE
         .FSTATUS_SIZE(`ICACHE_PKG::FSTATUS_SIZE),
-        `endif // HPIC_DISABLE
+        `endif // VIDRIOL_DISABLE
         .INST_CACHE_LINE_SIZE(sargantana_icache_pkg::SET_WIDHT),
         .ADDR_SIZE(DRAC_CFG.MemAddrWidth)
     ) l2_inst (
@@ -336,11 +336,11 @@ module sim_top #(
         .ic_valid_o(icache_l2_response_valid),
         .ic_line_o(icache_l2_response_data),
 	      .ic_seq_num_o(),
-        `ifndef HPIC_DISABLE
+        `ifndef VIDRIOL_DISABLE
         .ic_id_i (dut_icache_req_id),
         .ic_req_ack_o (dut_icache_noc_ack),
         .ic_id_o (dut_icache_resp_id),
-        `endif // HPIC_DISABLE
+        `endif // VIDRIOL_DISABLE
 
         // *** dCache Read Interface ***
         .dc_read_req_ready_o(mem_req_read_ready),

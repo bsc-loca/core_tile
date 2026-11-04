@@ -64,7 +64,7 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
   input   logic                               icache_miss_valid_i,
   output  logic                               icache_miss_ready_o,
   input   logic [IcacheAddrWidth-1:0]         icache_miss_paddr_i,
-  `ifndef HPIC_DISABLE
+  `ifndef VIDRIOL_DISABLE
   input   logic[P_FSTATUS_SIZE_IDX-1:0]       icache_miss_id_i,
   //input   logic                             icache_miss_prefetch_i,
 
@@ -172,7 +172,7 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
   );
 
   assign icache_miss_req_w   = icache_miss_valid_i | brom_req_valid_i,         
-         `ifndef HPIC_DISABLE
+         `ifndef VIDRIOL_DISABLE
          icache_miss_req_ack_o = icache_miss_req_wok & icache_miss_valid_i,
          `endif
          icache_miss_ready_o = icache_miss_req_wok;
@@ -180,7 +180,7 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
   assign icache_miss_req_wdata.mem_req_addr      = brom_req_valid_i ? brom_req_address_i : icache_miss_paddr_i,
          icache_miss_req_wdata.mem_req_len       = '0,
          icache_miss_req_wdata.mem_req_size      = ICACHE_MEM_REQ_CL_SIZE,
-         `ifdef HPIC_DISABLE
+         `ifdef VIDRIOL_DISABLE
          icache_miss_req_wdata.mem_req_id        = '0,
          `else 
          icache_miss_req_wdata.mem_req_id        = icache_miss_id_i,
@@ -194,7 +194,7 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
   //    I$ response
   //    {{{
   logic                                icache_miss_resp_w, icache_miss_resp_wok;
-  `ifndef HPIC_DISABLE
+  `ifndef VIDRIOL_DISABLE
   hpdcache_mem_id_t                    icache_miss_resp_id;
   `endif  
   hpdcache_mem_resp_t                  icache_miss_resp_wdata;
@@ -206,7 +206,7 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
 
   //Translate the request from HPDC format to sargantana's format
   assign icache_miss_resp_valid_o = icache_miss_resp_meta_rok,
-         `ifndef HPIC_DISABLE
+         `ifndef VIDRIOL_DISABLE
          icache_miss_resp_id_o    = icache_miss_resp_id,
          `endif
          icache_miss_resp_data_o  = icache_miss_resp_data_rdata,
@@ -354,7 +354,7 @@ module cinco_ranch_hpdcache_subsystem_l15_adapter
   // IFILL
   assign icache_miss_resp_w                             = mem_resp_valid_arb[IcachePort],
          icache_miss_resp_wdata                         = mem_resp_arb[IcachePort],
-         `ifndef HPIC_DISABLE
+         `ifndef VIDRIOL_DISABLE
          icache_miss_resp_id                            = mem_resp_arb[IcachePort].mem_resp_id,
          `endif 
          mem_resp_ready_arb[IcachePort]                 = icache_miss_resp_wok;

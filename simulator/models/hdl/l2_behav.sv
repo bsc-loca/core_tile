@@ -230,7 +230,7 @@ module mem_channel #(
 endmodule
 
 
-`ifndef HPIC_DISABLE
+`ifndef VIDRIOL_DISABLE
 
 module i_mem_channel #(
     parameter FSTATUS_SIZE = 64,
@@ -257,7 +257,7 @@ module i_mem_channel #(
 
     // *** iCache memory channel logic ***
 
-    //      Adaptation to iCache_dos made by Joaquin Borras (joaquim.borras@bsc.es)
+    //      Adaptation to Vidriol made by Joaquin Borras (joaquim.borras@bsc.es)
 
     // *** Time reference ***
 
@@ -384,15 +384,15 @@ module i_mem_channel #(
 
 endmodule
 
-`endif //HPIC_DISABLE
+`endif //VIDRIOL_DISABLE
 
 module l2_behav #(
     parameter DATA_CACHE_LINE_SIZE = 512,
     parameter INST_CACHE_LINE_SIZE = DATA_CACHE_LINE_SIZE,
     parameter ADDR_SIZE = 32,
-    `ifndef HPIC_DISABLE
+    `ifndef VIDRIOL_DISABLE
     parameter FSTATUS_SIZE = 64,
-    `endif //HPIC_DISABLE
+    `endif //VIDRIOL_DISABLE
     parameter INST_DELAY = 20,
     parameter DATA_DELAY = 20,
     parameter SIZE_WIDTH = 4,
@@ -417,11 +417,11 @@ module l2_behav #(
     output logic                    ic_valid_o,
     output logic [1:0]              ic_seq_num_o,
 
-    `ifndef HPIC_DISABLE
+    `ifndef VIDRIOL_DISABLE
     input logic [$clog2(FSTATUS_SIZE)-1:0]  ic_id_i,
     output logic                            ic_req_ack_o,
     output logic [$clog2(FSTATUS_SIZE)-1:0] ic_id_o,
-    `endif // HPIC_DISABLE
+    `endif // VIDRIOL_DISABLE
 
     // *** dCache Interface ***
 
@@ -479,9 +479,9 @@ module l2_behav #(
 
     // *** iCache memory channel logic ***
 
-    //      Adaptation to iCache_dos made by Joaquin Borras (joaquim.borras@bsc.es)
+    //      Adaptation to Vidriol made by Joaquin Borras (joaquim.borras@bsc.es)
 
-    `ifdef HPIC_DISABLE
+    `ifdef VIDRIOL_DISABLE
 
     logic [$clog2(INST_DELAY)+1:0] ic_counter;
     logic [$clog2(INST_DELAY)+1:0] ic_next_counter;
@@ -544,7 +544,7 @@ module l2_behav #(
       .rsp_data_o (ic_line_o)
     );
 
-    `endif //HPIC_DISABLE
+    `endif //VIDRIOL_DISABLE
 
     // *** dCache read channel ***
 

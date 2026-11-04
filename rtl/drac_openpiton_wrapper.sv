@@ -172,7 +172,7 @@ logic           brom_req_valid;
 
 // icache wires
 logic                     l1_request_valid;
-`ifndef HPIC_DISABLE
+`ifndef VIDRIOL_DISABLE
 logic[`ICACHE_PKG_NAME::FSTATUS_SIZE_IDX-1:0] l1_request_id;
 logic                       l1_request_prefetch;
 logic[`ICACHE_PKG_NAME::FSTATUS_SIZE_IDX-1:0] l2_response_id;
@@ -299,7 +299,7 @@ top_tile #(
  // icache ports
  .io_mem_acquire_valid(l1_request_valid),
  .io_mem_acquire_bits_addr_block(l1_request_paddr),
-  `ifndef HPIC_DISABLE
+  `ifndef VIDRIOL_DISABLE
  .io_mem_acquire_id(l1_request_id),
  .io_mem_acquire_prefetch(l1_request_prefetch),
 
@@ -421,13 +421,13 @@ cinco_ranch_hpdcache_subsystem_l15_adapter #(
  .icache_miss_valid_i(l1_request_valid),
  .icache_miss_ready_o (/*unused*/),
  .icache_miss_paddr_i(l1_request_paddr), 
- `ifndef HPIC_DISABLE
+ `ifndef VIDRIOL_DISABLE
  .icache_miss_id_i(l1_request_id),
  //.icache_miss_prefetch_i(l1_request_prefetch),
 
  .icache_miss_resp_id_o(l2_response_id),
  .icache_miss_req_ack_o(l2_req_ack),
- `endif //ICACHE_DOS
+ `endif //VIDRIOL_DISABLE
 
  .icache_miss_resp_valid_o(l2_response_valid),
  .icache_miss_resp_data_o(l2_response_data),
