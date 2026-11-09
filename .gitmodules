@@ -13,10 +13,14 @@
 [submodule "rtl/common_cells"]
 	path = rtl/common_cells
 	url = https://github.com/pulp-platform/common_cells.git
-[submodule "rtl/icache"]
-	path = rtl/icache
+[submodule "rtl/icache/icache"]
+	path = rtl/icache/icache
 	url = ../instruction_cache.git
 	branch = ft/cacheline_64b
+[submodule "rtl/icache/icache_dos"]
+	path = rtl/icache/vidriol
+	url = ../vidriol.git
+	branch = main
 [submodule "riscv-tests"]
 	path = riscv-tests
 	url = ../riscv-tests.git

@@ -1,3 +1,23 @@
+/*
+ * Copyright 2025 BSC*
+ * *Barcelona Supercomputing Center (BSC)
+ * 
+ * SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
+ * 
+ * Licensed under the Solderpad Hardware License v 2.1 (the “License”); you
+ * may not use this file except in compliance with the License, or, at your
+ * option, the Apache License version 2.0. You may obtain a copy of the
+ * License at
+ * 
+ * https://solderpad.org/licenses/SHL-2.1/
+ * 
+ * Unless required by applicable law or agreed to in writing, any work
+ * distributed under the License is distributed on an “AS IS” BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 `include "hpdcache_typedef.svh"
 
 module sargantana_subtile
@@ -65,6 +85,7 @@ module sargantana_subtile
     input  logic                            icache_resp_valid_i,
     input  logic [ICACHELINE_SIZE-1:0]      icache_resp_data_i,
     input  logic                            icache_resp_xcpt_i,
+    input  logic                            icache_resp_access_xcpt_i,
     input  logic                            icache_resp_guest_xcpt_i,
     input  logic [ICACHE_PPN_SIZE-1:0]      icache_resp_guest_ppn_i,
 
@@ -74,6 +95,7 @@ module sargantana_subtile
     output logic [ICACHE_PPN_SIZE-1:0]      icache_tlb_resp_ppn_o,
     output logic [ICACHE_PPN_SIZE-1:0]      icache_tlb_resp_guest_ppn_o,
     output logic                            icache_tlb_resp_xcpt_o,
+    output logic                            icache_tlb_resp_access_fault_o,
     output logic                            icache_tlb_resp_guest_xcpt_o,
 
     //- To MMU
@@ -135,6 +157,9 @@ module sargantana_subtile
 `ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
     output logic [63:0]                     dyn_fpga_mem_latency_o,
 `endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+`ifndef VIDRIOL_DISABLE
+    output logic [15:0] vidriol_degree_o,
+`endif
 
 //-----------------------------------------------------------------------------
 // INTERRUPTS
@@ -142,7 +167,11 @@ module sargantana_subtile
     input  logic                 time_irq_i, // timer interrupt
     input  logic [1:0]           irq_i,      // external interrupt in
     input  logic                 soft_irq_i, // software interrupt
-    input  logic [63:0]          time_i     // time passed since the core is reset
+    input  logic [63:0]          time_i,     // time passed since the core is reset
+//-----------------------------------------------------------------------------
+// Zawrs RESERVATION-LOST (WRS wakeup, level from L1.5 adapter)
+//-----------------------------------------------------------------------------
+    input  logic                 rs_lost_i
 );
 
 // Response Interface icache to datapath
@@ -163,6 +192,9 @@ logic [1:0] priv_lvl;
 logic v_mode;
 logic en_translation;
 logic en_g_translation;
+logic [15:0] csr_satp_asid;
+logic [15:0] csr_vsatp_asid;
+logic [13:0] csr_hgatp_vmid;
 
 // *** Memory Management Unit ***
 
@@ -170,13 +202,22 @@ logic en_g_translation;
 ptw_dmem_comm_t ptw_dmem_comm;
 dmem_ptw_comm_t dmem_ptw_comm;
 
+// A page-table read targeting an address outside the mapped sections must raise an
+// access fault rather than being walked. The check lives here because the MMU does
+// not see the address map; the PTW suppresses the read when this is asserted.
+// req.addr is driven continuously from pte_addr, so this is stable while the PTW
+// is deciding whether to issue the read.
+logic ptw_req_not_mapped;
+assign ptw_req_not_mapped = ~is_inside_mapped_sections(DracCfg,
+                                {{(64-$bits(ptw_dmem_comm.req.addr)){1'b0}}, ptw_dmem_comm.req.addr});
+
 // iTLB interface
 cache_tlb_comm_t                 icache_itlb_comm;
 tlb_cache_comm_t                 itlb_icache_comm;
 
 assign icache_itlb_comm.req.valid       = icache_tlb_req_valid_i;
-assign icache_itlb_comm.req.asid        = 1'b0;
-assign icache_itlb_comm.req.vmid        = 1'b0;
+assign icache_itlb_comm.req.asid        = (en_translation && v_mode) ? csr_vsatp_asid[drac_pkg::ASID_SIZE-1:0] : csr_satp_asid[drac_pkg::ASID_SIZE-1:0];
+assign icache_itlb_comm.req.vmid        = (en_g_translation && v_mode) ? csr_hgatp_vmid[drac_pkg::ASID_SIZE-2-1:0] : '0;
 assign icache_itlb_comm.req.vpn         = icache_tlb_req_vpn_i;
 assign icache_itlb_comm.req.passthrough = 1'b0;
 assign icache_itlb_comm.req.instruction = 1'b1;
@@ -191,6 +232,7 @@ assign icache_tlb_resp_ptw_v_o = itlb_icache_comm.tlb_ready;
 assign icache_tlb_resp_ppn_o   = itlb_icache_comm.resp.ppn[ICACHE_PPN_SIZE-1:0];
 assign icache_tlb_resp_guest_ppn_o = itlb_icache_comm.resp.guest_ppn[ICACHE_PPN_SIZE-1:0];
 assign icache_tlb_resp_xcpt_o  = itlb_icache_comm.resp.xcpt.fetch;
+assign icache_tlb_resp_access_fault_o = itlb_icache_comm.resp.access_fault;
 assign icache_tlb_resp_guest_xcpt_o = itlb_icache_comm.resp.guest_xcpt.fetch;
 
 // *** Core Instance ***
@@ -219,6 +261,9 @@ top_drac #(
     .req_cpu_icache_o(req_datapath_icache_interface),
     .en_translation_o(en_translation),
     .en_g_translation_o(en_g_translation),
+    .csr_satp_asid_o(csr_satp_asid),
+    .csr_vsatp_asid_o(csr_vsatp_asid),
+    .csr_hgatp_vmid_o(csr_hgatp_vmid),
     .priv_lvl_o(priv_lvl),
     .v_mode_o(v_mode),
     .resp_icache_cpu_i(resp_icache_interface_datapath),
@@ -262,12 +307,17 @@ top_drac #(
 `ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
     .dyn_fpga_mem_latency_o(dyn_fpga_mem_latency_o),
 `endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+`ifndef VIDRIOL_DISABLE
+    .vidriol_degree_o(vidriol_degree_o),
+`endif
 
     // Interrupts
     .time_irq_i,
     .irq_i,
     .soft_irq_i,
-    .time_i
+    .time_i,
+    // Zawrs reservation-lost level (WRS wakeup)
+    .rs_lost_i
 );
 
 // *** iCache Interface ***
@@ -283,6 +333,7 @@ icache_interface icache_interface_inst(
     .icache_resp_valid_i        ( icache_resp_valid_i ),
     .icache_req_ready_i         ( icache_resp_ready_i ),
     .tlb_resp_xcp_if_i          ( icache_resp_xcpt_i  ),
+    .tlb_resp_xcp_access_i      ( icache_resp_access_xcpt_i ),
     .tlb_resp_guest_xcp_if_i    ( icache_resp_guest_xcpt_i ),
     .icache_req_guest_ppn_i     ( icache_resp_guest_ppn_int ),
     .en_translation_i           ( en_translation      ),
@@ -353,7 +404,8 @@ bsc_mmu_hpdc_adapter #(
     .req_dcache_tag_o(dcache_req_tag_o[MMU_REQUESTER_SID]),
     .req_dcache_pma_o(dcache_req_pma_o[MMU_REQUESTER_SID]),
     .rsp_dcache_valid_i(dcache_rsp_valid_i[MMU_REQUESTER_SID]),
-    .rsp_dcache_i(dcache_rsp_i[MMU_REQUESTER_SID])
+    .rsp_dcache_i(dcache_rsp_i[MMU_REQUESTER_SID]),
+    .ptw_req_not_mapped_i(ptw_req_not_mapped)
 );
 
 endmodule

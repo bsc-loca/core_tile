@@ -6,10 +6,12 @@ root_folder=$(dirname "$root_file")
 
 # Define HPDCACHE_DIR as $root_folder/rtl/dcache
 HPDCACHE_DIR="$root_folder/rtl/dcache"
+TILE_TOP="$root_folder"
 
 # Declare an associative array to store variables
 declare -A variables
 variables["HPDCACHE_DIR"]="$HPDCACHE_DIR"
+variables["TILE_TOP"]="$TILE_TOP"
 
 # Output file where the parsed filelist will be stored
 output_file="parsed_filelist.f"
@@ -98,6 +100,7 @@ fi
 
 # Output root_file and HPDCACHE_DIR variables
 echo "Root file: $root_file"
+echo "TILE_TOP: $TILE_TOP"
 echo "HPDCACHE_DIR: $HPDCACHE_DIR"
 
 # Call the processing function with the main filelist

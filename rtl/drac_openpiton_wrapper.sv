@@ -1,4 +1,24 @@
 /*
+ * Copyright 2025 BSC*
+ * *Barcelona Supercomputing Center (BSC)
+ * 
+ * SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
+ * 
+ * Licensed under the Solderpad Hardware License v 2.1 (the “License”); you
+ * may not use this file except in compliance with the License, or, at your
+ * option, the Apache License version 2.0. You may obtain a copy of the
+ * License at
+ * 
+ * https://solderpad.org/licenses/SHL-2.1/
+ * 
+ * Unless required by applicable law or agreed to in writing, any work
+ * distributed under the License is distributed on an “AS IS” BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+/*
  *  Authors       : Oscar Lostes Cazorla, Noelia Oliete Escuin
  *  Creation Date : July, 2023
  *  Description   : Sargantana Wrapper to be used in OpenPiton
@@ -90,14 +110,23 @@
 
 localparam int unsigned L1D_MSHR_WAYS = 2;
 
+// OpenPiton passes one 64-bit word per rule; drac_cfg_t holds PHY_ADDR_SIZE-bit
+// elements, so each rule must be truncated individually to stay aligned.
+typedef logic [NrMaxRules-1:0][PHY_ADDR_SIZE-1:0] rules_t;
+function automatic rules_t repack_rules(logic [NrMaxRules*64-1:0] rules);
+    for (int unsigned k = 0; k < NrMaxRules; k++) begin
+        repack_rules[k] = rules[k*64 +: PHY_ADDR_SIZE];
+    end
+endfunction
+
 localparam drac_cfg_t DracOpenPitonCfg = '{
     NIOSections: NIOSections, // number of IO space sections
-    InitIOBase:  InitIOBase, // IO base 0 address after reset
-    InitIOEnd:   InitIOEnd, // IO end 0 address after reset
+    InitIOBase:  repack_rules(InitIOBase), // IO base 0 address after reset
+    InitIOEnd:   repack_rules(InitIOEnd), // IO end 0 address after reset
 
     NMappedSections: NMappedSections, // number of Memory space sections
-    InitMappedBase:  InitMappedBase, // Memory base address after reset
-    InitMappedEnd:   InitMappedEnd, // Memory end 0 address after reset
+    InitMappedBase:  repack_rules(InitMappedBase), // Memory base address after reset
+    InitMappedEnd:   repack_rules(InitMappedEnd), // Memory end 0 address after reset
 
     InitBROMBase: InitBROMBase,
     InitBROMEnd: InitBROMEnd,
@@ -143,6 +172,13 @@ logic           brom_req_valid;
 
 // icache wires
 logic                     l1_request_valid;
+`ifndef VIDRIOL_DISABLE
+logic[`ICACHE_PKG_NAME::FSTATUS_SIZE_IDX-1:0] l1_request_id;
+logic                       l1_request_prefetch;
+logic[`ICACHE_PKG_NAME::FSTATUS_SIZE_IDX-1:0] l2_response_id;
+logic                       l2_req_ack;
+logic                       l2_req_wok;
+`endif
 logic                     l2_response_valid;
 logic [PHY_ADDR_SIZE-1:0] l1_request_paddr;
 logic [511:0]             l2_response_data; // TODO: LOCALPARAMETERS or PKG definition
@@ -199,6 +235,9 @@ logic                           mem_inval_valid;
 
 typedef logic [PHY_ADDR_SIZE-$clog2(DracOpenPitonCfg.DCacheLineWidth / 8)-1:0] hpdcache_nline_t;
 hpdcache_nline_t  mem_inval;
+
+// Zawrs: reservation-lost level from the L1.5 adapter to the core
+logic                           rs_lost;
 
 function [15:0] trunc_sum_16bits(input [16:0] val_in);
   trunc_sum_16bits = val_in[15:0];
@@ -260,6 +299,13 @@ top_tile #(
  // icache ports
  .io_mem_acquire_valid(l1_request_valid),
  .io_mem_acquire_bits_addr_block(l1_request_paddr),
+  `ifndef VIDRIOL_DISABLE
+ .io_mem_acquire_id(l1_request_id),
+ .io_mem_acquire_prefetch(l1_request_prefetch),
+
+ .noc2decoder_icache_id_i(l2_response_id),
+ .noc2decoder_icache_noc_ack_i(l2_req_ack),//Warning it might cause a combinational loop
+ `endif
  .io_mem_grant_valid(l2_response_valid),
  .io_mem_grant_bits_data(l2_response_data),
  .io_mem_grant_bits_addr_beat(l2_response_seqnum),
@@ -290,9 +336,11 @@ top_tile #(
  .mem_resp_write_valid_i(mem_resp_write_valid),
  .mem_resp_write_i(mem_resp_write),
 
- // Invalidation interface
- .mem_inval_valid_i(mem_inval_valid),
- .mem_inval_i(mem_inval),
+  // Invalidation interface
+  .mem_inval_valid_i(mem_inval_valid),
+  .mem_inval_i(mem_inval),
+  // Zawrs: reservation-lost level to the core (WRS wakeup)
+  .rs_lost_i(rs_lost),
 
  .time_irq_i(time_irq_i),
  .irq_i(irq_i),
@@ -372,7 +420,14 @@ cinco_ranch_hpdcache_subsystem_l15_adapter #(
  // {{{
  .icache_miss_valid_i(l1_request_valid),
  .icache_miss_ready_o (/*unused*/),
- .icache_miss_paddr_i(l1_request_paddr),
+ .icache_miss_paddr_i(l1_request_paddr), 
+ `ifndef VIDRIOL_DISABLE
+ .icache_miss_id_i(l1_request_id),
+ //.icache_miss_prefetch_i(l1_request_prefetch),
+
+ .icache_miss_resp_id_o(l2_response_id),
+ .icache_miss_req_ack_o(l2_req_ack),
+ `endif //VIDRIOL_DISABLE
 
  .icache_miss_resp_valid_o(l2_response_valid),
  .icache_miss_resp_data_o(l2_response_data),
@@ -394,8 +449,10 @@ cinco_ranch_hpdcache_subsystem_l15_adapter #(
  .dcache_read_resp_valid_o(mem_resp_read_valid),
  .dcache_read_resp_o(mem_resp_read),
   // Invalidation interface
- .dcache_inval_valid_o(mem_inval_valid),
- .dcache_inval_o(mem_inval),
+  .dcache_inval_valid_o(mem_inval_valid),
+  .dcache_inval_o(mem_inval),
+  // Zawrs: reservation-lost level to the core (WRS wakeup)
+  .dcache_rs_lost_o(rs_lost),
 
  //      Write-buffer write interface
  .dcache_write_ready_o(mem_req_write_ready),

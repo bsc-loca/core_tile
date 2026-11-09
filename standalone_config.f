@@ -1,3 +1,5 @@
++define+ICACHE_PKG_NAME=sargantana_vidriol_pkg
+//+define+PREFETCH_ENABLE
 +define+CONF_HPDCACHE_REQ_WORDS=8
 +define+CONF_HPDCACHE_WBUF_WORDS=1
 +define+CONF_HPDCACHE_ACCESS_WORDS=8

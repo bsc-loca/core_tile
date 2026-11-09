@@ -6,7 +6,7 @@ include:
   - project: 'hwdesign/verification/components/core-uvm'
     ref: master
     file:
-      - script/ci/jobs.yml
+      - scripts/ci/jobs.yml
 
 ## This workflow avoids duplicate pipelines when there is an open merge request (commit_branch + merge_request) 
 ## so only the open merge request will be executed and not the commit_branch. PIPELINE_BRANCH will be used to refer to
@@ -58,7 +58,8 @@ stages:
 variables:
   RTL_PATH: ${CI_PROJECT_DIR}
   DV_PATH: ${CI_PROJECT_DIR}/verif/core_uvm
-  #CORE_UVM_BRANCH: to_override_core_uvm_branch
+  # core-uvm branch cloned by `make clone_dv` in uvm-prepare. Keep it in sync with the include ref above
+  CORE_UVM_BRANCH: master
 
 lint-verilator:
   extends: .verilator
@@ -147,6 +148,10 @@ build-simulator:
   rules:
     - !reference [.rules_default]
   script:
+    - module load verilator
+    - module load gcc
+    - verilator --version
+    - gcc --version
     - make sim
   artifacts:
     paths:
@@ -154,14 +159,29 @@ build-simulator:
     - sim
     - bootrom.hex
 
+uvm-prepare:
+  extends: .uvm-prepare
+  stage: linting
+  rules:
+    - !reference [.rules_uvm_scheduled]
+    - !reference [.rules_uvm_smoke]
+
 build-uvm:
-  extends: .uvm-build
-  variables:
-    SIMULATOR: "vsim"
+  extends:
+    - .vcs_riscv
+    - .uvm-build
   stage: building
   rules:
     - !reference [.rules_uvm_scheduled]
     - !reference [.rules_uvm_smoke]
+  needs:
+    - uvm-prepare
+  variables:
+    SIMULATOR: "vcs"
+    UVM_GENERATE: "filelist bootrom"
+    COMPILE_TARGET: "rtl"
+    BUILD_COVERAGE: "true"
+    EXTRA_TAR_PATHS: "simv simv.daidir simv.vdb csrc AN.DB"
 
 build-vcs:
   extends: .vcs_riscv
@@ -281,10 +301,15 @@ vcs:
 
 
 uvm-regression:
-  extends: .uvm-regression
+  extends:
+    - .vcs_riscv
+    - .uvm-regression
   stage: simulation
   rules:
     - !reference [.rules_uvm_smoke]
+  needs:
+    - build-uvm
+
 dc-synthesis:
   extends: .dc_shell
   stage: synthesis

@@ -1,22 +1,30 @@
-/* -----------------------------------------------
-* Project Name   : DRAC
-* File           : datapath.sv
-* Organization   : Barcelona Supercomputing Center
-* Author(s)      : Guillem Cabo Pitarch 
-* Email(s)       : guillem.cabo@bsc.es
-* References     : 
-* -----------------------------------------------
-* Revision History
-*  Revision   | Author     | Commit | Description
-*  0.1        | Guillem.CP | 
-*  0.2        | Arnau B.   | Split core into core and core_tile
-* -----------------------------------------------
-*/
+/*
+ * Copyright 2025 BSC*
+ * *Barcelona Supercomputing Center (BSC)
+ * 
+ * SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
+ * 
+ * Licensed under the Solderpad Hardware License v 2.1 (the “License”); you
+ * may not use this file except in compliance with the License, or, at your
+ * option, the Apache License version 2.0. You may obtain a copy of the
+ * License at
+ * 
+ * https://solderpad.org/licenses/SHL-2.1/
+ * 
+ * Unless required by applicable law or agreed to in writing, any work
+ * distributed under the License is distributed on an “AS IS” BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 
 `include "sargantana_typedef.svh"
 
 module top_tile
-    import drac_pkg::*, sargantana_icache_pkg::*, mmu_pkg::*;
+    import drac_pkg::*, mmu_pkg::*, riscv_pkg::*;
+    `ifdef VIDRIOL_DISABLE
+    import sargantana_icache_pkg::*;
+    `endif
 #(
     parameter drac_pkg::drac_cfg_t DracCfg     = drac_pkg::DracDefaultConfig,
 
@@ -78,12 +86,17 @@ module top_tile
 //------------------------------------------------------------------------------------
     
     //- From L2
-    input  logic                     io_mem_grant_valid,
-    input  logic [511:0]             io_mem_grant_bits_data,
-    input  logic [1:0]               io_mem_grant_bits_addr_beat,
-    input  logic                     io_mem_grant_inval,
-    input  logic [PHY_ADDR_SIZE-1:0] io_mem_grant_inval_addr,
-    
+    input  logic                   io_mem_grant_valid,
+    input  logic [511:0]           io_mem_grant_bits_data,
+    input  logic [1:0]             io_mem_grant_bits_addr_beat,
+    input  logic                   io_mem_grant_inval,
+    `ifdef VIDRIOL_DISABLE
+    input  logic [11:0]            io_mem_grant_inval_addr,
+    `else
+    input  logic[`ICACHE_PKG_NAME::FSTATUS_SIZE_IDX-1:0]  noc2decoder_icache_id_i,
+    input  logic                                          noc2decoder_icache_noc_ack_i,
+    input  `ICACHE_PKG_NAME::paddr_t                      io_mem_grant_inval_addr,
+    `endif //VIDRIOL_DISABLE
 
 //----------------------------------------------------------------------------------
 // D-CACHE  INTERFACE
@@ -115,6 +128,8 @@ module top_tile
     //      Invalidation interface
     input  logic                          mem_inval_valid_i,
     input  hpdcache_nline_t               mem_inval_i,
+    //      Zawrs reservation-lost level (WRS wakeup, from L1.5 adapter)
+    input  logic                          rs_lost_i,
 `endif
 
 //-----------------------------------------------------------------------------------
@@ -124,6 +139,10 @@ module top_tile
     //- To L2
     output logic                          io_mem_acquire_valid,
     output logic [PHY_ADDR_SIZE-1:0]      io_mem_acquire_bits_addr_block,
+    `ifndef VIDRIOL_DISABLE
+    output logic [`ICACHE_PKG_NAME::FSTATUS_SIZE_IDX-1:0]   io_mem_acquire_id,
+    output logic                          io_mem_acquire_prefetch,
+    `endif //not VIDRIOL_DISABLE
 
 //-----------------------------------------------------------------------------------
 // DEBUGGING MODULE SIGNALS
@@ -222,11 +241,16 @@ logic                            icache_req_kill;
 logic [ICACHE_INDEX_SIZE-1:0]    icache_req_idx;
 logic [ICACHE_VPN_SIZE-1:0]      icache_req_vpn;
 
+
+
+
 // To Core
 logic                            icache_resp_ready;
 logic                            icache_resp_valid;
 logic [ICACHELINE_SIZE-1:0]      icache_resp_data;
 logic                            icache_resp_xcpt;
+exception_cause_t                icache_resp_xcpt_cause;
+logic                            icache_resp_access_xcpt;
 logic                            icache_resp_guest_xcpt;
 logic [ICACHE_PPN_SIZE-1:0]      icache_resp_guest_ppn;
 
@@ -239,6 +263,7 @@ logic                            icache_tlb_resp_miss;
 logic                            icache_tlb_resp_ptw_v;
 logic [ICACHE_PPN_SIZE-1:0]      icache_tlb_resp_ppn;
 logic                            icache_tlb_resp_xcpt;
+exception_cause_t                icache_tlb_resp_xcpt_cause;
 logic                            icache_tlb_resp_guest_xcpt;
 logic [ICACHE_PPN_SIZE-1:0]      icache_tlb_resp_guest_ppn;
 
@@ -247,11 +272,12 @@ logic [ICACHE_VPN_SIZE-1:0]      icache_tlb_req_vpn;
 
 logic icache_en_translation;
 logic icache_invalidate;
-logic icache_nc_busy;
 logic icache_nc_valid;
 logic [ICACHELINE_SIZE-1:0]      icache_nc_data;
 logic core_fetch_req_valid;
-
+`ifdef VIDRIOL_DISABLE
+logic icache_nc_busy; 
+`endif // This signal is unused when the iCache is handling the nc_requests, instead of the nc_buffer.
 //--PMU
 pmu_interface_t pmu_interface;
 assign pmu_interface.icache_req = icache_req_valid;
@@ -265,6 +291,9 @@ debug_contr_in_t                debug_contr_in;
 debug_reg_in_t                  debug_reg_in;
 debug_contr_out_t               debug_contr_out;
 debug_reg_out_t                 debug_reg_out;
+
+// *** iCache prefetcher CSR configurability ***
+logic[`ICACHE_PKG_NAME::CSR_PREFETCHER_BITS-1:0] csr_icache_pref_degree;
 
 // *** Core Instance ***
 
@@ -310,10 +339,11 @@ sargantana_subtile #(
     .icache_req_vpn_o(icache_req_vpn),
 
     // To Core
-    .icache_resp_ready_i(icache_resp_ready & ~icache_nc_busy),
+    .icache_resp_ready_i(icache_resp_ready `ifdef VIDRIOL_DISABLE & ~icache_nc_busy `endif),
     .icache_resp_valid_i(icache_resp_valid | icache_nc_valid),
     .icache_resp_data_i(icache_nc_valid ? icache_nc_data : icache_resp_data),
     .icache_resp_xcpt_i(icache_resp_xcpt),
+    .icache_resp_access_xcpt_i(icache_resp_access_xcpt),
     .icache_resp_guest_xcpt_i(icache_resp_guest_xcpt),
     .icache_resp_guest_ppn_i(icache_resp_guest_ppn),
 
@@ -322,6 +352,7 @@ sargantana_subtile #(
     .icache_tlb_resp_ppn_o(icache_tlb_resp_ppn),
     .icache_tlb_resp_guest_ppn_o(icache_tlb_resp_guest_ppn),
     .icache_tlb_resp_xcpt_o(icache_tlb_resp_xcpt),
+    .icache_tlb_resp_access_fault_o(icache_tlb_resp_access_fault),
     .icache_tlb_resp_guest_xcpt_o(icache_tlb_resp_guest_xcpt),
 
     .icache_tlb_req_valid_i(icache_tlb_req_valid),
@@ -368,12 +399,21 @@ sargantana_subtile #(
 `ifdef CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
     .dyn_fpga_mem_latency_o(dyn_fpga_mem_latency_o),
 `endif // CONF_SARGANTANA_ENABLE_DYN_FPGA_MEM_LATENCY
+`ifndef VIDRIOL_DISABLE
+    .vidriol_degree_o(csr_icache_pref_degree),
+`endif
 
     // Interrupts
     .time_irq_i(time_irq_i), // timer interrupt
     .irq_i(irq_i),      // external interrupt in
     .soft_irq_i(soft_irq_i),
-    .time_i(time_i)     // time passed since the core is reset
+    .time_i(time_i),     // time passed since the core is reset
+`ifdef HPDCACHE_OPENPITON
+    // Zawrs reservation-lost level (WRS wakeup)
+    .rs_lost_i(rs_lost_i)
+`else
+    .rs_lost_i(1'b1)
+`endif
 );
 
 // Debug donnections
@@ -404,6 +444,7 @@ assign debug_reg_rf_rdata_o         = debug_reg_out.rf_rdata;
 
 // *** iCache ***
 
+`ifdef VIDRIOL_DISABLE
 nc_icache_buffer #(
     .DRAC_CFG(DracCfg)
 ) nc_icache_bf (
@@ -428,6 +469,32 @@ nc_icache_buffer #(
     .l2_grant_valid_i(io_mem_grant_valid & ~io_mem_grant_inval),
     .l2_resp_data_i(io_mem_grant_bits_data)
 );
+
+logic [ICACHE_INDEX_SIZE-1:0] vidriol_dis_idx_q;
+logic [ICACHE_INDEX_SIZE-1:0] vidriol_dis_idx;
+logic                         vidriol_dis_nomap;
+logic                         vidriol_dis_nomap_q;
+logic                         vidriol_dis_page_q;
+logic                         vidriol_dis_resp_xcpt;
+
+assign vidriol_dis_idx = icache_req_valid ? icache_req_idx : vidriol_dis_idx_q;
+assign vidriol_dis_nomap = icache_tlb_resp_ptw_v & ~icache_tlb_resp_miss &
+                        ~is_inside_mapped_sections(DracCfg, {icache_tlb_resp_ppn, vidriol_dis_idx});
+assign vidriol_dis_resp_xcpt = icache_tlb_resp_xcpt | vidriol_dis_nomap;
+
+always_ff @(posedge clk_i or negedge rstn_i) begin
+    if (!rstn_i) begin
+        vidriol_dis_idx_q   <= '0;
+        vidriol_dis_nomap_q <= 1'b0;
+        vidriol_dis_page_q  <= 1'b0;
+    end else begin
+        vidriol_dis_idx_q   <= vidriol_dis_idx;
+        vidriol_dis_nomap_q <= vidriol_dis_nomap;
+        vidriol_dis_page_q  <= icache_tlb_resp_xcpt;
+    end
+end
+
+assign icache_resp_access_xcpt = icache_resp_xcpt & vidriol_dis_nomap_q & ~vidriol_dis_page_q;
 
 sargantana_top_icache # (
     .KILL_RESP          ( 1'b1          ),
@@ -463,7 +530,7 @@ sargantana_top_icache # (
     .mmu_tresp_ptw_v_i          (icache_tlb_resp_ptw_v),
     .mmu_tresp_ppn_i            (icache_tlb_resp_ppn),
     .mmu_tresp_guest_ppn_i      (icache_tlb_resp_guest_ppn),
-    .mmu_tresp_xcpt_i           (icache_tlb_resp_xcpt),
+    .mmu_tresp_xcpt_i           (vidriol_dis_resp_xcpt),
     .mmu_tresp_xcpt_g_i         (icache_tlb_resp_guest_xcpt),
 
     .icache_treq_valid_o        (icache_tlb_req_valid),
@@ -482,6 +549,151 @@ sargantana_top_icache # (
     .imiss_time_pmu_o           (pmu_interface.icache_miss_time),
     .imiss_kill_pmu_o           (pmu_interface.icache_miss_kill)
 );
+// The legacy iCache does not carry the PTW access-fault qualifier: fetch-side PTW
+// access faults are reported as instruction page faults in this configuration.
+assign icache_resp_access_fault = 1'b0;
+`else
+
+// assign icache_nc_busy = '0; // This signal is unused when the iCache is handling the nc_requests, instead of the nc_buffer.
+
+// Vidriol instruction cache
+
+sargantana_vidriol_pkg::pma_t ipma;
+logic addr_is_nc;
+logic[PHY_VIRT_MAX_ADDR_SIZE-1:0] ipaddr;
+assign ipaddr = icache_en_translation ? {icache_tlb_resp_ppn,{ICACHE_INDEX_SIZE{1'b0}}} : itlb_treq.xaddr[PHY_VIRT_MAX_ADDR_SIZE-1:0] ;
+// Checker for address non-cacheable
+assign addr_is_nc = is_inside_IO_sections(DracCfg, {{{64-drac_pkg::PHY_ADDR_SIZE}{1'b0}},ipaddr})
+                  | range_check(DracCfg.InitBROMBase, DracCfg.InitBROMEnd, {{{64-PHY_ADDR_SIZE}{1'b0}},ipaddr})
+                  | range_check(DracCfg.DebugProgramBufferBase, DracCfg.DebugProgramBufferEnd, {{{64-PHY_ADDR_SIZE}{1'b0}},ipaddr});
+
+assign ipma.cacheable = ((~addr_is_nc) & icache_tlb_req_valid);
+
+assign icache_req_valid = core_fetch_req_valid & icache_resp_ready; // top_tile signal
+`ICACHE_PKG_NAME::dreq_t lagarto_ireq;
+assign lagarto_ireq = '{
+    valid : icache_req_valid                ,
+    kill  : icache_req_kill                 ,
+    flush : icache_flush                    ,
+    xaddr : {{(riscv_pkg::XLEN-(ICACHE_VPN_SIZE+ICACHE_INDEX_SIZE)){'0}},icache_req_vpn,icache_req_idx}
+};
+
+`ICACHE_PKG_NAME::drsp_t icache_resp;
+
+assign icache_resp_ready        = icache_resp.ready      ;
+assign icache_resp_valid        = icache_resp.valid      ;
+assign icache_resp_data         = icache_resp.data       ;
+// assign imem_cpu_resp_addr       = icache_resp.xaddr[ADDR_SIZE-1:0]; // Apparently unused
+assign icache_resp_xcpt         = icache_resp.xcpt_valid ;
+assign icache_resp_xcpt_cause   = icache_resp.xcpt_cause ;
+assign icache_resp_access_xcpt  = icache_resp_xcpt & (icache_resp_xcpt_cause == INSTR_ACCESS_FAULT);
+// assign imem_cpu_resp_pma        = icache_resp.pma        ; // Not implemented yet
+assign icache_nc_valid            = icache_resp.nc_resp    ;
+// Hypervisor implementation
+assign icache_resp_guest_ppn  = icache_resp.guest_ppn ;
+assign icache_resp_guest_xcpt = icache_resp.guest_xcpt_valid;
+
+assign icache_nc_data           = {(ICACHELINE_SIZE/64){icache_resp_data[63:0]}}; // 64 bits is the size of the non-cacheable cache-line
+
+`ICACHE_PKG_NAME::treq_t itlb_treq;
+assign icache_tlb_req_valid  = itlb_treq.valid   ;
+assign icache_tlb_req_vpn  = itlb_treq.xaddr[PHY_VIRT_MAX_ADDR_SIZE-1:ICACHE_INDEX_SIZE];
+
+logic [PHY_VIRT_MAX_ADDR_SIZE-1:0] icache_tlb_resp_paddr;
+logic                              icache_tlb_resp_not_mapped;
+assign icache_tlb_resp_paddr = {icache_tlb_resp_ppn, itlb_treq.xaddr[ICACHE_INDEX_SIZE-1:0]};
+assign icache_tlb_resp_not_mapped = icache_tlb_resp_ptw_v & icache_tlb_req_valid & ~icache_tlb_resp_miss
+                                  & ~is_inside_mapped_sections(DracCfg, icache_tlb_resp_paddr);
+
+assign icache_tlb_resp_xcpt_cause = icache_tlb_resp_xcpt       ? INSTR_PAGE_FAULT   :
+                                    icache_tlb_resp_not_mapped ? INSTR_ACCESS_FAULT :
+                                                                 exception_cause_t'(0);
+
+`ICACHE_PKG_NAME::trsp_t itlb_tresp;
+assign itlb_tresp = '{
+    miss             : icache_tlb_resp_miss        ,
+    ptw_v            : icache_tlb_resp_ptw_v   ,
+    ppn              : icache_tlb_resp_ppn     ,
+    xcpt_valid       : icache_tlb_resp_xcpt | icache_tlb_resp_not_mapped ,
+    xcpt_cause       : icache_tlb_resp_xcpt_cause,
+    guest_ppn        : icache_tlb_resp_guest_ppn ,
+    guest_xcpt_valid : icache_tlb_resp_guest_xcpt,
+    guest_xcpt_cause : INSTR_GUEST_PAGE_FAULT,
+    pma              : ipma
+};
+
+`ICACHE_PKG_NAME::inv_t inval;
+assign inval = '{
+    valid   : io_mem_grant_inval      ,
+    paddr   : io_mem_grant_inval_addr
+};
+
+`ICACHE_PKG_NAME::frsp_t ifill_resp;
+assign ifill_resp = '{
+    valid   : io_mem_grant_valid              ,
+    data    : io_mem_grant_bits_data          ,
+    id      : noc2decoder_icache_id_i           ,
+    noc_ack : noc2decoder_icache_noc_ack_i | brom_req_valid_o      ,
+    inv     : inval
+};
+
+logic ifill_req_is_nc;
+`ICACHE_PKG_NAME::freq_t ifill_req ;
+assign io_mem_acquire_valid  = ifill_req.valid &~ ifill_req_is_nc      ;
+assign io_mem_acquire_bits_addr_block  = ~ifill_req_is_nc ? ifill_req.paddr: '0 ;
+assign io_mem_acquire_id     = ~ifill_req_is_nc ? ifill_req.id : '0 ;
+assign io_mem_acquire_prefetch = '0;
+assign ifill_req_is_nc  = ifill_req.nc_req      ;
+logic[39:0] brom_req_address_d;
+logic[39:0] brom_req_address_q;
+assign brom_req_address_d   = ifill_req_is_nc ? ifill_req.paddr : '0;
+always_ff @(posedge clk_i or negedge rstn_i) begin: ff_brom_req_addr
+  if(!rstn_i)                   brom_req_address_q <= '0;
+  else if(io_mem_acquire_valid) brom_req_address_q <= '0; 
+  else                          brom_req_address_q <=  brom_req_valid_o ? brom_req_address_d : brom_req_address_q;
+end
+assign brom_req_address_o = brom_req_valid_o ? brom_req_address_d : brom_req_address_q ;
+assign brom_req_valid_o   = ifill_req_is_nc & ifill_req.valid;
+
+vidriol_icache_top #(
+    // It is better not to change the values from the instantiation but from the instance_icache_pkg.sv so that they apply also to the structures if needed.
+    // There should be as many instance_icache_pkg.sv as different instances of Vidriol, and specify all the changed parameters for each one on the instantiation.
+    
+    .ASSOCIATIVITY    ( `ICACHE_PKG_NAME::ASSOCIATIVITY    ),
+    .CACHE_SIZE_KB    ( `ICACHE_PKG_NAME::CACHE_SIZE_KB    ),
+    .FETCH_REQ_SIZE   ( `ICACHE_PKG_NAME::FETCH_REQ_SIZE   ),
+    .FSTATUS_SIZE     ( `ICACHE_PKG_NAME::FSTATUS_SIZE     ), 
+    .DEGREE           ( `ICACHE_PKG_NAME::DEGREE           ),
+    .PB_ASSOCIATIVITY ( `ICACHE_PKG_NAME::PB_ASSOCIATIVITY ),
+    .N_PB_DBLOCK      ( `ICACHE_PKG_NAME::N_PB_DBLOCK      ),
+    .ITLB_CYCLE       ( 0                  ),
+    .NC_LINE_WIDTH    ( 64                   ),
+    .inv_t            ( `ICACHE_PKG_NAME::inv_t            ),
+    .dreq_t           ( `ICACHE_PKG_NAME::dreq_t           ),
+    .drsp_t           ( `ICACHE_PKG_NAME::drsp_t           ),
+    .treq_t           ( `ICACHE_PKG_NAME::treq_t           ),
+    .trsp_t           ( `ICACHE_PKG_NAME::trsp_t           ),
+    .freq_t           ( `ICACHE_PKG_NAME::freq_t           ),
+    .frsp_t           ( `ICACHE_PKG_NAME::frsp_t           ),
+    .preq_t           ( `ICACHE_PKG_NAME::preq_t           ),
+    .freq_status_t    ( `ICACHE_PKG_NAME::freq_status_t    )
+) icache (
+    .clk_i              ( clk_i         ),
+    .rstn_i             ( rstn_i        ),                              
+    .dreq_i             ( lagarto_ireq  ),  
+    .dresp_o            ( icache_resp   ),          
+    .tresp_i            ( itlb_tresp    ), 
+    .treq_o             ( itlb_treq     ),                 
+    .fresp_i            ( ifill_resp    ),
+    .freq_o             ( ifill_req     ),
+    .imiss_time_pmu_o   ( pmu_interface.icache_miss_time),
+    .imiss_kill_pmu_o   ( pmu_interface.icache_miss_kill),
+    .csr_degree_i       ( csr_icache_pref_degree) // Prefetcher deactivated
+);
+//assign hpm_event_icache_miss = (io_mem_acquire_valid & noc2decoder_icache_noc_ack_i);
+//assign hpm_event_icache_imiss_kill = '0;
+
+`endif // VIDRIOL_DISABLE
 
 // WBUF time counter type size set to smallest counter that can hold the config value
 typedef logic [$clog2(DracCfg.DCacheWBUFTh+1)-1:0] wbuf_timecnt_t;

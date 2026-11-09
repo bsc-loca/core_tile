@@ -1,4 +1,24 @@
 /*
+ * Copyright 2025 BSC*
+ * *Barcelona Supercomputing Center (BSC)
+ * 
+ * SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
+ * 
+ * Licensed under the Solderpad Hardware License v 2.1 (the “License”); you
+ * may not use this file except in compliance with the License, or, at your
+ * option, the Apache License version 2.0. You may obtain a copy of the
+ * License at
+ * 
+ * https://solderpad.org/licenses/SHL-2.1/
+ * 
+ * Unless required by applicable law or agreed to in writing, any work
+ * distributed under the License is distributed on an “AS IS” BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+/*
  *  Authors       : Arnau Bigas
  *  Creation Date : July, 2023
  *  Description   : This file provides an AXI wrapper of the core, exposing the
@@ -16,6 +36,9 @@
 import fpga_pkg::*, hpdcache_pkg::*, drac_pkg::*;
 
 module axi_wrapper
+`ifndef VIDRIOL_DISABLE
+  `define ICACHE_PKG_NAME sargantana_vidriol_pkg
+`endif
 #(
     parameter drac_pkg::drac_cfg_t DracCfg     = drac_pkg::DracDefaultConfig
 )(
@@ -104,6 +127,34 @@ module axi_wrapper
     logic [drac_pkg::PHY_ADDR_SIZE-1:0] core_icache_request_paddr;
     logic [511:0] core_icache_response_data;
     logic [1:0] l2_response_seqnum;
+
+    parameter int ID_DIFF = DracCfg.MemIDWidth - `ICACHE_PKG_NAME::FSTATUS_SIZE_IDX;
+
+    logic [DracCfg.MemIDWidth-1:0] icache_miss_req_id, icache_miss_resp_id;
+    logic dut_icache_noc_ack;
+
+    `ifdef  VIDRIOL_DISABLE
+    assign icache_miss_req_id = (1 << (DracCfg.MemIDWidth - 1));
+    `else
+
+    logic [`ICACHE_PKG_NAME::FSTATUS_SIZE_IDX-1:0] dut_icache_req_id;
+    generate
+    if((DracCfg.MemIDWidth - 1) < `ICACHE_PKG_NAME::FSTATUS_SIZE_IDX) begin
+        // $display("Error, the number of FSTATUS (iCache) is bigger than the available IDs on the hierarchy!");
+    end
+    else if((DracCfg.MemIDWidth - 1) > `ICACHE_PKG_NAME::FSTATUS_SIZE_IDX) begin
+        parameter int ID_DIFF = DracCfg.MemIDWidth - `ICACHE_PKG_NAME::FSTATUS_SIZE_IDX;
+        assign icache_miss_req_id = {1'b1,{(ID_DIFF - 1){1'b1}},dut_icache_req_id};
+    end
+    else begin // There is the maximum amount of FSTATUS available, 2^7
+        assign icache_miss_req_id = {1'b1,dut_icache_req_id};
+    end
+    endgenerate
+    logic [`ICACHE_PKG_NAME::FSTATUS_SIZE_IDX-1:0] dut_icache_resp_id;
+    assign dut_icache_resp_id = icache_miss_resp_id[`ICACHE_PKG_NAME::FSTATUS_SIZE_IDX-1:0];
+
+    `endif // VIDRIOL_DISABLE
+
 
         // uncacheable fetch mux
     always_comb begin
@@ -220,6 +271,11 @@ module axi_wrapper
         .io_mem_grant_valid(core_icache_response_valid),
         .io_mem_grant_bits_data(core_icache_response_data),
         .io_mem_grant_bits_addr_beat(l2_response_seqnum),
+        `ifndef VIDRIOL_DISABLE
+        .io_mem_acquire_id(dut_icache_req_id),
+        .noc2decoder_icache_noc_ack_i(dut_icache_noc_ack),
+        .noc2decoder_icache_id_i(dut_icache_resp_id),
+        `endif //VIDRIOL_DISABLE
         .io_mem_grant_inval(0),
         .io_mem_grant_inval_addr(0),
 
@@ -304,8 +360,11 @@ module axi_wrapper
 
         .icache_miss_valid_i(icache_l1_request_valid),
         .icache_miss_paddr_i(icache_l1_request_paddr),
-        .icache_miss_id_i(1 << (DracCfg.MemIDWidth - 1)),
+        .icache_miss_id_i(icache_miss_req_id),
 
+        .icache_miss_req_ack_o(dut_icache_noc_ack), // Original iCache will just ignore the follwing signals
+        .icache_miss_resp_id_o(icache_miss_resp_id),
+        
         .icache_miss_resp_valid_o(icache_l2_response_valid),
         .icache_miss_resp_data_o(icache_l2_response_data),
         .icache_miss_resp_beat_o(l2_response_seqnum),

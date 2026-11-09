@@ -58,8 +58,11 @@ module axi_arbiter
   // *** iCache interface ***
   input  wire logic                               icache_miss_valid_i,
   output wire logic                               icache_miss_ready_o,
-  input  wire logic [drac_pkg::PHY_ADDR_SIZE-1:0]           icache_miss_paddr_i,
-  input  wire hpdcache_mem_id_t         icache_miss_id_i,
+  input  wire logic [drac_pkg::PHY_ADDR_SIZE-1:0] icache_miss_paddr_i,
+  // macro VIDRIOL_DISABLE shall not remove the follwing three signals as the original iCache will just ignore them, thus they can be responded anyways
+  input  wire hpdcache_mem_id_t                   icache_miss_id_i,
+  output wire logic                               icache_miss_req_ack_o, 
+  output wire hpdcache_mem_id_t                   icache_miss_resp_id_o,
   output wire logic                               icache_miss_resp_valid_o,
   output wire logic [511:0]                       icache_miss_resp_data_o,
   output wire logic [1:0]                         icache_miss_resp_beat_o,
@@ -183,6 +186,7 @@ module axi_arbiter
   );
 
   assign icache_miss_req_w   = icache_miss_valid_i,
+         icache_miss_req_ack_o = icache_miss_req_wok & icache_miss_valid_i,
          icache_miss_ready_o = icache_miss_req_wok;
 
   assign icache_miss_req_wdata.mem_req_addr      = icache_miss_paddr_i,
@@ -369,7 +373,8 @@ module axi_arbiter
   always_comb
   begin
     for (int i = 0; i < MEM_RESP_RT_DEPTH; i++) begin
-      mem_resp_read_rt[i] = (i == int'(   icache_miss_id_i)) ? 0 : 1;
+      mem_resp_read_rt[i] = (i == int'(8'hFF)) ? 1 : 
+                            ((i > int'(8'h7F)) ? 0 : 1); //ToDo Fix it for multiple iCache ID
     end
   end
 
@@ -394,6 +399,7 @@ module axi_arbiter
   );
 
   assign icache_miss_resp_w          = mem_resp_read_valid_arb[0],
+         icache_miss_resp_id_o       = mem_resp_read_arb[0].mem_resp_r_id,
          icache_miss_resp_wdata      = mem_resp_read_arb[0],
          mem_resp_read_ready_arb[0]  = icache_miss_resp_wok;
 

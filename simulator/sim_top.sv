@@ -1,3 +1,23 @@
+/*
+ * Copyright 2025 BSC*
+ * *Barcelona Supercomputing Center (BSC)
+ * 
+ * SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
+ * 
+ * Licensed under the Solderpad Hardware License v 2.1 (the “License”); you
+ * may not use this file except in compliance with the License, or, at your
+ * option, the Apache License version 2.0. You may obtain a copy of the
+ * License at
+ * 
+ * https://solderpad.org/licenses/SHL-2.1/
+ * 
+ * Unless required by applicable law or agreed to in writing, any work
+ * distributed under the License is distributed on an “AS IS” BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 `include "hpdcache_typedef.svh"
 
 module sim_top #(
@@ -8,7 +28,12 @@ module sim_top #(
     input logic tb_rstn
 `endif
 );
-    import drac_pkg::*;
+    import drac_pkg::*;    
+    `ifdef VIDRIOL_DISABLE
+        `define ICACHE_PKG sargantana_icache_pkg
+    `else
+        `define ICACHE_PKG sargantana_vidriol_pkg
+    `endif
 
     logic dut_rstn, debug_reset;
 
@@ -122,6 +147,11 @@ module sim_top #(
     assign dut_icache_response_data = uc_fetch_resp_valid ? uc_fetch_resp_data : icache_l2_response_data;
     assign dut_icache_response_valid = uc_fetch_resp_valid | icache_l2_response_valid;
 
+    `ifndef VIDRIOL_DISABLE
+    logic [`ICACHE_PKG::FSTATUS_SIZE_IDX-1:0] dut_icache_req_id;
+    logic                                     dut_icache_noc_ack;
+    logic [`ICACHE_PKG::FSTATUS_SIZE_IDX-1:0] dut_icache_resp_id;
+    `endif
 
     parameter type hpdcache_mem_addr_t = logic [DRAC_CFG.MemAddrWidth-1:0];
     parameter type hpdcache_mem_id_t = logic [DRAC_CFG.MemIDWidth-1:0];
@@ -206,6 +236,11 @@ module sim_top #(
         .io_mem_grant_valid(dut_icache_response_valid),
         .io_mem_grant_bits_data(dut_icache_response_data),
         .io_mem_grant_bits_addr_beat(2'b0),
+        `ifndef VIDRIOL_DISABLE
+        .io_mem_acquire_id(dut_icache_req_id),
+        .noc2decoder_icache_noc_ack_i(dut_icache_noc_ack),
+        .noc2decoder_icache_id_i(dut_icache_resp_id),
+        `endif //VIDRIOL_DISABLE
         .io_mem_grant_inval(0),
         .io_mem_grant_inval_addr(0),
 
@@ -285,6 +320,9 @@ module sim_top #(
 
     l2_behav #(
         .DATA_CACHE_LINE_SIZE(DRAC_CFG.MemDataWidth),
+        `ifndef VIDRIOL_DISABLE
+        .FSTATUS_SIZE(`ICACHE_PKG::FSTATUS_SIZE),
+        `endif // VIDRIOL_DISABLE
         .INST_CACHE_LINE_SIZE(sargantana_icache_pkg::SET_WIDHT),
         .ADDR_SIZE(DRAC_CFG.MemAddrWidth)
     ) l2_inst (
@@ -297,7 +335,12 @@ module sim_top #(
         .ic_valid_i(icache_l1_request_valid),
         .ic_valid_o(icache_l2_response_valid),
         .ic_line_o(icache_l2_response_data),
-	    .ic_seq_num_o(),
+	      .ic_seq_num_o(),
+        `ifndef VIDRIOL_DISABLE
+        .ic_id_i (dut_icache_req_id),
+        .ic_req_ack_o (dut_icache_noc_ack),
+        .ic_id_o (dut_icache_resp_id),
+        `endif // VIDRIOL_DISABLE
 
         // *** dCache Read Interface ***
         .dc_read_req_ready_o(mem_req_read_ready),
@@ -519,8 +562,15 @@ module sim_top #(
     initial begin
         string dumpfile;
         start_cycles = 0;
+
+        // Configure waveform dump
         if ($test$plusargs("vcd")) begin
-            $dumpfile("dump_file.vcd");
+            if (!$value$plusargs("vcd=%s", dumpfile)) begin
+                dumpfile = "dump.vcd";
+            end
+            $dumpfile(dumpfile);
+            $display("Dumping waveforms to %s", dumpfile);
+
             if (!$value$plusargs("start-vcd-cycles=%d", start_cycles)) begin
                 $dumpvars();
             end
